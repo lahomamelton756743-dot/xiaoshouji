@@ -29,6 +29,7 @@ $BUILD_TOOLS/aapt2 link \
     -I "$PLATFORM" \
     --manifest "$SRC/AndroidManifest.xml" \
     --java "$OUT/gen" \
+    -A "$SRC/assets" \
     --auto-add-overlay \
     -R "$OUT/compiled_res"/*.flat
 
@@ -65,15 +66,15 @@ $BUILD_TOOLS/apksigner sign \
     --ks-pass pass:"$PUBLIC_KS_PASSWORD" \
     --key-pass pass:"$PUBLIC_KS_PASSWORD" \
     --ks-key-alias zhangxinchuang-public \
-    --out "$PROJECT/LittlePhone-v0.4.0.apk" \
+    --out "$PROJECT/LittlePhone-v0.4.1.apk" \
     app.aligned.apk
 
 echo "=== Verifying fixed public signature ==="
-VERIFY_OUTPUT=$($BUILD_TOOLS/apksigner verify --verbose --print-certs "$PROJECT/LittlePhone-v0.4.0.apk")
+VERIFY_OUTPUT=$($BUILD_TOOLS/apksigner verify --verbose --print-certs "$PROJECT/LittlePhone-v0.4.1.apk")
 echo "$VERIFY_OUTPUT"
 echo "$VERIFY_OUTPUT" | grep -qi "aea75c9b2b5f5c42d56b72d4a69a79a38e1c57f27db021017be8656bc8f002fb"
 
 echo ""
 echo "=== Done ==="
-echo "APK: $PROJECT/LittlePhone-v0.4.0.apk"
-ls -lh "$PROJECT/LittlePhone-v0.4.0.apk"
+echo "APK: $PROJECT/LittlePhone-v0.4.1.apk"
+ls -lh "$PROJECT/LittlePhone-v0.4.1.apk"

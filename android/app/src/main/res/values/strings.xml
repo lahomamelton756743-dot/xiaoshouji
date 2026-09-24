@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">小手机</string>
-    <string name="accessibility_name">小手机辅助服务</string>
-    <string name="accessibility_desc">在你开启服务后，允许小手机在你主动开启后执行返回/主页/点击/滑动/打开 App、应用门禁与提醒等设备动作。截图能力不在小手机中提供。</string>
-</resources>

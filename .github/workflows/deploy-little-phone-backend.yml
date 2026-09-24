@@ -1,0 +1,92 @@
+name: 部署小手机后端 v0.5.1（全新）
+
+on:
+  workflow_dispatch:
+    inputs:
+      worker_name:
+        description: "Worker 名称"
+        required: true
+        default: "little-phone-backend"
+      d1_database_name:
+        description: "D1 数据库名称（不存在会自动新建）"
+        required: true
+        default: "little-phone-v051"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      LINJIAN_TOKEN: ${{ secrets.LINJIAN_TOKEN }}
+    steps:
+      - name: 拉取仓库
+        uses: actions/checkout@v4
+
+      - name: 设置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 安装 Wrangler
+        working-directory: server/little-phone-cloudflare
+        run: npm install
+
+      - name: 检查必要 Secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo "缺少 CLOUDFLARE_API_TOKEN" >&2; exit 2)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo "缺少 CLOUDFLARE_ACCOUNT_ID" >&2; exit 2)
+          test -n "$LINJIAN_TOKEN" || (echo "缺少 LINJIAN_TOKEN" >&2; exit 2)
+
+      - name: 查找或创建全新 D1
+        id: d1
+        working-directory: server/little-phone-cloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME="${{ inputs.d1_database_name }}"
+          npx wrangler d1 list --json > d1-list.json
+          ID=$(node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("d1-list.json","utf8")); const n=process.argv[1]; const x=a.find(v=>v.name===n); process.stdout.write(x ? (x.uuid||x.id||"") : "")' "$NAME")
+          if [ -z "$ID" ]; then
+            echo "D1 不存在，正在创建：$NAME"
+            npx wrangler d1 create "$NAME"
+            npx wrangler d1 list --json > d1-list.json
+            ID=$(node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("d1-list.json","utf8")); const n=process.argv[1]; const x=a.find(v=>v.name===n); if(!x) process.exit(2); process.stdout.write(x.uuid||x.id||"")' "$NAME")
+          else
+            echo "已找到 D1：$NAME"
+          fi
+          test -n "$ID"
+          echo "database_id=$ID" >> "$GITHUB_OUTPUT"
+
+      - name: 生成 wrangler.toml
+        working-directory: server/little-phone-cloudflare
+        shell: bash
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "${{ inputs.worker_name }}"
+          main = "worker.js"
+          compatibility_date = "2026-09-01"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "${{ inputs.d1_database_name }}"
+          database_id = "${{ steps.d1.outputs.database_id }}"
+          TOML
+
+      - name: 部署 Worker
+        working-directory: server/little-phone-cloudflare
+        run: npx wrangler deploy --config wrangler.toml
+
+      - name: 写入小手机 Token
+        working-directory: server/little-phone-cloudflare
+        shell: bash
+        run: |
+          printf '%s' "$LINJIAN_TOKEN" | npx wrangler secret put LINJIAN_TOKEN --config wrangler.toml
+
+      - name: 完成
+        run: |
+          echo "小手机后端已部署。"
+          echo "D1: ${{ inputs.d1_database_name }}"
+          echo "Worker: ${{ inputs.worker_name }}"

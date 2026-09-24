@@ -1003,7 +1003,7 @@ function makeWalletTakeoutServer() {
 }
 
 function makeServer() {
-  const server = new McpServer({ name: "掌心窗", version: "0.5.0" });
+  const server = new McpServer({ name: "掌心窗", version: "0.5.1" });
   const commandBackedTools = new Set([
     "visit_little_phone", "peek_screen", "get_screen_nodes", "tap_text", "input_text", "draft_xhs_comment", "xhs_comment", "send_visible_comment_after_confirmation",
     "add_guardian_calendar_event", "care_action", "trigger_guidian", "mark_guidian_returned",
@@ -1071,6 +1071,15 @@ function makeServer() {
     return textResult(await res.json());
   });
 
+  server.tool("leave_little_phone_trace", "手动在小手机留下一条 7 天留痕。适合记录一件刚发生的小事；它不是聊天消息。", {
+    title: z.string().max(120).default("daddy 留下一条痕迹"),
+    content: z.string().max(1000).default(""),
+    author: z.string().max(40).default("daddy")
+  }, async ({ title="daddy 留下一条痕迹", content="", author="daddy" }) => {
+    const res = await linjianFetch("/api/littlephone/events", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, content, author }) });
+    return textResult(await res.json());
+  });
+
   server.tool("leave_little_phone_paper", "在小手机纸条池留一张轻量纸条。首页会随机轮播，并尽量在一轮内不重复。", {
     content: z.string().min(1).max(800), author: z.string().max(40).default("daddy")
   }, async ({ content, author = "daddy" }) => {
@@ -1109,6 +1118,14 @@ function makeServer() {
 
   server.tool("set_little_phone_todo_done", "把一条小手机待办设为完成或未完成。", { id:z.string(), done:z.boolean().default(true) }, async ({id,done=true}) => {
     const res = await linjianFetch("/api/littlephone/todos/toggle", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,done}) });
+    return textResult(await res.json());
+  });
+
+  server.tool("update_little_phone_todo", "修改一条小手机待办，可改标题、到期时间和提醒时间。", {
+    id:z.string(), title:z.string().max(240).optional(), due_at:z.string().max(40).optional(), remind_at:z.string().max(40).optional()
+  }, async ({id,title,due_at,remind_at}) => {
+    const body={id}; if(title!==undefined)body.title=title; if(due_at!==undefined)body.due_at=due_at; if(remind_at!==undefined)body.remind_at=remind_at;
+    const res = await linjianFetch("/api/littlephone/todos/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
     return textResult(await res.json());
   });
 

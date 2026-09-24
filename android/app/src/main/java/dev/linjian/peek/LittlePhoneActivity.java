@@ -29,7 +29,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 小手机 v0.5 Web/PWA 外壳。
+ * 小手机 v0.5.1 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -185,7 +185,14 @@ public class LittlePhoneActivity extends Activity {
 
         @JavascriptInterface
         public void openNativeSettings() {
-            runOnUiThread(() -> startActivity(new Intent(LittlePhoneActivity.this, MainActivity.class)));
+            // v0.5.1：权限入口留在“小手机”里，不再跳回旧掌心窗主页。
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception ignored) { }
+            });
         }
 
         @JavascriptInterface

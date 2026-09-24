@@ -12,7 +12,7 @@ const KNOWN_APPS = {
   Speedcat: "", speedcat: ""
 };
 const ALLOWED_ACTIONS = new Set([
-  "noop", "peek", "play_audio", "play_lingyin", "play_jingming", "open_app", "home", "back", "recents",
+  "noop", "play_audio", "play_lingyin", "play_jingming", "open_app", "home", "back", "recents",
   "screen_off", "turn_screen_off", "lock_screen", "phone_screen_off", "tap", "swipe", "set_alarm", "send_notification",
   "run_sequence", "save_known_app", "get_screen_nodes", "tap_text", "input_text", "lock_app", "unlock_app",
   "temporary_unlock_app", "extend_lock", "deny_unlock_request", "get_zhizhi_now", "get_lock_state", "set_emergency_passphrase",
@@ -57,8 +57,8 @@ async function handle(request, env) {
     if (path === "/api/voice_tone") return getNestedState(env, url, "voice_tone");
     if (path === "/api/companion/state") return getCompanionState(env, url);
     if (path === "/api/activity/events") return listActivityEvents(env, url);
-    if (path === "/api/latest.json") return latestMeta(env);
-    if (path === "/api/latest") return latestScreenshot(env);
+    if (path === "/api/latest.json") return json({ ok: false, error: "screenshot_disabled", message: "小手机不提供截图读取能力" }, 410);
+    if (path === "/api/latest") return json({ ok: false, error: "screenshot_disabled", message: "小手机不提供截图读取能力" }, 410);
     if (path === "/api/appgate/unlock_requests") return listUnlockRequests(env);
     if (path === "/api/focus_state") return getNestedState(env, url, "focus_mode");
     if (path === "/api/stickers/list") return listStickersApi(env, url);
@@ -68,7 +68,7 @@ async function handle(request, env) {
   }
 
   if (request.method === "POST") {
-    if (path === "/api/peek") return queueCommand(env, { device_id: DEFAULT_DEVICE, action: "peek" });
+    if (path === "/api/peek") return json({ ok: false, error: "screenshot_disabled", message: "小手机不提供截图/窥屏能力" }, 410);
     if (path === "/api/command") return queueCommand(env, await readJson(request));
     if (path === "/api/device/state") return saveDeviceState(env, await readJson(request));
     if (path === "/api/device/report") return saveDeviceReport(env, await readJson(request));
@@ -80,7 +80,7 @@ async function handle(request, env) {
     if (path === "/api/stickers/upload") return uploadStickerApi(env, await readJson(request));
     if (path === "/api/stickers/update") return updateStickerApi(env, await readJson(request));
     if (path === "/api/stickers/delete") return deleteStickerApi(env, await readJson(request));
-    if (path === "/api/screenshot") return saveScreenshot(env, request);
+    if (path === "/api/screenshot") return json({ ok: false, error: "screenshot_disabled", message: "小手机已关闭截图能力" }, 410);
     if (path === "/api/lingyin/create" || path === "/api/jingming/create") return json({ ok: false, error: "cloudflare_lite_no_audio_generation", detail: "聆音/鲸鸣生成请切回 Render；已有 audio_url 的 play_audio/play_lingyin 命令仍可通过 /api/command 下发。" }, 501);
   }
 
@@ -272,9 +272,6 @@ const MCP_TOOLS = [
   { name: "get_companion_actions", description: "读取掌心窗中陪伴对象最近的真实行动记录。", inputSchema: obj({ limit: int(20) }) },
   { name: "get_activity_events", description: "读取掌心窗最近活动记录。", inputSchema: obj({ device_id: str(""), source: str(""), limit: int(50) }) },
   { name: "add_activity_event", description: "手动写入一条掌心窗活动事件。", inputSchema: obj({ device_id: str(DEFAULT_DEVICE), source: str("linche"), type: str("activity"), title: str(""), subtitle: str(""), app_name: str(""), package_name: str(""), action: str(""), status: str("completed"), metadata_json: anyObj() }, ["source", "type", "title"]) },
-  { name: "latest_screen", description: "读取最近一次掌心窗截图；如果有图片，会返回图片内容。", inputSchema: obj({}) },
-  { name: "peek_screen", description: "向手机下发截图/窥屏指令，手机轮询到后执行并回传。", inputSchema: obj({ device_id: str(DEFAULT_DEVICE), wait_seconds: int(8) }) },
-
   { name: "get_screen_nodes", description: "读取当前屏幕无障碍节点：文字、控件类型、可点击状态与坐标。", inputSchema: obj({ device_id: str(DEFAULT_DEVICE), wait_seconds: int(8) }) },
   { name: "tap_text", description: "按当前屏幕文字精准点击。", inputSchema: obj({ target_text: str(""), match: str("contains"), index: int(1), device_id: str(DEFAULT_DEVICE), wait_seconds: int(8) }, ["target_text"]) },
   { name: "input_text", description: "把文字输入到当前已聚焦或第一个可编辑输入框；不会自动发送。", inputSchema: obj({ text: str(""), append: bool(false), device_id: str(DEFAULT_DEVICE), wait_seconds: int(8) }, ["text"]) },
@@ -676,9 +673,6 @@ async function callMcpTool(name, args = {}, env) {
     case "get_companion_actions": return mcpText(await responseJson(await getCompanionState(env, fakeUrl(`/api/companion/state?limit=${Number(args.limit || 20)}`))));
     case "get_activity_events": return mcpText(await responseJson(await listActivityEvents(env, fakeUrl(`/api/activity/events?${qs({ device_id: args.device_id || "", source: args.source || "", limit: args.limit || 50 })}`))));
     case "add_activity_event": return mcpText(await responseJson(await saveActivityEvent(env, args || {})));
-    case "latest_screen": return latestScreenMcp(env);
-    case "peek_screen": return observed({ action: "peek" }, args.wait_seconds ?? 8);
-
     case "get_screen_nodes": return observed({ action: "get_screen_nodes" }, args.wait_seconds ?? 8);
     case "tap_text": return observed({ action: "tap_text", target_text: args.target_text || "", match: args.match || "contains", index: args.index || 1, payload: { target_text: args.target_text || "", match: args.match || "contains", index: args.index || 1 } }, args.wait_seconds ?? 8);
     case "input_text": return observed({ action: "input_text", text: args.text || "", append: Boolean(args.append), payload: { text: args.text || "", append: Boolean(args.append) } }, args.wait_seconds ?? 8);

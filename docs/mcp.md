@@ -242,3 +242,10 @@ Render 一键部署时，`LINJIAN_URL` 会由 Blueprint 自动引用 server 的�
 - `add_little_phone_todo` / `list_little_phone_todos` / `set_little_phone_todo_done`：待办。
 
 来访失败不写入 v0.5 留痕；成功快照默认有效 30 分钟。
+
+## 小手机 v0.5.1 补充工具
+
+- `leave_little_phone_trace`：手动写一条 7 天独立过期的小手机留痕。
+- `update_little_phone_todo`：修改待办标题、到期时间、提醒时间。
+
+纸条仍使用 `leave_little_phone_paper` / `list_little_phone_papers`，已从信箱 UI 中独立为“纸条箱”。

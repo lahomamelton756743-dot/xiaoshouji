@@ -28,7 +28,7 @@ from urllib.request import Request, urlopen
 DEFAULT_PORT = 8513
 DEFAULT_KEEP = 3
 MAX_UPLOAD_BYTES = 24 * 1024 * 1024
-VERSION = "0.5.0-fusion"
+VERSION = "0.5.1-fusion"
 DEFAULT_DEVICE = os.environ.get("LINJIAN_DEFAULT_DEVICE", "android-phone")
 ACTIVITY_EVENT_LIMIT = 500
 
@@ -596,7 +596,7 @@ class State:
         return entry
 
 
-    # ---------- 小手机 v0.5 数据 ----------
+    # ---------- 小手机 v0.5.1 数据 ----------
     def _load_list_file(self, path: Path, limit: int) -> list[dict]:
         try:
             if path.exists():
@@ -732,7 +732,15 @@ class State:
         with self.dailybook_lock: return json.loads(json.dumps(self.dailybook[:max(1, min(300, limit))], ensure_ascii=False))
 
     def add_todo(self, data: dict) -> dict:
-        entry = {"id": str(uuid.uuid4()), "author": clip_text(str(data.get("author") or "用户"), 40), "title": clip_text(str(data.get("title") or data.get("content") or ""), 240), "due_at": clip_text(str(data.get("due_at") or ""), 40), "done": False, "created_at": now_iso()}
+        entry = {
+            "id": str(uuid.uuid4()),
+            "author": clip_text(str(data.get("author") or "用户"), 40),
+            "title": clip_text(str(data.get("title") or data.get("content") or ""), 240),
+            "due_at": clip_text(str(data.get("due_at") or ""), 40),
+            "remind_at": clip_text(str(data.get("remind_at") or ""), 40),
+            "done": False,
+            "created_at": now_iso(),
+        }
         with self.todos_lock:
             self.todos.insert(0, entry); del self.todos[2000:]
             self._save_list_file(self.todos_path, self.todos, 2000)
@@ -742,6 +750,19 @@ class State:
 
     def list_todos(self, limit: int = 100) -> list[dict]:
         with self.todos_lock: return json.loads(json.dumps(self.todos[:max(1, min(300, limit))], ensure_ascii=False))
+
+    def update_todo(self, todo_id: str, data: dict) -> dict | None:
+        with self.todos_lock:
+            item = next((x for x in self.todos if x.get("id") == todo_id), None)
+            if item is None: return None
+            if "title" in data:
+                title = clip_text(str(data.get("title") or ""), 240)
+                if title: item["title"] = title
+            if "due_at" in data: item["due_at"] = clip_text(str(data.get("due_at") or ""), 40)
+            if "remind_at" in data: item["remind_at"] = clip_text(str(data.get("remind_at") or ""), 40)
+            item["updated_at"] = now_iso()
+            self._save_list_file(self.todos_path, self.todos, 2000)
+            return dict(item)
 
     def toggle_todo(self, todo_id: str, done: bool) -> dict | None:
         with self.todos_lock:
@@ -882,17 +903,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.state.command_history[cmd.get("id", "")] = dict(cmd)
             self._json(200, {"ok": True, "command": cmd})
             return
-        if path == "/api/latest.json":
+        if path in ("/api/latest.json", "/api/latest"):
             if not self._require_token(): return
-            shot = self.state.latest_shot()
-            if not shot: self._json(404, {"ok": False, "error": ERR_NOT_FOUND}); return
-            st = shot.stat(); self._json(200, {"ok": True, "filename": shot.name, "size": st.st_size, "mtime": st.st_mtime, "url": "/api/latest"}); return
-        if path == "/api/latest":
-            if not self._require_token(): return
-            shot = self.state.latest_shot()
-            if not shot: self._json(404, {"ok": False, "error": ERR_NOT_FOUND}); return
-            ctype = "image/png" if shot.suffix.lower() == ".png" else "image/jpeg"
-            self._send_bytes(200, shot.read_bytes(), ctype); return
+            self._json(410, {"ok": False, "error": "screenshot_disabled", "message": "小手机不提供截图读取能力"}); return
         if path in ("/api/device/state", "/api/life_state"):
             if not self._require_token(): return
             device_id = qs.get("device_id", [DEFAULT_DEVICE])[0] or DEFAULT_DEVICE
@@ -984,6 +997,15 @@ class Handler(BaseHTTPRequestHandler):
             self._queue(cmd)
             with self.state.commands_lock: self.state.command_history[cmd.get("id", "")] = dict(cmd)
             self._json(200, {"ok": True, "command": cmd, "mode": "read_once"}); return
+        if path == "/api/littlephone/events":
+            if not self._require_token(): return
+            data = self._read_json()
+            author = clip_text(str(data.get("author") or "瑞安"), 40)
+            title = clip_text(str(data.get("title") or f"{author} 留下一条痕迹"), 120)
+            content = clip_text(str(data.get("content") or ""), 1000)
+            actor = "daddy" if author.lower() in ("daddy", "gpt", "companion") else "user"
+            event = self.state.add_littlephone_event(actor, "manual", title, content, {"source": "littlephone"})
+            self._json(200, {"ok": True, "event": event}); return
         if path == "/api/littlephone/papers":
             if not self._require_token(): return
             data = self._read_json(); content = clip_text(str(data.get("content") or ""), 800)
@@ -1004,6 +1026,11 @@ class Handler(BaseHTTPRequestHandler):
             data = self._read_json(); item = self.state.toggle_todo(str(data.get("id") or ""), bool(data.get("done")))
             if item is None: self._json(404, {"ok": False, "error": "todo_not_found"}); return
             self._json(200, {"ok": True, "todo": item}); return
+        if path == "/api/littlephone/todos/update":
+            if not self._require_token(): return
+            data = self._read_json(); item = self.state.update_todo(str(data.get("id") or ""), data)
+            if item is None: self._json(404, {"ok": False, "error": "todo_not_found"}); return
+            self._json(200, {"ok": True, "todo": item}); return
         if path == "/api/mail":
             if not self._require_token(): return
             data = self._read_json(); content = clip_text(str(data.get("content") or ""), 6000)
@@ -1016,7 +1043,9 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "mail": item}); return
         if path == "/api/mail/seen":
             if not self._require_token(): return
-            data = self._read_json(); count = self.state.mark_mail_seen(str(data.get("id") or ""))
+            data = self._read_json(); mail_id = str(data.get("id") or ""); count = self.state.mark_mail_seen(mail_id)
+            if count > 0:
+                self.state.add_littlephone_event("user", "mail_open", "瑞安看了一封信", "", {"mail_id": mail_id})
             self._json(200, {"ok": True, "marked": count}); return
         if path == "/api/capsules":
             if not self._require_token(): return
@@ -1066,7 +1095,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, resolve_jd_share_link(data.get("url") or data.get("link") or "", data.get("item_query") or data.get("query") or "")); return
         if path == "/api/peek":
             if not self._require_token(): return
-            self._queue(make_command(DEFAULT_DEVICE, "peek")); self._json(200, {"ok": True, "queued": True}); return
+            self._json(410, {"ok": False, "error": "screenshot_disabled", "message": "小手机不提供截图/窥屏能力"}); return
         if path == "/api/command":
             if not self._require_token(): return
             data = self._read_json()

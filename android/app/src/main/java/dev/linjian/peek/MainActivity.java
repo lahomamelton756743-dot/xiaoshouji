@@ -108,6 +108,7 @@ public class MainActivity extends Activity {
     private SoftAvatarView companionAvatarView;
     private ImageView companionRestArt;
     private TextView companionPresenceText, sharedWhisperText, sharedWhisperMetaText, companionActionsPreview, todayJourneyText, guardOverviewText;
+    private TextView homeMessagePreview, homeTracePreview;
     private TextView todayNextTitle, todayNextDetail, companionDaysText, companionSinceText, companionAnniversaryText, guardDeviceStatusText, guardRecordText;
     private TextView calendarHeroTitle, calendarHeroDetail, calendarMonthTitle, calendarSelectedTitle, calendarSelectedDetail;
     private LinearLayout calendarGrid, calendarSelectedEventsContainer;
@@ -136,7 +137,7 @@ public class MainActivity extends Activity {
         loadSettings();
         NowState.start(this);
 
-        DebugState.append(this, "掌心窗公开版 v0.3.8.9 已打开");
+        DebugState.append(this, "小手机 v0.3.3 已打开");
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 13);
         serviceRunning = CompanionService.isRunning();
         updateUI();
@@ -148,7 +149,7 @@ public class MainActivity extends Activity {
         if (notificationListenerButton != null) notificationListenerButton.setOnClickListener(v -> openNotificationListenerSettings());
         if (toggleButton != null) toggleButton.setOnClickListener(v -> { if (serviceRunning) stopCompanionService(); else startCompanionService(); });
         if (refreshLifeButton != null) refreshLifeButton.setOnClickListener(v -> { saveSettings(); updateUI(); Toast.makeText(this, "已刷新生活总览", Toast.LENGTH_SHORT).show(); });
-        if (testButton != null) testButton.setOnClickListener(v -> testScreenshot());
+        if (testButton != null) { testButton.setVisibility(View.GONE); testButton.setEnabled(false); }
         if (openXhsButton != null) openXhsButton.setOnClickListener(v -> openPackage(AppPrefs.packageForApp(this, "小红书")));
         if (openTargetAppButton != null) openTargetAppButton.setOnClickListener(v -> openPackage(AppPrefs.homeTargetPackage(this)));
         if (homeButton != null) homeButton.setOnClickListener(v -> { ScreenshotService svc = ScreenshotService.getInstance(); toast(svc != null && svc.doHome()); });
@@ -199,17 +200,27 @@ public class MainActivity extends Activity {
 
         if (tabSettings != null) tabSettings.setOnClickListener(v -> showTab("settings"));
         if (tabSee != null) tabSee.setOnClickListener(v -> startActivity(new Intent(this, TraceActivity.class)));
-        if (tabControl != null) tabControl.setOnClickListener(v -> showTab("settings"));
+        if (tabControl != null) tabControl.setOnClickListener(v -> { Intent i = new Intent(this, TraceActivity.class); i.putExtra("compose", true); startActivity(i); });
         if (tabLife != null) tabLife.setOnClickListener(v -> showTab("life"));
-        if (tabGate != null) tabGate.setOnClickListener(v -> showTab("gate"));
-        if (tabDebug != null) tabDebug.setOnClickListener(v -> showTab("settings"));
+        if (tabGate != null) tabGate.setOnClickListener(v -> startActivity(new Intent(this, MessageActivity.class)));
+        if (tabDebug != null) tabDebug.setOnClickListener(v -> showTab("see"));
         if (quickSeeButton != null) quickSeeButton.setOnClickListener(v -> showTab("see"));
         if (quickGuardButton != null) quickGuardButton.setOnClickListener(v -> showTab("gate"));
-        CompanionWindowState.recordJourney(this, "打开掌心窗", "回到今天的窗边");
-        showTab("life");
+        CompanionWindowState.recordJourney(this, "打开小手机", "回到我们的小手机");
+        String requestedTab = getIntent() == null ? "" : getIntent().getStringExtra("open_tab");
+        showTab("see".equals(requestedTab) ? "see" : ("settings".equals(requestedTab) ? "settings" : "life"));
         applyBottomNavigationInsets();
         playOpeningWindowAnimation();
         checkForUpdates(false);
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String requestedTab = intent == null ? "" : intent.getStringExtra("open_tab");
+        if ("see".equals(requestedTab)) showTab("see");
+        else if ("settings".equals(requestedTab)) showTab("settings");
+        else showTab("life");
     }
 
     private void bindViews() {
@@ -336,7 +347,7 @@ public class MainActivity extends Activity {
         copy.setGravity(Gravity.CENTER_VERTICAL);
         copy.setPadding(dp(22), dp(24), dp(82), dp(18));
         copy.setElevation(dp(6));
-        copy.addView(label("今日窗语", 10));
+        copy.addView(label("现在", 10));
         overviewAdviceText = title("把今天，\n轻轻收进窗里。", 23);
         overviewAdviceText.setLineSpacing(dp(5), 1f);
         overviewAdviceText.setMaxLines(3);
@@ -356,11 +367,31 @@ public class MainActivity extends Activity {
         heroCard = heroSurface;
         root.addView(heroWrap, fixedHeight(200, 12));
 
+        LinearLayout sharedRow = new LinearLayout(this);
+        sharedRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout msgCard = editorialCard();
+        msgCard.addView(label("最近消息", 9));
+        homeMessagePreview = body("连接后会在这里看到最新消息。", 10);
+        homeMessagePreview.setMaxLines(3);
+        msgCard.addView(homeMessagePreview, matchWrapTop(6));
+        msgCard.setOnClickListener(v -> startActivity(new Intent(this, MessageActivity.class)));
+        msgCard.setClickable(true);
+        sharedRow.addView(msgCard, weighted(1f, 0));
+        LinearLayout traceCard = editorialCard();
+        traceCard.addView(label("最近留痕", 9));
+        homeTracePreview = body("我们留下的东西会在这里露出一点。", 10);
+        homeTracePreview.setMaxLines(3);
+        traceCard.addView(homeTracePreview, matchWrapTop(6));
+        traceCard.setOnClickListener(v -> startActivity(new Intent(this, TraceActivity.class)));
+        traceCard.setClickable(true);
+        sharedRow.addView(traceCard, weighted(1f, 8));
+        root.addView(sharedRow, fixedHeight(112, 12));
+
         LinearLayout mosaic = new LinearLayout(this);
         mosaic.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout focus = editorialCard();
         focus.setPadding(dp(16), dp(13), dp(16), dp(11));
-        focus.addView(label("今日专注", 9));
+        focus.addView(label("你的今天", 9));
         overviewScreenText = title("-", 20);
         focus.addView(overviewScreenText, matchWrapTop(5));
         overviewScreenDetail = body("解锁次数读取中", 9);
@@ -381,7 +412,7 @@ public class MainActivity extends Activity {
         overviewWeatherDetail = (TextView) weather.getChildAt(2);
         smalls.addView(weather, weightedVertical(1f, 0));
         LinearLayout next = editorialCard();
-        todayNextTitle = label("下一件事", 9);
+        todayNextTitle = label("重要日期", 9);
         todayNextDetail = title("晚间无安排", 13);
         next.addView(todayNextTitle);
         next.addView(todayNextDetail, matchWrapTop(6));
@@ -404,13 +435,13 @@ public class MainActivity extends Activity {
         root.addView(batteryStrip, marginBottom(12));
 
         LinearLayout nowCard = editorialCard();
-        nowCard.addView(title("此刻状态", 14));
+        nowCard.addView(title("设备与环境", 14));
         nowStateText = body("姿态、光线和定位正在读取。", 10);
         nowStateText.setLineSpacing(dp(4), 1f);
         nowCard.addView(nowStateText, matchWrapTop(7));
         root.addView(nowCard, marginBottom(12));
 
-        root.addView(sectionRow("今日轨迹", "全部", this::showTodayJourneyDialog), marginBottom(7));
+        root.addView(sectionRow("今天发生过", "全部", this::showTodayJourneyDialog), marginBottom(7));
         todayJourneyText = body("今天的轨迹正在整理。", 10);
         todayJourneyText.setLineSpacing(dp(4), 1f);
         todayJourneyText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
@@ -419,9 +450,9 @@ public class MainActivity extends Activity {
         root.addView(journeyCard, marginBottom(12));
 
         LinearLayout links = editorialCard();
-        links.addView(title("轻轻打开一扇窗", 14));
-        quickSeeButton = featureRow("陪伴", "看" + AppPrefs.companionName(this) + "留下的话与行动", R.drawable.ic_heart_wave, () -> showTab("see"));
-        quickGuardButton = featureRow("守护", "重要的人和日子都在这里", R.drawable.ic_shield, () -> showTab("gate"));
+        links.addView(title("我们", 14));
+        quickSeeButton = featureRow("我们的页面", "日记、纪念日和彼此的状态都在这里", R.drawable.ic_heart_wave, () -> showTab("see"));
+        quickGuardButton = featureRow("重要日子", "沿用小手机的日历与纪念日", R.drawable.ic_shield, () -> showTab("gate"));
         links.addView(quickSeeButton, matchWrapTop(8));
         links.addView(divider());
         links.addView(quickGuardButton);
@@ -572,7 +603,6 @@ public class MainActivity extends Activity {
         root.addView(sectionHeading("更多陪伴"), marginBottom(8));
         root.addView(actionSettingBlock("TA 的日记", "把今天看见的你，轻轻写下来。", R.drawable.ic_heart_wave, this::showDiaryHomePage), marginBottom(7));
         root.addView(guardSettingBlock("归电", "很久没回来时，" + AppPrefs.companionName(this) + "来敲门", R.drawable.ic_clock, drawerGuidian), marginBottom(7));
-        root.addView(actionSettingBlock("看见", "查看屏幕并回应此刻", R.drawable.ic_eye, this::testScreenshot), marginBottom(10));
         return root;
     }
 
@@ -1083,7 +1113,7 @@ public class MainActivity extends Activity {
     }
 
     private void showDiaryCoverMenu() {
-        new AlertDialog.Builder(this).setTitle("更换封面").setItems(new String[]{"掌心窗柔和纸质封面", "从本机选择图片"}, (d, which) -> { if (which == 0) { DiaryState.updateCover(this, diaryBookId, DiaryState.DEFAULT_COVER, ""); showDiaryHomePage(); } else chooseDiaryCover(); }).show();
+        new AlertDialog.Builder(this).setTitle("更换封面").setItems(new String[]{"小手机柔和纸质封面", "从本机选择图片"}, (d, which) -> { if (which == 0) { DiaryState.updateCover(this, diaryBookId, DiaryState.DEFAULT_COVER, ""); showDiaryHomePage(); } else chooseDiaryCover(); }).show();
     }
 
     private void chooseDiaryCover() { try { Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT); i.setType("image/*"); i.addCategory(Intent.CATEGORY_OPENABLE); i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION); startActivityForResult(i, REQ_DIARY_COVER); } catch (Exception e) { Toast.makeText(this, "系统相册没有接住封面选择", Toast.LENGTH_SHORT).show(); } }
@@ -1134,7 +1164,7 @@ public class MainActivity extends Activity {
         endingCopy.setOrientation(LinearLayout.VERTICAL);
         TextView love = title("Je t’aime.", 15);
         endingCopy.addView(love);
-        TextView loveZh = body("掌心窗里的守护，轻一点就够了。", 9);
+        TextView loveZh = body("小手机里的守护，轻一点就够了。", 9);
         endingCopy.addView(loveZh, matchWrapTop(3));
         ending.addView(endingCopy, weightedWrap(1f, 10));
         root.addView(ending);
@@ -1171,7 +1201,7 @@ public class MainActivity extends Activity {
                         cmd.put("action", "start_focus_mode");
                         cmd.put("duration_minutes", 5);
                         cmd.put("goal", "测试专注模式");
-                        cmd.put("message", "这 5 分钟先交给掌心窗守住。需要时可以留言给他，也有 1 次应急放行。");
+                        cmd.put("message", "这 5 分钟先交给小手机守住。需要时可以留言给他，也有 1 次应急放行。");
                         cmd.put("emergency_total", 1);
                         cmd.put("emergency_minutes", 1);
                         FocusMode.handleCommand(this, cmd);
@@ -1603,8 +1633,8 @@ public class MainActivity extends Activity {
     }
 
     private LinearLayout pageColumn() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(0, 0, 0, dp(108)); return l; }
-    private LinearLayout cardColumn() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(dp(16), dp(15), dp(16), dp(15)); l.setBackground(UITheme.current(this).card(22, .45f)); return l; }
-    private LinearLayout editorialCard() { LinearLayout l = cardColumn(); l.setElevation(dp(.5f)); return l; }
+    private LinearLayout cardColumn() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(dp(17), dp(16), dp(17), dp(16)); l.setBackground(UITheme.current(this).card(24, .7f)); l.setElevation(dp(3.2f)); return l; }
+    private LinearLayout editorialCard() { LinearLayout l = cardColumn(); l.setElevation(dp(3.8f)); return l; }
     private LinearLayout horizontal() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.HORIZONTAL); l.setGravity(Gravity.CENTER_VERTICAL); return l; }
     private TextView label(String text, float size) { TextView v = new TextView(this); v.setText(text); v.setTextSize(size); v.setTextColor(UITheme.current(this).primary); v.setLetterSpacing(.05f); return v; }
     private TextView title(String text, float size) { TextView v = new TextView(this); v.setText(text); v.setTextSize(size); v.setTextColor(UITheme.current(this).text); v.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); return v; }
@@ -1938,7 +1968,12 @@ public class MainActivity extends Activity {
         currentTab = tab;
         setVisible(sectionLife, "life".equals(tab)); setVisible(sectionSee, "see".equals(tab)); setVisible(sectionGate, "gate".equals(tab)); setVisible(sectionSettings, "settings".equals(tab));
         setVisible(sectionControl, false); setVisible(sectionDebug, false);
-        setTabSelected(tabLife, "life".equals(tab)); setTabSelected(tabSee, "see".equals(tab)); setTabSelected(tabGate, "gate".equals(tab)); setTabSelected(tabSettings, "settings".equals(tab));
+        setTabSelected(tabLife, "life".equals(tab));
+        setTabSelected(tabSee, false);
+        setTabSelected(tabControl, false);
+        setTabSelected(tabGate, false);
+        setTabSelected(tabDebug, "see".equals(tab));
+        setTabSelected(tabSettings, "settings".equals(tab));
         updateHeader(tab);
         applyVisualTheme();
         View active = "life".equals(tab) ? sectionLife : ("see".equals(tab) ? sectionSee : ("gate".equals(tab) ? sectionGate : sectionSettings));
@@ -1962,24 +1997,36 @@ public class MainActivity extends Activity {
             if (guardianCalendarDetailOpen) { headerTitle.setText("守护日历"); headerSubtitle.setText("把重要日子轻轻放在窗边。"); }
             else { headerTitle.setText("Toujours à tes côtés"); headerSubtitle.setText("一直在你身边 · 守护状态与重要日子"); }
         }
-        else { headerTitle.setText("设置这扇窗"); headerSubtitle.setText("调整" + AppPrefs.companionName(this) + "、窗面、提醒与隐私记录。"); }
-        if (brandText != null) brandText.setText("小手机  ·  " + ("life".equals(tab) ? "今天" : ("see".equals(tab) ? (diaryPageOpen ? "TA 的日记" : "陪伴") : ("gate".equals(tab) ? (guardianCalendarDetailOpen ? "守护日历" : "守护") : "设置"))));
+        else { headerTitle.setText("设置小手机"); headerSubtitle.setText("连接、权限、提醒与隐私都放在这里。"); }
+        if (brandText != null) brandText.setText("小手机  ·  " + ("life".equals(tab) ? "首页" : ("see".equals(tab) ? (diaryPageOpen ? "TA 的日记" : "我们") : ("gate".equals(tab) ? (guardianCalendarDetailOpen ? "守护日历" : "守护") : "设置"))));
     }
     private String greeting() { int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY); return h < 5 ? "夜深了" : (h < 11 ? "早上好" : (h < 14 ? "午安" : (h < 18 ? "下午好" : (h < 23 ? "晚上好" : "夜深了")))); }
     private void setVisible(View v, boolean visible) { if (v != null) v.setVisibility(visible ? View.VISIBLE : View.GONE); }
     private void setTabSelected(Button b, boolean selected) {
         if (b == null) return;
         UITheme t = UITheme.current(this);
-        b.setTextColor(selected ? t.primary : t.subtext);
-        b.setAlpha(selected ? 1f : .56f);
-        b.setBackground(navTabBackground(t, selected));
-        b.setTextSize(9);
-        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setAllCaps(false);
-        b.setMinHeight(dp(52));
-        b.setPadding(dp(6), dp(4), dp(6), dp(3));
+        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
-        tintCompoundDrawables(b, selected ? t.primary : t.subtext);
+        b.setMinHeight(dp(54));
+        if (b == tabControl) {
+            b.setTextColor(Color.WHITE);
+            b.setAlpha(1f);
+            b.setTextSize(25);
+            b.setBackground(t.navCenterBubble());
+            b.setElevation(dp(9));
+            b.setPadding(dp(8), 0, dp(8), dp(2));
+            b.setScaleX(1.03f); b.setScaleY(1.03f);
+        } else {
+            b.setTextColor(selected ? t.primary : t.subtext);
+            b.setAlpha(selected ? 1f : .62f);
+            b.setBackground(navTabBackground(t, selected));
+            b.setTextSize(10);
+            b.setElevation(selected ? dp(3.5f) : 0f);
+            b.setPadding(dp(5), dp(4), dp(5), dp(3));
+            b.setScaleX(selected ? 1.025f : 1f); b.setScaleY(selected ? 1.025f : 1f);
+        }
+        tintCompoundDrawables(b, b == tabControl ? Color.WHITE : (selected ? t.primary : t.subtext));
         Drawable top = b.getCompoundDrawables()[1];
         if (top != null) top.setBounds(0, 0, dp(22), dp(22));
         b.setCompoundDrawablePadding(dp(1));
@@ -1988,7 +2035,7 @@ public class MainActivity extends Activity {
     private Drawable navTabBackground(UITheme t, boolean selected) {
         if (!selected || Build.VERSION.SDK_INT < 23) return colorDrawable(Color.TRANSPARENT);
         Drawable island = t.navIconIsland();
-        android.graphics.drawable.InsetDrawable inset = new android.graphics.drawable.InsetDrawable(island, dp(24), dp(2), dp(24), dp(20));
+        android.graphics.drawable.InsetDrawable inset = new android.graphics.drawable.InsetDrawable(island, dp(7), dp(4), dp(7), dp(4));
         return new LayerDrawable(new Drawable[]{inset});
     }
 
@@ -2058,13 +2105,15 @@ public class MainActivity extends Activity {
         }
         styleTree(root, t, false);
         setTabSelected(tabLife, "life".equals(currentTab));
-        setTabSelected(tabSee, "see".equals(currentTab));
-        setTabSelected(tabGate, "gate".equals(currentTab));
+        setTabSelected(tabSee, false);
+        setTabSelected(tabControl, false);
+        setTabSelected(tabGate, false);
+        setTabSelected(tabDebug, "see".equals(currentTab));
         setTabSelected(tabSettings, "settings".equals(currentTab));
         styleThemeButton(themeCreamButton, t, "奶油绿"); styleThemeButton(themeBlueButton, t, "雾蓝白"); styleThemeButton(themePeachButton, t, "白桃粉"); styleThemeButton(themeNightButton, t, "夜航黑"); styleThemeButton(themeMintButton, t, "薄荷透明"); styleThemeButton(themePurpleButton, t, "星云紫");
         styleGuidianThemeButton(guidianThemeDuskButton, t, "粉色"); styleGuidianThemeButton(guidianThemeCloudButton, t, "白色"); styleGuidianThemeButton(guidianThemeBerryButton, t, "黑色");
-        if (bottomNav != null) { bottomNav.setBackground(t.navBar()); bottomNav.setElevation(dp(.8f)); }
-        if (heroCard != null) { heroCard.setBackground(t.hero()); heroCard.setElevation(dp(4)); }
+        if (bottomNav != null) { bottomNav.setBackground(t.navBar()); bottomNav.setElevation(dp(10)); }
+        if (heroCard != null) { heroCard.setBackground(t.hero()); heroCard.setElevation(dp(8)); }
         styleQuickCard(quickSeeButton, quickSeeIcon, quickSeeTitle, quickSeeDetail, quickSeeArrow, t);
         styleQuickCard(quickGuardButton, quickGuardIcon, quickGuardTitle, quickGuardDetail, quickGuardArrow, t);
         if (brandText != null) brandText.setTextColor(t.primary);
@@ -2078,7 +2127,7 @@ public class MainActivity extends Activity {
         for (TextView value : statValues) if (value != null) value.setTextColor(t.text);
         TextView[] statDetails = new TextView[]{overviewBatteryDetail, overviewAppDetail, overviewScreenDetail, overviewWeatherDetail};
         for (TextView detail : statDetails) if (detail != null) detail.setTextColor(t.subtext);
-        if (tabSettings != null) { tabSettings.setBackground(t.chip("settings".equals(currentTab))); tabSettings.setPadding(dp(7), dp(7), dp(7), dp(7)); tintCompoundDrawables(tabSettings, t.primary); }
+        if (tabSettings != null) { tabSettings.setBackground(t.navIconIsland()); tabSettings.setElevation(dp(4)); tabSettings.setPadding(dp(7), dp(7), dp(7), dp(7)); tintCompoundDrawables(tabSettings, t.primary); }
         styleDrawerButton(drawerLifeDetailsButton, t); styleDrawerButton(drawerThemeButton, t); styleDrawerButton(drawerNowStateButton, t); styleDrawerButton(drawerCalendarButton, t); styleDrawerButton(drawerAppGateButton, t); styleDrawerButton(drawerWeatherButton, t); styleDrawerButton(drawerGuidianButton, t); styleDrawerButton(drawerGuidianSettingsButton, t); styleDrawerButton(drawerConnectionButton, t); styleDrawerButton(drawerPermissionButton, t); styleDrawerButton(drawerControlTestButton, t); styleDrawerButton(drawerKnownAppsButton, t); styleDrawerButton(drawerHomeModeButton, t); styleDrawerButton(drawerGateAddButton, t); styleDrawerButton(drawerReminderButton, t); styleDrawerButton(drawerCycleButton, t); styleDrawerButton(drawerDebugButton, t);
         if (statusText != null) { statusText.setBackground(t.soft(18)); statusText.setPadding(dp(12), dp(7), dp(12), dp(7)); }
         if (testGuidianButton != null) { testGuidianButton.setBackground(t.pill(true)); testGuidianButton.setTextColor(Color.WHITE); }
@@ -2142,7 +2191,7 @@ public class MainActivity extends Activity {
     }
 
     private void styleQuickCard(View card, ImageView icon, TextView title, TextView detail, TextView arrow, UITheme t) {
-        if (card != null) { card.setBackground(t.soft(18)); card.setElevation(dp(1)); }
+        if (card != null) { card.setBackground(t.soft(20)); card.setElevation(dp(3)); }
         if (icon != null) icon.setColorFilter(t.primary);
         if (title != null) title.setTextColor(t.text);
         if (detail != null) detail.setTextColor(t.subtext);
@@ -2164,7 +2213,7 @@ public class MainActivity extends Activity {
             illustration.setScaleType(ImageView.ScaleType.CENTER_CROP);
             splash.addView(illustration, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             TextView wordmark = new TextView(this);
-            wordmark.setText("掌心窗"); wordmark.setTextSize(11); wordmark.setLetterSpacing(0.18f); wordmark.setGravity(Gravity.CENTER); wordmark.setTextColor(t.primary); wordmark.setAlpha(0f);
+            wordmark.setText("小手机"); wordmark.setTextSize(11); wordmark.setLetterSpacing(0.18f); wordmark.setGravity(Gravity.CENTER); wordmark.setTextColor(t.primary); wordmark.setAlpha(0f);
             FrameLayout.LayoutParams wordmarkLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38), Gravity.BOTTOM); wordmarkLp.bottomMargin = dp(38);
             splash.addView(wordmark, wordmarkLp);
             content.addView(splash, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -2213,8 +2262,8 @@ public class MainActivity extends Activity {
                 if (!bottomBar) {
                     if ("hero_panel".equals(v.getTag())) v.setBackground(t.hero());
                     else if ("status_strip".equals(v.getTag())) v.setBackground(t.soft(14));
-                    else v.setBackground(t.card(20, 0.45f));
-                    v.setElevation(dp(1));
+                    else v.setBackground(t.card(24, 0.7f));
+                    v.setElevation(dp(3));
                     childInsideCard = true;
                 }
             }
@@ -2268,7 +2317,52 @@ public class MainActivity extends Activity {
 
     private int dp(float v) { return (int) (v * getResources().getDisplayMetrics().density + 0.5f); }
 
-    @Override protected void onResume() { super.onResume(); serviceRunning = CompanionService.isRunning(); updateUI(); if (recentlyOpenedAccessibilitySettings()) scheduleAccessibilityFollowupChecks(); uiHandler.removeCallbacks(refreshTick); uiHandler.post(refreshTick); }
+    @Override protected void onResume() { super.onResume(); serviceRunning = CompanionService.isRunning(); updateUI(); refreshSharedPreviews(); if (recentlyOpenedAccessibilitySettings()) scheduleAccessibilityFollowupChecks(); uiHandler.removeCallbacks(refreshTick); uiHandler.post(refreshTick); }
+    private void refreshSharedPreviews() {
+        final String server = AppPrefs.server(this);
+        if (homeMessagePreview == null || homeTracePreview == null) return;
+        if (server.isEmpty()) {
+            homeMessagePreview.setText("还没连接服务器，点右上角设置连接。");
+            homeTracePreview.setText("连接后就能同步我们留下的痕迹。");
+            return;
+        }
+        new Thread(() -> {
+            String msg = "还没有消息。";
+            String trace = "还没有留痕。";
+            try {
+                JSONObject m = simpleGetJson(server + "/api/messages?limit=1");
+                JSONArray a = m.optJSONArray("messages");
+                if (a != null && a.length() > 0) {
+                    JSONObject x = a.optJSONObject(0);
+                    if (x != null) msg = x.optString("author", "") + " · " + x.optString("content", "");
+                }
+            } catch (Exception ignored) { msg = "消息暂时没连上。"; }
+            try {
+                JSONObject t = simpleGetJson(server + "/api/traces?limit=1");
+                JSONArray a = t.optJSONArray("traces");
+                if (a != null && a.length() > 0) {
+                    JSONObject x = a.optJSONObject(0);
+                    if (x != null) trace = x.optString("author", "") + " · " + x.optString("content", "");
+                }
+            } catch (Exception ignored) { trace = "留痕暂时没连上。"; }
+            final String fMsg = msg;
+            final String fTrace = trace;
+            runOnUiThread(() -> { if (homeMessagePreview != null) homeMessagePreview.setText(fMsg); if (homeTracePreview != null) homeTracePreview.setText(fTrace); });
+        }).start();
+    }
+
+    private JSONObject simpleGetJson(String target) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(target).openConnection();
+        c.setConnectTimeout(7000); c.setReadTimeout(10000); c.setRequestMethod("GET");
+        String token = AppPrefs.token(this);
+        if (!token.isEmpty()) { c.setRequestProperty("X-Auth-Token", token); c.setRequestProperty("Authorization", "Bearer " + token); }
+        InputStream in = c.getResponseCode() >= 200 && c.getResponseCode() < 300 ? c.getInputStream() : c.getErrorStream();
+        try (InputStream x = in; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] b = new byte[4096]; int n; while (x != null && (n = x.read(b)) > 0) out.write(b, 0, n);
+            return new JSONObject(out.toString("UTF-8"));
+        }
+    }
+
     @Override protected void onPause() { saveConnectionSettingsOnly(true); uiHandler.removeCallbacks(refreshTick); super.onPause(); }
     @Override protected void onStop() { saveConnectionSettingsOnly(true); super.onStop(); }
 
@@ -2429,7 +2523,7 @@ public class MainActivity extends Activity {
         try {
             Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             i.setType("application/json"); i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.putExtra(Intent.EXTRA_TITLE, "掌心窗-TA的日记-" + new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date()) + ".json");
+            i.putExtra(Intent.EXTRA_TITLE, "小手机-TA的日记-" + new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date()) + ".json");
             startActivityForResult(i, REQ_DIARY_EXPORT);
         } catch (Exception e) { Toast.makeText(this, "系统文件管理器没有接住导出", Toast.LENGTH_SHORT).show(); }
     }
@@ -2481,7 +2575,7 @@ public class MainActivity extends Activity {
         saveSettings();
         String url = serverUrl == null ? "" : serverUrl.getText().toString().trim(); String token = tokenInput == null ? "" : tokenInput.getText().toString().trim();
         if (url.isEmpty() || token.isEmpty()) { Toast.makeText(this, "请填写服务器地址和 Token", Toast.LENGTH_SHORT).show(); return; }
-        if (ScreenshotService.getInstance() == null) { DebugState.append(this, "启动失败：无障碍服务未连接"); Toast.makeText(this, "请先开启掌心窗无障碍服务", Toast.LENGTH_LONG).show(); openAccessibilitySettings(); return; }
+        if (ScreenshotService.getInstance() == null) { DebugState.append(this, "启动失败：无障碍服务未连接"); Toast.makeText(this, "请先开启小手机无障碍服务", Toast.LENGTH_LONG).show(); openAccessibilitySettings(); return; }
         getSharedPreferences(AppPrefs.PREFS, MODE_PRIVATE).edit().putBoolean("user_stopped", false).apply(); requestIgnoreBatteryOptimization();
         Intent intent = new Intent(this, CompanionService.class); intent.putExtra("server_url", url); intent.putExtra("token", token);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent); else startService(intent);
@@ -2496,12 +2590,12 @@ public class MainActivity extends Activity {
         if (ss == null) { DebugState.append(this, "测试失败：无障碍服务未连接"); Toast.makeText(this, "先开启无障碍服务", Toast.LENGTH_LONG).show(); openAccessibilitySettings(); return; }
         DebugState.append(this, "给" + AppPrefs.companionName(this) + "看一眼：开始截图上传"); ss.doScreenshot(url, token); Toast.makeText(this, "正在上传截图", Toast.LENGTH_SHORT).show(); updateUI();
     }
-    private void testAlarm() { Calendar c = Calendar.getInstance(); c.add(Calendar.MINUTE, 1); try { Intent i = new Intent(AlarmClock.ACTION_SET_ALARM); i.putExtra(AlarmClock.EXTRA_HOUR, c.get(Calendar.HOUR_OF_DAY)); i.putExtra(AlarmClock.EXTRA_MINUTES, c.get(Calendar.MINUTE)); i.putExtra(AlarmClock.EXTRA_MESSAGE, "掌心窗测试闹钟：" + AppPrefs.userName(this)); i.putExtra(AlarmClock.EXTRA_VIBRATE, true); i.putExtra(AlarmClock.EXTRA_SKIP_UI, true); startActivity(i); DebugState.append(this, "已请求设置一分钟后的测试闹钟"); } catch (Exception e) { DebugState.append(this, "测试闹钟失败：" + e.getClass().getSimpleName()); Toast.makeText(this, "闹钟 App 没接住请求", Toast.LENGTH_SHORT).show(); } }
-    private void testNotification() { saveSettings(); boolean ok = CompanionService.showReminderNotification(this, "掌心窗悬浮横幅测试", AppPrefs.userName(this) + "看到了顶部横幅，就说明通知通道正常。"); DebugState.append(this, ok ? "已发送悬浮横幅测试提醒" : "悬浮横幅/通知失败：请允许掌心窗发送通知"); Toast.makeText(this, ok ? "已发送横幅测试" : "请先允许通知权限", Toast.LENGTH_SHORT).show(); updateUI(); }
+    private void testAlarm() { Calendar c = Calendar.getInstance(); c.add(Calendar.MINUTE, 1); try { Intent i = new Intent(AlarmClock.ACTION_SET_ALARM); i.putExtra(AlarmClock.EXTRA_HOUR, c.get(Calendar.HOUR_OF_DAY)); i.putExtra(AlarmClock.EXTRA_MINUTES, c.get(Calendar.MINUTE)); i.putExtra(AlarmClock.EXTRA_MESSAGE, "小手机测试闹钟：" + AppPrefs.userName(this)); i.putExtra(AlarmClock.EXTRA_VIBRATE, true); i.putExtra(AlarmClock.EXTRA_SKIP_UI, true); startActivity(i); DebugState.append(this, "已请求设置一分钟后的测试闹钟"); } catch (Exception e) { DebugState.append(this, "测试闹钟失败：" + e.getClass().getSimpleName()); Toast.makeText(this, "闹钟 App 没接住请求", Toast.LENGTH_SHORT).show(); } }
+    private void testNotification() { saveSettings(); boolean ok = CompanionService.showReminderNotification(this, "小手机悬浮横幅测试", AppPrefs.userName(this) + "看到了顶部横幅，就说明通知通道正常。"); DebugState.append(this, ok ? "已发送悬浮横幅测试提醒" : "悬浮横幅/通知失败：请允许小手机发送通知"); Toast.makeText(this, ok ? "已发送横幅测试" : "请先允许通知权限", Toast.LENGTH_SHORT).show(); updateUI(); }
     private void addPackageAlias() { String alias = appAliasInput == null ? "" : appAliasInput.getText().toString().trim(); String pkg = appPackageInput == null ? "" : appPackageInput.getText().toString().trim(); if (alias.isEmpty()) { Toast.makeText(this, "先填应用名/昵称", Toast.LENGTH_SHORT).show(); return; } if (!AppPrefs.isPackageLike(pkg)) { Toast.makeText(this, "包名格式不对，例如 com.xingin.xhs", Toast.LENGTH_LONG).show(); return; } AppPrefs.saveCustomApp(this, alias, pkg); DebugState.append(this, "已保存可打开应用：" + alias + " → " + pkg); Toast.makeText(this, "已添加包名", Toast.LENGTH_SHORT).show(); updateUI(); }
     private void addGateApp() { String alias = gateAliasInput == null ? "" : gateAliasInput.getText().toString().trim(); String pkg = gatePackageInput == null ? "" : gatePackageInput.getText().toString().trim(); if (alias.isEmpty()) { Toast.makeText(this, "先填应用名/昵称", Toast.LENGTH_SHORT).show(); return; } if (!AppPrefs.isPackageLike(pkg)) { Toast.makeText(this, "包名格式不对，例如 com.xingin.xhs", Toast.LENGTH_LONG).show(); return; } AppGate.addGateApp(this, alias, pkg); DebugState.append(this, "已保存门禁应用：" + alias + " → " + pkg); Toast.makeText(this, "已添加到应用门禁", Toast.LENGTH_SHORT).show(); updateUI(); }
     private void testCustomPackage() { String pkg = appPackageInput == null ? "" : appPackageInput.getText().toString().trim(); if (!AppPrefs.isPackageLike(pkg)) { Toast.makeText(this, "先填正确包名", Toast.LENGTH_SHORT).show(); return; } openPackage(pkg); }
-    private void testLocalSequence() { boolean ok1 = CompanionService.showReminderNotification(this, "掌心窗连招测试", "先发悬浮横幅，再回目标 APP。日志会写清每一步。"); String result = CompanionService.openPackageResult(this, AppPrefs.homeTargetPackage(this)); DebugState.append(this, "本机连招测试：popup=" + ok1 + "；open=" + result); updateUI(); }
+    private void testLocalSequence() { boolean ok1 = CompanionService.showReminderNotification(this, "小手机连招测试", "先发悬浮横幅，再回目标 APP。日志会写清每一步。"); String result = CompanionService.openPackageResult(this, AppPrefs.homeTargetPackage(this)); DebugState.append(this, "本机连招测试：popup=" + ok1 + "；open=" + result); updateUI(); }
     private boolean openPackage(String pkg) { String result = CompanionService.openPackageResult(this, pkg); boolean ok = result.startsWith("opened_"); DebugState.append(this, "本机打开 App：" + result); Toast.makeText(this, ok ? "已尝试打开" : ("打开失败：" + result), Toast.LENGTH_SHORT).show(); updateUI(); return ok; }
     private void updateVersionUi() {
         boolean hasNew = latestVersionCode > AppPrefs.APP_VERSION_CODE;
@@ -2515,33 +2609,12 @@ public class MainActivity extends Activity {
     }
 
     private void checkForUpdates(boolean manual) {
-        new Thread(() -> {
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(DEFAULT_UPDATE_URL).openConnection();
-                connection.setConnectTimeout(8000);
-                connection.setReadTimeout(8000);
-                connection.setRequestProperty("User-Agent", "Zhangxinchuang-Public/" + AppPrefs.APP_VERSION_NAME);
-                if (connection.getResponseCode() < 200 || connection.getResponseCode() >= 300) throw new IllegalStateException("HTTP " + connection.getResponseCode());
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                try (InputStream in = connection.getInputStream()) {
-                    byte[] buffer = new byte[4096];
-                    int count;
-                    while ((count = in.read(buffer)) >= 0) bytes.write(buffer, 0, count);
-                }
-                JSONObject info = new JSONObject(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
-                latestVersionCode = info.optInt("latest_version_code", AppPrefs.APP_VERSION_CODE);
-                latestVersionName = info.optString("latest_version_name", AppPrefs.APP_VERSION_NAME);
-                latestApkUrl = info.optString("apk_url", "").trim();
-                JSONArray changes = info.optJSONArray("changelog");
-                StringBuilder text = new StringBuilder();
-                if (changes != null) for (int i = 0; i < changes.length(); i++) text.append("• ").append(changes.optString(i)).append("\n");
-                latestChangelog = text.toString().trim();
-                runOnUiThread(() -> { updateVersionUi(); if (manual) Toast.makeText(this, latestVersionCode > AppPrefs.APP_VERSION_CODE ? "发现新版本 " + latestVersionName : "当前已是最新版本", Toast.LENGTH_SHORT).show(); });
-            } catch (Exception error) {
-                runOnUiThread(() -> { updateVersionUi(); if (manual) Toast.makeText(this, "检查更新失败，请稍后重试", Toast.LENGTH_SHORT).show(); });
-            } finally { if (connection != null) connection.disconnect(); }
-        }, "public-update-check").start();
+        latestVersionCode = AppPrefs.APP_VERSION_CODE;
+        latestVersionName = AppPrefs.APP_VERSION_NAME;
+        latestApkUrl = "";
+        latestChangelog = "小手机测试版使用自己的 GitHub 构建链，不自动跳回掌心窗公开版更新通道。";
+        updateVersionUi();
+        if (manual) Toast.makeText(this, "小手机由自己的仓库构建更新", Toast.LENGTH_SHORT).show();
     }
 
     private void downloadLatestApk() {
@@ -2565,10 +2638,10 @@ public class MainActivity extends Activity {
             getSharedPreferences(AppPrefs.PREFS, MODE_PRIVATE).edit().putLong(PREF_A11Y_SETTINGS_OPENED_AT, System.currentTimeMillis()).apply();
             Intent i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             startActivity(i);
-            Toast.makeText(this, "开启“掌心窗服务”后返回；若返回仍未开启，请先允许受限设置", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "开启“小手机服务”后返回；若返回仍未开启，请先允许受限设置", Toast.LENGTH_LONG).show();
             scheduleAccessibilityFollowupChecks();
         } catch (Exception e) {
-            Toast.makeText(this, "设置 → 应用 → 掌心窗 → 允许受限设置；再到无障碍开启掌心窗服务", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "设置 → 应用 → 小手机 → 允许受限设置；再到无障碍开启小手机服务", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -2577,9 +2650,9 @@ public class MainActivity extends Activity {
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             i.setData(Uri.parse("package:" + getPackageName()));
             startActivity(i);
-            Toast.makeText(this, "如有右上角菜单，请先点“允许受限设置”，再回无障碍开启掌心窗服务", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "如有右上角菜单，请先点“允许受限设置”，再回无障碍开启小手机服务", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this, "设置 → 应用 → 掌心窗 → 右上角 → 允许受限设置", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "设置 → 应用 → 小手机 → 右上角 → 允许受限设置", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -2587,13 +2660,13 @@ public class MainActivity extends Activity {
         try {
             new AlertDialog.Builder(this)
                     .setTitle("无障碍还没真正连上")
-                    .setMessage("如果你在系统无障碍里打开后，回到掌心窗又变成未开启，通常是系统还没完成绑定，或 Android/部分国产系统拦截了侧载 APK 的无障碍权限。\n\n请先等 5-10 秒；如果仍未开启，到“应用信息 → 掌心窗 → 右上角菜单”允许受限设置，然后再回无障碍开启“掌心窗服务”。")
+                    .setMessage("如果你在系统无障碍里打开后，回到小手机又变成未开启，通常是系统还没完成绑定，或 Android/部分国产系统拦截了侧载 APK 的无障碍权限。\n\n请先等 5-10 秒；如果仍未开启，到“应用信息 → 小手机 → 右上角菜单”允许受限设置，然后再回无障碍开启“小手机服务”。")
                     .setPositiveButton("去无障碍设置", (d, w) -> openAccessibilitySettings())
                     .setNegativeButton("去应用信息", (d, w) -> openAppDetailsSettings())
                     .setNeutralButton("我知道了", null)
                     .show();
         } catch (Exception e) {
-            Toast.makeText(this, "先允许受限设置，再开启掌心窗服务", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "先允许受限设置，再开启小手机服务", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -2696,9 +2769,9 @@ public class MainActivity extends Activity {
     private void openNotificationListenerSettings() {
         try {
             startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-            Toast.makeText(this, "开启“掌心窗媒体状态”后返回；仅用于此刻卡片显示正在播放的音频", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "开启“小手机媒体状态”后返回；仅用于此刻卡片显示正在播放的音频", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this, "设置 → 应用 → 特殊权限 → 通知使用权 → 掌心窗媒体状态", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "设置 → 应用 → 特殊权限 → 通知使用权 → 小手机媒体状态", Toast.LENGTH_LONG).show();
         }
     }
     private void requestLocationPermission() {
@@ -2923,7 +2996,7 @@ public class MainActivity extends Activity {
         else if (screenMinutes >= 480) secondary = "让眼睛离开屏幕半分钟，看看远一点。";
         else {
             String app = s.optString("current_app", "").trim();
-            secondary = app.isEmpty() ? "窗外安安静静，状态都在轻轻更新。" : "此刻在 " + app + "，掌心窗替你看着今天。";
+            secondary = app.isEmpty() ? "窗外安安静静，状态都在轻轻更新。" : "此刻在 " + app + "，小手机替你看着今天。";
         }
 
         String nowClock = new SimpleDateFormat("HH:mm", Locale.CHINA).format(new Date());

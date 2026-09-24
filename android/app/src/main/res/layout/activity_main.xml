@@ -31,7 +31,7 @@
                     android:id="@+id/brandText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PALM WINDOW  ·  掌心窗"
+                    android:text="LITTLE PHONE  ·  小手机"
                     android:textSize="8sp"
                     android:letterSpacing="0.12"
                     android:textColor="#FFD37091" />
@@ -42,7 +42,7 @@
                     android:layout_height="wrap_content"
                     android:text="今天"
                     android:textStyle="bold"
-                    android:textSize="19sp"
+                    android:textSize="23sp"
                     android:letterSpacing="0.02"
                     android:textColor="#FF433039"
                     android:layout_marginTop="2dp" />
@@ -564,23 +564,23 @@
     <LinearLayout
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
-        android:layout_height="68dp"
+        android:layout_height="72dp"
         android:orientation="horizontal"
         android:gravity="center"
         android:paddingLeft="9dp"
         android:paddingRight="9dp"
         android:paddingTop="5dp"
         android:paddingBottom="5dp"
-        android:layout_marginLeft="34dp"
-        android:layout_marginRight="34dp"
-        android:layout_marginBottom="6dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="8dp"
         android:elevation="1dp"
         android:background="@drawable/bottom_bar_bg">
 
-        <Button android:id="@+id/tabLife" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="今天" android:textSize="9sp" android:drawableTop="@drawable/ic_home" android:drawablePadding="1dp" android:background="@android:color/transparent" />
-        <Button android:id="@+id/tabSee" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="留痕" android:textSize="9sp" android:drawableTop="@drawable/ic_heart_wave" android:drawablePadding="1dp" android:background="@android:color/transparent" />
-        <Button android:id="@+id/tabGate" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="守护" android:textSize="9sp" android:drawableTop="@drawable/ic_shield" android:drawablePadding="1dp" android:background="@android:color/transparent" />
-        <Button android:id="@+id/tabControl" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
-        <Button android:id="@+id/tabDebug" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <Button android:id="@+id/tabLife" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="首页" android:textSize="10sp" android:background="@android:color/transparent" />
+        <Button android:id="@+id/tabSee" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="留痕" android:textSize="10sp" android:background="@android:color/transparent" />
+        <Button android:id="@+id/tabControl" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="＋" android:textSize="22sp" android:background="@android:color/transparent" />
+        <Button android:id="@+id/tabGate" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="消息" android:textSize="10sp" android:background="@android:color/transparent" />
+        <Button android:id="@+id/tabDebug" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="我们" android:textSize="10sp" android:background="@android:color/transparent" />
     </LinearLayout>
 </LinearLayout>

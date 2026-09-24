@@ -18,7 +18,7 @@ import java.util.Locale;
  * 真实天气轻量层：
  * 1. App 端按“当前地区城市”查询 Open-Meteo；
  * 2. 结果缓存到本地，生活状态层和首页卡片都能读取；
- * 3. 查询失败不影响掌心窗主功能，只回退到天气备注/地区占位。
+ * 3. 查询失败不影响小手机主功能，只回退到天气备注/地区占位。
  */
 public class WeatherLive {
     private static final String KEY_CITY = "weather_live_city";

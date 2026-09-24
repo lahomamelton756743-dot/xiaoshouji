@@ -3,16 +3,31 @@ package com.littlephone.app;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.Drawable;
 
 public class UITheme {
     public final String name;
-    public final int bgTop, bgBottom, card, cardSoft, primary, primarySoft, accent, text, subtext, line, danger;
+    public final int bgTop, bgMid, bgBottom, card, cardSoft, primary, primarySoft, accent, text, subtext, line, danger;
+    public final int glassTop, glassMid, glassBottom, actionTop, actionMid, actionBottom, refraction;
+    public final int backdropBlue, backdropLavender, backdropCyan, backdropRose;
     public final boolean dark;
 
     private UITheme(String name, int bgTop, int bgBottom, int card, int cardSoft, int primary, int primarySoft, int accent, int text, int subtext, int line, int danger, boolean dark) {
         this.name = name; this.bgTop = bgTop; this.bgBottom = bgBottom; this.card = card; this.cardSoft = cardSoft;
         this.primary = primary; this.primarySoft = primarySoft; this.accent = accent; this.text = text; this.subtext = subtext;
         this.line = line; this.danger = danger; this.dark = dark;
+        this.bgMid = blend(bgTop, bgBottom, .46f);
+        this.glassTop = dark ? blend(card, Color.WHITE, .08f) : Color.rgb(255, 255, 255);
+        this.glassMid = dark ? blend(cardSoft, primary, .18f) : blend(Color.rgb(225, 241, 255), primarySoft, .34f);
+        this.glassBottom = dark ? blend(card, accent, .12f) : Color.rgb(239, 231, 251);
+        this.actionTop = dark ? blend(primary, Color.WHITE, .08f) : Color.rgb(156, 191, 255);
+        this.actionMid = dark ? primary : Color.rgb(121, 145, 238);
+        this.actionBottom = dark ? blend(primary, accent, .22f) : Color.rgb(204, 157, 224);
+        this.refraction = dark ? accent : Color.rgb(224, 172, 211);
+        this.backdropBlue = dark ? blend(bgTop, primary, .35f) : Color.rgb(170, 214, 255);
+        this.backdropLavender = dark ? blend(bgTop, accent, .28f) : Color.rgb(206, 190, 246);
+        this.backdropCyan = dark ? blend(bgBottom, primary, .22f) : Color.rgb(177, 232, 241);
+        this.backdropRose = dark ? blend(bgBottom, accent, .25f) : Color.rgb(242, 193, 214);
     }
 
     public static UITheme current(Context ctx) {
@@ -22,9 +37,9 @@ public class UITheme {
 
     public static UITheme byName(String n) {
         if ("液态玻璃".equals(n)) return new UITheme("液态玻璃",
-                Color.rgb(239, 246, 252), Color.rgb(249, 247, 252), Color.argb(196, 255, 255, 255), Color.argb(150, 246, 248, 253),
-                Color.rgb(119, 137, 191), Color.argb(112, 220, 229, 250), Color.rgb(207, 166, 187),
-                Color.rgb(45, 48, 60), Color.rgb(112, 116, 133), Color.argb(120, 211, 220, 235), Color.rgb(211, 105, 126), false);
+                Color.rgb(235, 245, 255), Color.rgb(249, 242, 251), Color.argb(152, 255, 255, 255), Color.argb(112, 245, 249, 255),
+                Color.rgb(101, 124, 218), Color.argb(132, 205, 224, 255), Color.rgb(220, 157, 194),
+                Color.rgb(39, 42, 57), Color.rgb(103, 108, 130), Color.argb(110, 196, 211, 235), Color.rgb(211, 105, 126), false);
         if ("雾蓝白".equals(n)) return new UITheme("雾蓝白",
                 Color.rgb(239, 247, 252), Color.rgb(250, 252, 255), Color.WHITE, Color.rgb(244, 249, 252),
                 Color.rgb(112, 178, 198), Color.rgb(228, 244, 249), Color.rgb(190, 132, 160),
@@ -51,84 +66,52 @@ public class UITheme {
                 Color.rgb(43, 59, 54), Color.rgb(109, 134, 128), Color.rgb(226, 238, 234), Color.rgb(226, 105, 122), false);
     }
 
-    public GradientDrawable background() {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{bgTop, bgBottom});
-        return g;
+    public Drawable background() {
+        return new LiquidBackdropDrawable(this);
     }
 
-    public GradientDrawable card(float radiusDp, float strokeDp) {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(card);
-        g.setCornerRadius(dp(radiusDp));
-        if (strokeDp > 0) g.setStroke((int) dp(strokeDp), line);
-        return g;
+    public Drawable card(float radiusDp, float strokeDp) {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.CARD, radiusDp);
     }
 
-    public GradientDrawable soft(float radiusDp) {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(cardSoft);
-        g.setCornerRadius(dp(radiusDp));
-        g.setStroke((int) dp(0.6f), line);
-        return g;
+    public Drawable soft(float radiusDp) {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.SOFT, radiusDp);
     }
 
-    public GradientDrawable pill(boolean selected) {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(selected ? primary : (dark ? cardSoft : Color.argb(210, 255, 255, 255)));
-        g.setCornerRadius(dp(15));
-        g.setStroke((int) dp(0.6f), selected ? primary : line);
-        return g;
+    public Drawable pill(boolean selected) {
+        return new LiquidGlassDrawable(this, selected ? LiquidGlassDrawable.Kind.ACTION : LiquidGlassDrawable.Kind.CHIP, 18);
     }
 
-    public GradientDrawable chip(boolean selected) {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(selected ? primarySoft : card);
-        g.setCornerRadius(dp(15));
-        g.setStroke((int) dp(0.6f), selected ? primary : line);
-        return g;
+    public Drawable chip(boolean selected) {
+        return new LiquidGlassDrawable(this, selected ? LiquidGlassDrawable.Kind.ISLAND : LiquidGlassDrawable.Kind.CHIP, 16);
     }
 
-    public GradientDrawable hero() {
-        int start = dark ? blend(card, primary, 0.30f) : blend(Color.WHITE, primarySoft, 0.82f);
-        int middle = dark ? blend(card, accent, 0.16f) : blend(Color.WHITE, primarySoft, 0.54f);
-        int end = dark ? card : blend(Color.WHITE, card, 0.72f);
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, middle, end});
-        g.setCornerRadius(dp(26));
-        g.setStroke((int) dp(0.7f), dark ? line : Color.argb(110, 255, 255, 255));
-        return g;
+    public Drawable hero() {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.HERO, 29);
     }
 
-    public GradientDrawable navBar() {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(dark ? Color.argb(218, 38, 45, 55) : Color.argb(168, 255, 255, 255));
-        g.setCornerRadius(dp(34));
-        g.setStroke((int) dp(0.45f), Color.argb(dark ? 90 : 112, Color.red(line), Color.green(line), Color.blue(line)));
-        return g;
+    public Drawable navBar() {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.NAV, 35);
     }
 
-    public GradientDrawable navIconIsland() {
-        GradientDrawable g = new GradientDrawable();
-        g.setShape(GradientDrawable.OVAL);
-        g.setColor(dark ? blend(cardSoft, primary, 0.22f) : blend(Color.WHITE, primarySoft, 0.74f));
-        g.setStroke((int) dp(0.45f), dark ? line : Color.argb(105, Color.red(primary), Color.green(primary), Color.blue(primary)));
-        return g;
+    public Drawable navIconIsland() {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.ISLAND, 24);
     }
 
-    public GradientDrawable navItem(boolean selected) {
-        GradientDrawable g = new GradientDrawable();
-        int selectedColor = dark ? blend(cardSoft, primary, 0.22f) : blend(Color.WHITE, primarySoft, 0.72f);
-        g.setColor(selected ? selectedColor : Color.TRANSPARENT);
-        g.setCornerRadius(dp(14));
-        return g;
+    public Drawable navCenterBubble() {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.CENTER, 40);
     }
 
-    public GradientDrawable windowPanel(boolean left) {
-        int edge = dark ? blend(bgTop, primary, 0.24f) : blend(bgTop, primarySoft, 0.58f);
-        int center = dark ? blend(card, primary, 0.18f) : blend(Color.WHITE, primarySoft, 0.76f);
-        GradientDrawable.Orientation direction = left ? GradientDrawable.Orientation.RIGHT_LEFT : GradientDrawable.Orientation.LEFT_RIGHT;
-        GradientDrawable g = new GradientDrawable(direction, new int[]{edge, center});
-        g.setStroke((int) dp(0.5f), line);
-        return g;
+    public Drawable navItem(boolean selected) {
+        return new LiquidGlassDrawable(this, selected ? LiquidGlassDrawable.Kind.ISLAND : LiquidGlassDrawable.Kind.SOFT, 16);
+    }
+
+    public Drawable action() {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.ACTION, 24);
+    }
+
+    public Drawable windowPanel(boolean left) {
+        return new LiquidGlassDrawable(this, LiquidGlassDrawable.Kind.SOFT, 22);
     }
 
     private static int blend(int from, int to, float amount) {

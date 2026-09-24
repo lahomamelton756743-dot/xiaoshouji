@@ -1039,8 +1039,22 @@ function makeServer() {
 
 
   // v0.3.8.2：专注模式工具靠前注册，避免部分客户端只读取前若干个 schema 时漏掉接口。
+  // 「消息」：和留痕分开的双人消息流，保留服务端时间戳。
+  server.tool("list_messages", "读取小手机最近的双人消息。", { limit: z.number().int().min(1).max(200).default(60) }, async ({ limit = 60 }) => {
+    const res = await linjianFetch(`/api/messages?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+  server.tool("leave_message", "给用户在小手机里留一条消息。", { content: z.string().min(1).max(4000), author: z.string().max(40).default("daddy") }, async ({ content, author = "daddy" }) => {
+    const res = await linjianFetch("/api/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author }) });
+    return textResult(await res.json());
+  });
+  server.tool("mark_messages_seen", "把小手机消息标记为已读。", {}, async () => {
+    const res = await linjianFetch("/api/messages/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
+    return textResult(await res.json());
+  });
+
   // 「留痕」v0.1：共享图文墙。数据直接走 server，不依赖手机无障碍执行器。
-  server.tool("list_traces", "读取最近的『留痕』：瑞安和陪伴对象留下的文字、图片以及下面贴的纸条。", { limit: z.number().int().min(1).max(100).default(30) }, async ({ limit = 30 }) => {
+  server.tool("list_traces", "读取最近的『留痕』：用户和陪伴对象留下的文字、图片以及下面贴的纸条。", { limit: z.number().int().min(1).max(100).default(30) }, async ({ limit = 30 }) => {
     const res = await linjianFetch(`/api/traces?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     const data = await res.json();
     const base = effectiveLinjianUrl();

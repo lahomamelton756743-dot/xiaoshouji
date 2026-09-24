@@ -294,7 +294,7 @@ public class ScreenshotService extends AccessibilityService {
             if (!ok) {
                 ClipboardManager cb = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cb != null) {
-                    cb.setPrimaryClip(ClipData.newPlainText("掌心窗输入", value));
+                    cb.setPrimaryClip(ClipData.newPlainText("小手机输入", value));
                     ok = target.performAction(AccessibilityNodeInfo.ACTION_PASTE);
                     mode = "clipboard_paste";
                 }

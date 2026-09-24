@@ -237,7 +237,50 @@ class State:
         self.trace_media_dir.mkdir(parents=True, exist_ok=True)
         self.traces_lock = Lock()
         self.traces = self._load_traces()
+        # 「消息」：和留痕分开的双人消息流。
+        self.messages_path = self.data_dir / "messages.json"
+        self.messages_lock = Lock()
+        self.messages = self._load_messages()
 
+
+    def _load_messages(self) -> list[dict]:
+        try:
+            if self.messages_path.exists():
+                loaded = json.loads(self.messages_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list): return loaded[:2000]
+        except Exception:
+            pass
+        return []
+
+    def save_messages(self) -> None:
+        self.messages_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self.messages_path.with_suffix(".tmp")
+        temp.write_text(json.dumps(self.messages[:2000], ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self.messages_path)
+
+    def add_message(self, data: dict) -> dict:
+        with self.messages_lock:
+            entry = {
+                "id": str(uuid.uuid4()),
+                "author": clip_text(str(data.get("author") or "用户"), 40),
+                "content": clip_text(str(data.get("content") or ""), 4000),
+                "created_at": now_iso(),
+                "seen": bool(data.get("seen", False)),
+            }
+            self.messages.insert(0, entry); del self.messages[2000:]; self.save_messages(); return dict(entry)
+
+    def list_messages(self, limit: int = 60) -> list[dict]:
+        with self.messages_lock:
+            return json.loads(json.dumps(self.messages[:max(1, min(200, limit))], ensure_ascii=False))
+
+    def mark_messages_seen(self) -> int:
+        changed = 0
+        with self.messages_lock:
+            for message in self.messages:
+                if not message.get("seen"):
+                    message["seen"] = True; changed += 1
+            if changed: self.save_messages()
+        return changed
 
     def _load_traces(self) -> list[dict]:
         try:
@@ -281,7 +324,7 @@ class State:
                 except Exception:
                     continue
             entry = {
-                "id": trace_id, "author": clip_text(str(data.get("author") or "瑞安"), 40),
+                "id": trace_id, "author": clip_text(str(data.get("author") or "用户"), 40),
                 "content": clip_text(str(data.get("content") or ""), 4000), "created_at": now_iso(),
                 "images": images, "notes": [], "note_count": 0
             }
@@ -501,6 +544,10 @@ class Handler(BaseHTTPRequestHandler):
     def _token_ok(self) -> bool:
         qs = parse_qs(urlparse(self.path).query)
         supplied = self.headers.get("X-Auth-Token", "") or qs.get("token", [""])[0]
+        if not supplied:
+            auth = self.headers.get("Authorization", "")
+            if auth.lower().startswith("bearer "):
+                supplied = auth[7:].strip()
         return bool(self.state.token) and supplied == self.state.token
 
     def _require_token(self) -> bool:
@@ -597,6 +644,10 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "requests": self.state.unlock_requests[-50:]}); return
         if path == "/api/known_apps":
             self._json(200, {"ok": True, "apps": KNOWN_APPS}); return
+        if path == "/api/messages":
+            if not self._require_token(): return
+            q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [60])[0])
+            self._json(200, {"ok": True, "messages": self.state.list_messages(limit)}); return
         if path == "/api/traces":
             if not self._require_token(): return
             q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [30])[0])
@@ -613,6 +664,18 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/mcp", "/sse"):
             self._json(400, {"ok": False, "error": "LINJIAN_ERR_WRONG_SERVICE", "message": "你访问的是掌心窗 server 服务，不是 MCP 服务。请单独部署 mcp 目录，并在 MCP 客户端填写 MCP 服务域名 + /mcp 或 /sse。"})
             return
+        if path == "/api/messages":
+            if not self._require_token(): return
+            data = self._read_json()
+            content = clip_text(str(data.get("content") or ""), 4000)
+            if not content:
+                self._json(400, {"ok": False, "error": "content_required"}); return
+            message = self.state.add_message({**data, "content": content})
+            self.state.add_activity_event({"source":"user" if message.get("author") != "daddy" else "companion", "type":"message", "title":"留下了一条消息", "subtitle":message.get("content", "")[:160], "status":"completed", "metadata_json":{"message_id":message.get("id")}})
+            self._json(200, {"ok": True, "message": message}); return
+        if path == "/api/messages/seen":
+            if not self._require_token(): return
+            self._json(200, {"ok": True, "marked": self.state.mark_messages_seen()}); return
         if path == "/api/traces":
             if not self._require_token(): return
             data = self._read_json(); trace = self.state.add_trace(data)

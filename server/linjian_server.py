@@ -28,7 +28,7 @@ from urllib.request import Request, urlopen
 DEFAULT_PORT = 8513
 DEFAULT_KEEP = 3
 MAX_UPLOAD_BYTES = 24 * 1024 * 1024
-VERSION = "0.4.0-fusion"
+VERSION = "0.5.0-fusion"
 DEFAULT_DEVICE = os.environ.get("LINJIAN_DEFAULT_DEVICE", "android-phone")
 ACTIVITY_EVENT_LIMIT = 500
 
@@ -49,7 +49,7 @@ KNOWN_APPS = {
     "京东": "com.jingdong.app.mall", "jd": "com.jingdong.app.mall",
 }
 SENSITIVE_PACKAGES = {"com.eg.android.AlipayGphone", "com.tencent.mm.plugin.wallet"}
-ALLOWED_ACTIONS = {"noop", "open_app", "home", "back", "recents", "screen_off", "turn_screen_off", "lock_screen", "phone_screen_off", "tap", "swipe", "set_alarm", "send_notification", "run_sequence", "save_known_app", "get_screen_nodes", "tap_text", "input_text", "lock_app", "unlock_app", "temporary_unlock_app", "extend_lock", "deny_unlock_request", "get_lock_state", "set_emergency_passphrase", "add_locked_app", "remove_locked_app", "list_lockable_apps", "screen_break_app", "start_screen_break", "screen_break", "end_screen_break", "stop_screen_break", "temporary_screen_break_release", "temporary_screen_release", "extend_screen_break", "deny_screen_break_release_request", "deny_break_release_request", "get_screen_break_state", "set_screen_break_passphrase", "add_screen_break_app", "remove_screen_break_app", "list_screen_break_apps", "get_focus_status", "start_focus_mode", "end_focus_mode", "set_focus_plan", "reply_focus_request", "approve_focus_unlock", "deny_focus_unlock", "request_focus_unlock", "create_focus_request", "get_guidian_state", "set_guidian_config", "trigger_guidian", "mark_guidian_returned", "get_calendar_state", "upsert_calendar_event", "add_calendar_event", "delete_calendar_event", "create_diary_book", "list_diary_books", "rename_diary_book", "update_diary_book_cover", "write_diary_entry", "list_diary_entries", "read_diary_entry", "read_diary_entry_with_annotations", "add_diary_annotation", "list_diary_annotations", "mark_diary_annotations_seen", "delete_diary_annotation", "search_diary_entries", "update_diary_entry", "delete_diary_entry", "delete_diary_book", "get_wallet_state", "get_wallet_month_state", "list_wallet_months", "add_wallet_record", "list_wallet_pending", "list_wallet_approvals", "list_companion_wallet_requests", "list_wallet_request_results", "submit_wallet_approval", "submit_companion_wallet_request", "decide_wallet_approval", "save_wallet_request_result", "update_wallet_request_result", "save_user_wallet_request_result", "edit_wallet_record", "update_wallet_record", "delete_wallet_record", "remove_wallet_record", "confirm_wallet_record", "get_wallet_rules", "set_wallet_rules", "wallet_approval_request", "get_takeout_state", "list_takeout_cards", "list_takeout_meals", "remember_takeout_meal", "remember_current_takeout_meal", "set_takeout_budget", "set_takeout_preferences", "add_takeout_card", "save_takeout_card", "update_takeout_card", "remove_takeout_card", "delete_takeout_card", "suggest_takeout_options", "create_takeout_plan", "takeout_wallet_request", "open_takeout_link", "open_takeout_plan", "copy_takeout_note", "record_takeout_order", "prepare_takeout_checkout", "auto_takeout_checkout", "get_takeout_checkout_status", "cancel_takeout_checkout"}
+ALLOWED_ACTIONS = {"noop", "little_phone_visit", "open_app", "home", "back", "recents", "screen_off", "turn_screen_off", "lock_screen", "phone_screen_off", "tap", "swipe", "set_alarm", "send_notification", "run_sequence", "save_known_app", "get_screen_nodes", "tap_text", "input_text", "lock_app", "unlock_app", "temporary_unlock_app", "extend_lock", "deny_unlock_request", "get_lock_state", "set_emergency_passphrase", "add_locked_app", "remove_locked_app", "list_lockable_apps", "screen_break_app", "start_screen_break", "screen_break", "end_screen_break", "stop_screen_break", "temporary_screen_break_release", "temporary_screen_release", "extend_screen_break", "deny_screen_break_release_request", "deny_break_release_request", "get_screen_break_state", "set_screen_break_passphrase", "add_screen_break_app", "remove_screen_break_app", "list_screen_break_apps", "get_focus_status", "start_focus_mode", "end_focus_mode", "set_focus_plan", "reply_focus_request", "approve_focus_unlock", "deny_focus_unlock", "request_focus_unlock", "create_focus_request", "get_guidian_state", "set_guidian_config", "trigger_guidian", "mark_guidian_returned", "get_calendar_state", "upsert_calendar_event", "add_calendar_event", "delete_calendar_event", "create_diary_book", "list_diary_books", "rename_diary_book", "update_diary_book_cover", "write_diary_entry", "list_diary_entries", "read_diary_entry", "read_diary_entry_with_annotations", "add_diary_annotation", "list_diary_annotations", "mark_diary_annotations_seen", "delete_diary_annotation", "search_diary_entries", "update_diary_entry", "delete_diary_entry", "delete_diary_book", "get_wallet_state", "get_wallet_month_state", "list_wallet_months", "add_wallet_record", "list_wallet_pending", "list_wallet_approvals", "list_companion_wallet_requests", "list_wallet_request_results", "submit_wallet_approval", "submit_companion_wallet_request", "decide_wallet_approval", "save_wallet_request_result", "update_wallet_request_result", "save_user_wallet_request_result", "edit_wallet_record", "update_wallet_record", "delete_wallet_record", "remove_wallet_record", "confirm_wallet_record", "get_wallet_rules", "set_wallet_rules", "wallet_approval_request", "get_takeout_state", "list_takeout_cards", "list_takeout_meals", "remember_takeout_meal", "remember_current_takeout_meal", "set_takeout_budget", "set_takeout_preferences", "add_takeout_card", "save_takeout_card", "update_takeout_card", "remove_takeout_card", "delete_takeout_card", "suggest_takeout_options", "create_takeout_plan", "takeout_wallet_request", "open_takeout_link", "open_takeout_plan", "copy_takeout_note", "record_takeout_order", "prepare_takeout_checkout", "auto_takeout_checkout", "get_takeout_checkout_status", "cancel_takeout_checkout"}
 
 
 
@@ -247,6 +247,25 @@ class State:
         self.capsules_path = self.data_dir / "time_capsules.json"
         self.capsules_lock = Lock()
         self.capsules = self._load_capsules()
+
+        # v0.5 小手机：来访快照、7 天滚动留痕、纸条池、日常册与待办。
+        self.littlephone_events_path = self.data_dir / "littlephone_events.json"
+        self.littlephone_events_lock = Lock()
+        self.littlephone_events = self._load_list_file(self.littlephone_events_path, 4000)
+        self.visits_path = self.data_dir / "littlephone_visits.json"
+        self.visits_lock = Lock()
+        self.visits = self._load_list_file(self.visits_path, 500)
+        self.paper_notes_path = self.data_dir / "littlephone_papers.json"
+        self.paper_notes_lock = Lock()
+        self.paper_notes = self._load_list_file(self.paper_notes_path, 2000)
+        self.dailybook_path = self.data_dir / "littlephone_dailybook.json"
+        self.dailybook_lock = Lock()
+        self.dailybook = self._load_list_file(self.dailybook_path, 2000)
+        self.dailybook_media_dir = self.data_dir / "dailybook_media"
+        self.dailybook_media_dir.mkdir(parents=True, exist_ok=True)
+        self.todos_path = self.data_dir / "littlephone_todos.json"
+        self.todos_lock = Lock()
+        self.todos = self._load_list_file(self.todos_path, 2000)
 
 
     def _load_messages(self) -> list[dict]:
@@ -576,6 +595,162 @@ class State:
             }, int(data.get("dedupe_seconds") or 0))
         return entry
 
+
+    # ---------- 小手机 v0.5 数据 ----------
+    def _load_list_file(self, path: Path, limit: int) -> list[dict]:
+        try:
+            if path.exists():
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list): return loaded[:limit]
+        except Exception:
+            pass
+        return []
+
+    def _save_list_file(self, path: Path, items: list[dict], limit: int) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp = path.with_suffix(path.suffix + ".tmp")
+        temp.write_text(json.dumps(items[:limit], ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(path)
+
+    def add_littlephone_event(self, actor: str, event_type: str, title: str, content: str = "", metadata: dict | None = None) -> dict:
+        now = time.time()
+        entry = {
+            "id": str(uuid.uuid4()),
+            "actor": "daddy" if str(actor or "").lower() in ("daddy", "companion", "gpt") else "user",
+            "type": clip_text(str(event_type or "event"), 40),
+            "title": clip_text(str(title or ""), 120),
+            "content": clip_text(str(content or ""), 1000),
+            "created_at": now_iso(),
+            "expires_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now + 7 * 86400)),
+            "expires_at_epoch": int(now + 7 * 86400),
+            "metadata": metadata if isinstance(metadata, dict) else {},
+        }
+        with self.littlephone_events_lock:
+            self.littlephone_events = [x for x in self.littlephone_events if int(x.get("expires_at_epoch") or 0) > int(now)]
+            self.littlephone_events.insert(0, entry)
+            del self.littlephone_events[4000:]
+            self._save_list_file(self.littlephone_events_path, self.littlephone_events, 4000)
+        return dict(entry)
+
+    def list_littlephone_events(self, limit: int = 80) -> list[dict]:
+        now = int(time.time())
+        with self.littlephone_events_lock:
+            before = len(self.littlephone_events)
+            self.littlephone_events = [x for x in self.littlephone_events if int(x.get("expires_at_epoch") or 0) > now]
+            if len(self.littlephone_events) != before:
+                self._save_list_file(self.littlephone_events_path, self.littlephone_events, 4000)
+            return json.loads(json.dumps(self.littlephone_events[:max(1, min(300, limit))], ensure_ascii=False))
+
+    def complete_visit(self, command_id: str, device_id: str, raw_result) -> dict | None:
+        try:
+            snapshot = json.loads(raw_result) if isinstance(raw_result, str) else dict(raw_result or {})
+        except Exception:
+            return None
+        if not isinstance(snapshot, dict) or not snapshot.get("ok"):
+            return None
+        now = time.time()
+        item = {
+            "id": str(uuid.uuid4()),
+            "command_id": command_id,
+            "device_id": device_id or DEFAULT_DEVICE,
+            "visitor": "daddy",
+            "created_at": now_iso(),
+            "expires_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now + 1800)),
+            "expires_at_epoch": int(now + 1800),
+            "snapshot": snapshot,
+        }
+        with self.visits_lock:
+            self.visits.insert(0, item); del self.visits[500:]
+            self._save_list_file(self.visits_path, self.visits, 500)
+        read_bits = []
+        if any(k in snapshot for k in ("battery_percent", "network_type", "screen_on")): read_bits.append("设备状态")
+        if "calendar_state" in snapshot: read_bits.append("日历")
+        if "screen_time_today_minutes" in snapshot: read_bits.append("屏幕使用")
+        if "media_state" in snapshot: read_bits.append("媒体状态")
+        if "city" in snapshot or "weather_state" in snapshot: read_bits.append("城市/天气")
+        self.add_littlephone_event("daddy", "visit", "daddy 来访", "读取" + ("、".join(read_bits) if read_bits else "已授权状态"), {"visit_id": item["id"], "command_id": command_id})
+        return dict(item)
+
+    def latest_visit(self, device_id: str = "") -> dict | None:
+        with self.visits_lock:
+            item = next((dict(x) for x in self.visits if not device_id or x.get("device_id") == device_id), None)
+        if not item: return None
+        item["expired"] = int(item.get("expires_at_epoch") or 0) <= int(time.time())
+        item["fresh"] = not item["expired"]
+        return item
+
+    def add_paper_note(self, data: dict) -> dict:
+        entry = {"id": str(uuid.uuid4()), "author": clip_text(str(data.get("author") or "用户"), 40), "content": clip_text(str(data.get("content") or ""), 800), "created_at": now_iso()}
+        with self.paper_notes_lock:
+            self.paper_notes.insert(0, entry); del self.paper_notes[2000:]
+            self._save_list_file(self.paper_notes_path, self.paper_notes, 2000)
+        actor = "daddy" if entry["author"].lower() in ("daddy", "gpt", "companion") else "user"
+        self.add_littlephone_event(actor, "paper", f'{entry["author"]} 留下一张纸条', entry["content"], {"paper_id": entry["id"]})
+        return dict(entry)
+
+    def list_paper_notes(self, limit: int = 200) -> list[dict]:
+        with self.paper_notes_lock: return json.loads(json.dumps(self.paper_notes[:max(1, min(500, limit))], ensure_ascii=False))
+
+    def add_dailybook_entry(self, data: dict) -> dict:
+        entry_id = str(uuid.uuid4())
+        images = []
+        raw_images = data.get("images") or []
+        if not isinstance(raw_images, list): raw_images = []
+        for i, item in enumerate(raw_images[:9]):
+            if isinstance(item, str): item = {"data": item}
+            if not isinstance(item, dict): continue
+            remote_url = clip_text(str(item.get("url") or ""), 1000)
+            if remote_url:
+                images.append({"url": remote_url, "kind": "remote"}); continue
+            raw = str(item.get("data") or item.get("base64") or "").strip()
+            if not raw: continue
+            mime = str(item.get("mime") or "image/jpeg").lower()
+            m = re.match(r"^data:(image/[^;]+);base64,(.+)$", raw, re.S)
+            if m: mime, raw = m.group(1).lower(), m.group(2)
+            ext = ".png" if "png" in mime else (".webp" if "webp" in mime else ".jpg")
+            try:
+                blob = base64.b64decode(raw, validate=False)
+                if not blob or len(blob) > 12 * 1024 * 1024: continue
+                name = f"{entry_id}_{i}{ext}"
+                (self.dailybook_media_dir / name).write_bytes(blob)
+                images.append({"url": f"/media/dailybook/{name}", "kind": "local", "mime": mime})
+            except Exception: continue
+        entry = {
+            "id": entry_id, "author": clip_text(str(data.get("author") or "用户"), 40),
+            "title": clip_text(str(data.get("title") or "今天"), 120), "mood": clip_text(str(data.get("mood") or ""), 40),
+            "content": clip_text(str(data.get("content") or ""), 12000), "date": clip_text(str(data.get("date") or time.strftime("%Y-%m-%d")), 20),
+            "created_at": now_iso(), "images": images
+        }
+        with self.dailybook_lock:
+            self.dailybook.insert(0, entry); del self.dailybook[2000:]
+            self._save_list_file(self.dailybook_path, self.dailybook, 2000)
+        actor = "daddy" if entry["author"].lower() in ("daddy", "gpt", "companion") else "user"
+        self.add_littlephone_event(actor, "dailybook", f'{entry["author"]} 写入日常册', entry["title"], {"entry_id": entry_id})
+        return dict(entry)
+
+    def list_dailybook(self, limit: int = 100) -> list[dict]:
+        with self.dailybook_lock: return json.loads(json.dumps(self.dailybook[:max(1, min(300, limit))], ensure_ascii=False))
+
+    def add_todo(self, data: dict) -> dict:
+        entry = {"id": str(uuid.uuid4()), "author": clip_text(str(data.get("author") or "用户"), 40), "title": clip_text(str(data.get("title") or data.get("content") or ""), 240), "due_at": clip_text(str(data.get("due_at") or ""), 40), "done": False, "created_at": now_iso()}
+        with self.todos_lock:
+            self.todos.insert(0, entry); del self.todos[2000:]
+            self._save_list_file(self.todos_path, self.todos, 2000)
+        actor = "daddy" if entry["author"].lower() in ("daddy", "gpt", "companion") else "user"
+        self.add_littlephone_event(actor, "todo", f'{entry["author"]} 添加待办', entry["title"], {"todo_id": entry["id"]})
+        return dict(entry)
+
+    def list_todos(self, limit: int = 100) -> list[dict]:
+        with self.todos_lock: return json.loads(json.dumps(self.todos[:max(1, min(300, limit))], ensure_ascii=False))
+
+    def toggle_todo(self, todo_id: str, done: bool) -> dict | None:
+        with self.todos_lock:
+            item = next((x for x in self.todos if x.get("id") == todo_id), None)
+            if item is None: return None
+            item["done"] = bool(done); item["updated_at"] = now_iso()
+            self._save_list_file(self.todos_path, self.todos, 2000)
+            return dict(item)
+
     def latest_shot(self) -> Path | None:
         shots = sorted(self.shots_dir.glob("peek_*"), key=lambda p: p.stat().st_mtime)
         return shots[-1] if shots else None
@@ -744,6 +919,26 @@ class Handler(BaseHTTPRequestHandler):
             if not self._require_token(): return
             q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [60])[0])
             self._json(200, {"ok": True, "messages": self.state.list_messages(limit)}); return
+        if path == "/api/littlephone/events":
+            if not self._require_token(): return
+            limit = int((qs.get("limit") or [80])[0])
+            self._json(200, {"ok": True, "events": self.state.list_littlephone_events(limit)}); return
+        if path == "/api/littlephone/visit/latest":
+            if not self._require_token(): return
+            device_id = (qs.get("device_id") or [""])[0]
+            self._json(200, {"ok": True, "visit": self.state.latest_visit(device_id)}); return
+        if path == "/api/littlephone/papers":
+            if not self._require_token(): return
+            limit = int((qs.get("limit") or [200])[0])
+            self._json(200, {"ok": True, "papers": self.state.list_paper_notes(limit)}); return
+        if path == "/api/littlephone/dailybook":
+            if not self._require_token(): return
+            limit = int((qs.get("limit") or [100])[0])
+            self._json(200, {"ok": True, "entries": self.state.list_dailybook(limit)}); return
+        if path == "/api/littlephone/todos":
+            if not self._require_token(): return
+            limit = int((qs.get("limit") or [100])[0])
+            self._json(200, {"ok": True, "todos": self.state.list_todos(limit)}); return
         if path == "/api/mail":
             if not self._require_token(): return
             q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [80])[0])
@@ -756,6 +951,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._require_token(): return
             q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [30])[0])
             self._json(200, {"ok": True, "traces": self.state.list_traces(limit)}); return
+        if path.startswith("/media/dailybook/"):
+            name = Path(path).name; f = self.state.dailybook_media_dir / name
+            if not f.exists() or not f.is_file(): self._json(404, {"ok": False, "error": "not_found"}); return
+            ctype = "image/png" if f.suffix.lower()==".png" else ("image/webp" if f.suffix.lower()==".webp" else "image/jpeg")
+            self._send_bytes(200, f.read_bytes(), ctype); return
         if path.startswith("/media/traces/"):
             name = Path(path).name; f = self.state.trace_media_dir / name
             if not f.exists() or not f.is_file(): self._json(404, {"ok": False, "error": "not_found"}); return
@@ -777,12 +977,41 @@ class Handler(BaseHTTPRequestHandler):
             message = self.state.add_message({**data, "content": content})
             self.state.add_activity_event({"source":"user" if message.get("author") != "daddy" else "companion", "type":"message", "title":"留下了一条消息", "subtitle":message.get("content", "")[:160], "status":"completed", "metadata_json":{"message_id":message.get("id")}})
             self._json(200, {"ok": True, "message": message}); return
+        if path == "/api/littlephone/visit":
+            if not self._require_token(): return
+            data = self._read_json(); device_id = data.get("device_id") or DEFAULT_DEVICE
+            cmd = make_command(device_id, "little_phone_visit", payload={"requested_by": "daddy"})
+            self._queue(cmd)
+            with self.state.commands_lock: self.state.command_history[cmd.get("id", "")] = dict(cmd)
+            self._json(200, {"ok": True, "command": cmd, "mode": "read_once"}); return
+        if path == "/api/littlephone/papers":
+            if not self._require_token(): return
+            data = self._read_json(); content = clip_text(str(data.get("content") or ""), 800)
+            if not content: self._json(400, {"ok": False, "error": "content_required"}); return
+            self._json(200, {"ok": True, "paper": self.state.add_paper_note({**data, "content": content})}); return
+        if path == "/api/littlephone/dailybook":
+            if not self._require_token(): return
+            data = self._read_json(); content = clip_text(str(data.get("content") or ""), 12000)
+            if not content and not str(data.get("title") or "").strip(): self._json(400, {"ok": False, "error": "content_required"}); return
+            self._json(200, {"ok": True, "entry": self.state.add_dailybook_entry({**data, "content": content})}); return
+        if path == "/api/littlephone/todos":
+            if not self._require_token(): return
+            data = self._read_json(); title = clip_text(str(data.get("title") or data.get("content") or ""), 240)
+            if not title: self._json(400, {"ok": False, "error": "title_required"}); return
+            self._json(200, {"ok": True, "todo": self.state.add_todo({**data, "title": title})}); return
+        if path == "/api/littlephone/todos/toggle":
+            if not self._require_token(): return
+            data = self._read_json(); item = self.state.toggle_todo(str(data.get("id") or ""), bool(data.get("done")))
+            if item is None: self._json(404, {"ok": False, "error": "todo_not_found"}); return
+            self._json(200, {"ok": True, "todo": item}); return
         if path == "/api/mail":
             if not self._require_token(): return
             data = self._read_json(); content = clip_text(str(data.get("content") or ""), 6000)
             if not content:
                 self._json(400, {"ok": False, "error": "content_required"}); return
             item = self.state.add_mail({**data, "content": content})
+            actor = "daddy" if str(item.get("author") or "").lower() in ("daddy", "gpt", "companion") else "user"
+            self.state.add_littlephone_event(actor, "mail", f'{item.get("author") or "用户"} 投递了一封信', item.get("content", "")[:240], {"mail_id": item.get("id")})
             self.state.add_activity_event({"source":"user" if item.get("author") != "daddy" else "companion", "type":"mail", "title":"投递了一封信", "subtitle":item.get("content", "")[:160], "status":"completed", "metadata_json":{"mail_id":item.get("id"), "kind":item.get("kind")}})
             self._json(200, {"ok": True, "mail": item}); return
         if path == "/api/mail/seen":
@@ -890,7 +1119,11 @@ class Handler(BaseHTTPRequestHandler):
                     cmd["report"] = data
                     completed_cmd = dict(cmd)
             if completed_cmd is not None:
+                if completed_cmd.get("action") == "little_phone_visit" and data.get("ok"):
+                    try: self.state.complete_visit(cid, completed_cmd.get("device_id") or DEFAULT_DEVICE, data.get("result", ""))
+                    except Exception: pass
                 try:
+                    if completed_cmd.get("action") == "little_phone_visit": raise RuntimeError("visit_uses_littlephone_event_only")
                     self.state.add_activity_event({
                         "id": completed_cmd.get("activity_event_id") or cid, "device_id": completed_cmd.get("device_id") or DEFAULT_DEVICE,
                         "source": "companion", "type": activity_type_for_action(completed_cmd.get("action")), "action": completed_cmd.get("action") or "",

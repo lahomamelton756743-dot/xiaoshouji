@@ -1,3 +1,7 @@
+# 小手机 v0.5（个人融合版）
+
+> 基于 v0.4.1 fusion assets fix 增量升级。首页双头像固定为 daddy 左、瑞安右；核心变化是一次性来访快照、7 天滚动留痕、纸条池、日常册、待办与 MCP v0.5 工具。详见 `docs/LITTLE_PHONE_V0.5.md`。
+
 # 小手机 v0.4 融合版
 
 > 当前自用分支：Web/PWA 风格液态玻璃前台 + 掌心窗 Android 原生能力 + 自建 server/MCP。详情见 `docs/LITTLE_PHONE_V0.4_FUSION.md`。

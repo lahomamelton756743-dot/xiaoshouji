@@ -1003,9 +1003,9 @@ function makeWalletTakeoutServer() {
 }
 
 function makeServer() {
-  const server = new McpServer({ name: "掌心窗", version: "0.4.0" });
+  const server = new McpServer({ name: "掌心窗", version: "0.5.0" });
   const commandBackedTools = new Set([
-    "peek_screen", "get_screen_nodes", "tap_text", "input_text", "draft_xhs_comment", "xhs_comment", "send_visible_comment_after_confirmation",
+    "visit_little_phone", "peek_screen", "get_screen_nodes", "tap_text", "input_text", "draft_xhs_comment", "xhs_comment", "send_visible_comment_after_confirmation",
     "add_guardian_calendar_event", "care_action", "trigger_guidian", "mark_guidian_returned",
     "set_guidian_config", "send_weather_notification", "send_phone_command", "open_app", "phone_home", "phone_back", "phone_recents",
     "phone_screen_off", "send_notification", "set_alarm", "run_sequence", "run_preset", "save_known_app", "screen_break_app",
@@ -1040,6 +1040,78 @@ function makeServer() {
 
   // v0.3.8.2：专注模式工具靠前注册，避免部分客户端只读取前若干个 schema 时漏掉接口。
   // v0.4 「信箱」：异步投递，不把它伪装成常驻实时聊天。
+  server.tool("visit_little_phone", "来访一次小手机：只在这次调用时让 Android 按用户授权读取一次设备快照，成功后保存 30 分钟有效快照并写一条来访留痕；不会持续读取。", {
+    device_id: z.string().default(DEFAULT_DEVICE),
+    wait_seconds: z.number().int().min(1).max(12).default(8)
+  }, async ({ device_id = DEFAULT_DEVICE, wait_seconds = 8 }) => {
+    const queuedRes = await linjianFetch("/api/littlephone/visit", {
+      method: "POST", timeout_ms: COMMAND_QUEUE_TIMEOUT_MS,
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device_id })
+    });
+    const queued = await queuedRes.json();
+    const id = queued?.command?.id || "";
+    if (!id) return textResult({ ok:false, error:"visit_not_queued", queued });
+    const observed = await waitCommand(id, wait_seconds);
+    const status = observed?.command?.status || "pending";
+    const latest = await linjianFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS }).then(r=>r.json()).catch(()=>({ok:false}));
+    return textResult({ ok: status === "completed", mode:"read_once", queued: queued.command, status, visit: latest?.visit || null, note: status === "completed" ? "本次来访已完成；快照默认 30 分钟有效。" : "命令已排队；手机尚未在本次等待窗口内回传。" });
+  });
+
+  server.tool("get_little_phone_snapshot", "读取最近一次成功来访保存的设备快照。只读服务端已有快照，不会触发手机读取；返回 expired/fresh，过期快照不能当作当前状态。", {
+    device_id: z.string().default(DEFAULT_DEVICE)
+  }, async ({ device_id = DEFAULT_DEVICE }) => {
+    const res = await linjianFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+
+  server.tool("list_little_phone_events", "读取小手机最近 7 天的留痕事件。每条独立到期滚动删除；这是行为留痕，不是聊天记录。", {
+    limit: z.number().int().min(1).max(300).default(80)
+  }, async ({ limit = 80 }) => {
+    const res = await linjianFetch(`/api/littlephone/events?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+
+  server.tool("leave_little_phone_paper", "在小手机纸条池留一张轻量纸条。首页会随机轮播，并尽量在一轮内不重复。", {
+    content: z.string().min(1).max(800), author: z.string().max(40).default("daddy")
+  }, async ({ content, author = "daddy" }) => {
+    const res = await linjianFetch("/api/littlephone/papers", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author }) });
+    return textResult(await res.json());
+  });
+
+  server.tool("list_little_phone_papers", "读取小手机纸条池。", { limit: z.number().int().min(1).max(500).default(200) }, async ({ limit = 200 }) => {
+    const res = await linjianFetch(`/api/littlephone/papers?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+
+  server.tool("add_dailybook_entry", "往小手机『日常册』写一条长期记录，可写标题、心情、正文、日期与图片 URL。它与 7 天留痕分开长期保存。", {
+    title: z.string().max(120).default("今天"), mood: z.string().max(40).default(""), content: z.string().max(12000).default(""), date: z.string().max(20).default(""), author: z.string().max(40).default("daddy"), image_urls: z.array(z.string().url()).max(9).default([])
+  }, async ({ title="今天", mood="", content="", date="", author="daddy", image_urls=[] }) => {
+    const res = await linjianFetch("/api/littlephone/dailybook", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, mood, content, date, author, images:image_urls.map(url=>({url})) }) });
+    return textResult(await res.json());
+  });
+
+  server.tool("list_dailybook_entries", "读取小手机『日常册』长期时间轴。", { limit: z.number().int().min(1).max(300).default(100) }, async ({ limit=100 }) => {
+    const res = await linjianFetch(`/api/littlephone/dailybook?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+
+  server.tool("add_little_phone_todo", "给小手机今日区添加一条待办，并写入一条对应留痕。", {
+    title: z.string().min(1).max(240), due_at: z.string().max(40).default(""), author: z.string().max(40).default("daddy")
+  }, async ({ title, due_at="", author="daddy" }) => {
+    const res = await linjianFetch("/api/littlephone/todos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, due_at, author }) });
+    return textResult(await res.json());
+  });
+
+  server.tool("list_little_phone_todos", "读取小手机待办。", { limit:z.number().int().min(1).max(300).default(100) }, async ({limit=100}) => {
+    const res = await linjianFetch(`/api/littlephone/todos?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+
+  server.tool("set_little_phone_todo_done", "把一条小手机待办设为完成或未完成。", { id:z.string(), done:z.boolean().default(true) }, async ({id,done=true}) => {
+    const res = await linjianFetch("/api/littlephone/todos/toggle", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,done}) });
+    return textResult(await res.json());
+  });
+
   server.tool("list_mailbox", "读取小手机信箱里最近的信。每封信都有真实服务端时间、类型和已读状态。", { limit: z.number().int().min(1).max(300).default(80) }, async ({ limit = 80 }) => {
     const res = await linjianFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());

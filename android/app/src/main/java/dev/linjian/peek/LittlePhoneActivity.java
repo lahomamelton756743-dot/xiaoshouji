@@ -29,7 +29,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 小手机 v0.4 Web/PWA 外壳。
+ * 小手机 v0.5 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -142,6 +142,22 @@ public class LittlePhoneActivity extends Activity {
             } catch (Exception e) {
                 return "{\"ok\":false,\"error\":" + JSONObject.quote(e.getMessage() == null ? "native_error" : e.getMessage()) + "}";
             }
+        }
+
+        @JavascriptInterface
+        public String getVisitPolicy() {
+            return LittlePhoneVisitPolicy.asJson(LittlePhoneActivity.this).toString();
+        }
+
+        @JavascriptInterface
+        public boolean setVisitPolicy(String key, boolean value) {
+            return LittlePhoneVisitPolicy.set(LittlePhoneActivity.this, key, value);
+        }
+
+        @JavascriptInterface
+        public String previewVisitSnapshot() {
+            // 仅供本机“权限预览”页使用，不上传 server，也不生成来访留痕。
+            return LittlePhoneVisitPolicy.collectSnapshot(LittlePhoneActivity.this).toString();
         }
 
         @JavascriptInterface

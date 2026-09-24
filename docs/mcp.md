@@ -230,3 +230,15 @@ Render 一键部署时，`LINJIAN_URL` 会由 Blueprint 自动引用 server 的�
 专注模式必须在 MCP 工具列表中暴露：`get_focus_status`、`start_focus_mode`、`end_focus_mode`、`set_focus_plan`、`reply_focus_request`、`approve_focus_unlock`、`deny_focus_unlock`。用户说“帮我专注/锁手机/开专注模式/别让我玩手机”时优先调用 `start_focus_mode`；锁单个 App 才使用应用门禁。
 
 `rename_diary_book` 已支持缺少 `book_id` 时自动处理：传 `old_name + new_name` 可按名字匹配；如果手机端只有一本日记本，只传 `new_name` 也会自动重命名。用户要求改名时不要反复调用 `list_diary_books`。
+
+
+## 小手机 v0.5 新工具
+
+- `visit_little_phone`：发起一次来访读取；Android 只在本次命令执行时采集一次授权快照。
+- `get_little_phone_snapshot`：只读最近成功快照，不触发手机读取；注意 `expired/fresh`。
+- `list_little_phone_events`：读取最近 7 天滚动留痕。
+- `leave_little_phone_paper` / `list_little_phone_papers`：纸条池。
+- `add_dailybook_entry` / `list_dailybook_entries`：长期日常册。
+- `add_little_phone_todo` / `list_little_phone_todos` / `set_little_phone_todo_done`：待办。
+
+来访失败不写入 v0.5 留痕；成功快照默认有效 30 分钟。

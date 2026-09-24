@@ -82,7 +82,8 @@ public class CompanionService extends Service {
         long now = System.currentTimeMillis();
         long delay = AppPrefs.interval(this);
         try {
-            uploadStateThrottled(serverUrl, token, this, false);
+            // v0.5: 被动轮询只等命令，不再周期性读取/上传 LifeState。
+            // 设备快照只在 little_phone_visit 到达时采集一次。
             if (rateLimitedUntilMs > now) {
                 delay = Math.max(delay, rateLimitedUntilMs - now);
             } else {
@@ -290,7 +291,10 @@ public class CompanionService extends Service {
         boolean ok = one.optBoolean("ok", false);
         String result = one.optString("result", one.toString());
         DebugState.append(ctx, "执行命令 " + action + "：" + result);
-        try { reportCommand(ctx, serverUrl, token, id, ok, result); uploadStateThrottled(serverUrl, token, ctx, false); } catch (Exception ignored) { }
+        try {
+            reportCommand(ctx, serverUrl, token, id, ok, result);
+            if (!"little_phone_visit".equals(action)) uploadStateThrottled(serverUrl, token, ctx, false);
+        } catch (Exception ignored) { }
     }
 
     private static JSONObject performAction(Context ctx, String action, String app, String pkg, float x, float y, float x1, float y1, float x2, float y2, long duration, int hour, int minute, String title, String message, boolean vibrate, String serverUrl, String token, boolean skipUi, String targetText, String inputText, String match, int index, boolean append) {
@@ -299,6 +303,10 @@ public class CompanionService extends Service {
         try {
             ScreenshotService svc = ScreenshotService.getInstance();
             if ("wait".equals(action)) { ok = true; result = "wait";
+            } else if ("little_phone_visit".equals(action)) {
+                JSONObject snapshot = LittlePhoneVisitPolicy.collectSnapshot(ctx);
+                ok = snapshot.optBoolean("ok", false);
+                result = snapshot.toString();
             } else if ("get_life_state".equals(action)) { ok = true; result = LifeState.collect(ctx).toString();
             } else if (isWalletAction(action)) { JSONObject rr = WalletState.handleCommand(ctx, new JSONObject().put("action", action).put("amount", 0)); ok = rr.optBoolean("ok", false); result = rr.toString();
             } else if (isTakeoutAction(action)) { JSONObject rr = TakeoutState.handleCommand(ctx, new JSONObject().put("action", action)); ok = rr.optBoolean("ok", false); result = rr.toString();

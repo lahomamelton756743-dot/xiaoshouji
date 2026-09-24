@@ -1,9 +1,9 @@
 {
   "name": "linjian-unified-mcp",
-  "version": "0.3.8.9",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "Public MCP server for 掌心窗: screenshot, guard tools, configurable app control, active care, visits, and wallet approvals.",
+  "description": "Private-use MCP backend for 小手机: mailbox, traces, calendar, device state and selected phone controls. Screenshot capability is disabled.",
   "scripts": {
     "start": "node server.js"
   },

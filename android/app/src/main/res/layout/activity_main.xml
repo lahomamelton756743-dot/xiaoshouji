@@ -292,13 +292,14 @@
                     android:layout_marginBottom="8dp">
 
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="看见" android:textStyle="bold" android:textSize="16sp" android:textColor="#FF2D3E39" />
-                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="把当前屏幕递给你配置的陪伴对象看一眼。" android:textSize="11sp" android:textColor="#FF7E928C" android:layout_marginTop="6dp" android:lineSpacingExtra="4dp" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="截图能力已关闭；这里保留的是设备状态、日历、天气与权限设置。" android:textSize="11sp" android:textColor="#FF7E928C" android:layout_marginTop="6dp" android:lineSpacingExtra="4dp" />
 
                     <Button
                         android:id="@+id/testButton"
                         android:layout_width="wrap_content"
                         android:layout_height="30dp"
-                        android:text="截图并上传"
+                        android:text="截图能力已关闭"
+                        android:visibility="gone"
                         android:textSize="11sp"
                         android:background="@drawable/pill_primary"
                         android:textColor="#FFFFFFFF"

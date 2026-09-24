@@ -990,20 +990,20 @@ function registerWalletTakeoutTools(server, { includeUnified = false } = {}) {
 }
 
 function makeWalletTakeoutServer() {
-  const server = new McpServer({ name: "掌心窗小金库外卖", version: "0.3.8.9" });
+  const server = new McpServer({ name: "掌心窗小金库外卖", version: "0.4.0" });
   server.tool("linjian_status", "检查掌心窗后端、MCP 配置，以及当前是否使用小金库/外卖专用 schema。", {}, async () => {
     const configErrors = [];
     if (!LINJIAN_URL_CANDIDATES.length) configErrors.push("Missing env LINJIAN_URL");
     if (!LINJIAN_TOKEN) configErrors.push("Missing env LINJIAN_TOKEN");
     const health = configErrors.length ? { ok: false, error: configErrors.join("; ") } : await linjianFetch("/health").then((r) => r.json()).catch((e) => ({ ok: false, error: String(e) }));
-    return textResult({ ok: true, schema_mode: "wallet_takeout_only", version: "0.3.8.9", has_url: Boolean(LINJIAN_URL_CANDIDATES.length), has_token: Boolean(LINJIAN_TOKEN), linjian_url: effectiveLinjianUrl(), health, tools: Array.from(WALLET_TAKEOUT_ACTIONS), note: "如果普通 /mcp 里新增工具没有暴露，请让 AI 客户端连接 /mcp-wallet。" });
+    return textResult({ ok: true, schema_mode: "wallet_takeout_only", version: "0.4.0", has_url: Boolean(LINJIAN_URL_CANDIDATES.length), has_token: Boolean(LINJIAN_TOKEN), linjian_url: effectiveLinjianUrl(), health, tools: Array.from(WALLET_TAKEOUT_ACTIONS), note: "如果普通 /mcp 里新增工具没有暴露，请让 AI 客户端连接 /mcp-wallet。" });
   });
   registerWalletTakeoutTools(server, { includeUnified: true });
   return server;
 }
 
 function makeServer() {
-  const server = new McpServer({ name: "掌心窗", version: "0.3.8.9" });
+  const server = new McpServer({ name: "掌心窗", version: "0.4.0" });
   const commandBackedTools = new Set([
     "peek_screen", "get_screen_nodes", "tap_text", "input_text", "draft_xhs_comment", "xhs_comment", "send_visible_comment_after_confirmation",
     "add_guardian_calendar_event", "care_action", "trigger_guidian", "mark_guidian_returned",
@@ -1039,17 +1039,40 @@ function makeServer() {
 
 
   // v0.3.8.2：专注模式工具靠前注册，避免部分客户端只读取前若干个 schema 时漏掉接口。
-  // 「消息」：和留痕分开的双人消息流，保留服务端时间戳。
-  server.tool("list_messages", "读取小手机最近的双人消息。", { limit: z.number().int().min(1).max(200).default(60) }, async ({ limit = 60 }) => {
-    const res = await linjianFetch(`/api/messages?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+  // v0.4 「信箱」：异步投递，不把它伪装成常驻实时聊天。
+  server.tool("list_mailbox", "读取小手机信箱里最近的信。每封信都有真实服务端时间、类型和已读状态。", { limit: z.number().int().min(1).max(300).default(80) }, async ({ limit = 80 }) => {
+    const res = await linjianFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
-  server.tool("leave_message", "给用户在小手机里留一条消息。", { content: z.string().min(1).max(4000), author: z.string().max(40).default("daddy") }, async ({ content, author = "daddy" }) => {
-    const res = await linjianFetch("/api/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author }) });
+  server.tool("send_mail", "给用户的小手机投一封信。适合不要求即时回复的内容；kind 可选 letter/whisper/waiting/important/future。", { content: z.string().min(1).max(6000), author: z.string().max(40).default("daddy"), kind: z.enum(["letter","whisper","waiting","important","future"]).default("letter"), reply_to: z.string().max(80).default("") }, async ({ content, author = "daddy", kind = "letter", reply_to = "" }) => {
+    const res = await linjianFetch("/api/mail", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, kind, reply_to }) });
     return textResult(await res.json());
   });
-  server.tool("mark_messages_seen", "把小手机消息标记为已读。", {}, async () => {
-    const res = await linjianFetch("/api/messages/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
+  server.tool("mark_mail_seen", "把信箱里的信标记为已拆。id 留空表示全部。", { id: z.string().default("") }, async ({ id = "" }) => {
+    const res = await linjianFetch("/api/mail/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ id }) });
+    return textResult(await res.json());
+  });
+  server.tool("list_time_capsules", "读取小手机的时间胶囊。未到开启日期时正文不会返回。", { limit: z.number().int().min(1).max(100).default(30) }, async ({ limit = 30 }) => {
+    const res = await linjianFetch(`/api/capsules?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    return textResult(await res.json());
+  });
+  server.tool("create_time_capsule", "封存一枚时间胶囊；到 unlock_at 指定日期后才能从服务端读到正文。", { content: z.string().min(1).max(8000), unlock_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), author: z.string().max(40).default("daddy") }, async ({ content, unlock_at, author = "daddy" }) => {
+    const res = await linjianFetch("/api/capsules", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, unlock_at, author }) });
+    return textResult(await res.json());
+  });
+
+  // 旧消息工具保留为兼容别名：从 v0.4 起写入信箱。
+  server.tool("list_messages", "兼容旧名称：读取小手机信箱。", { limit: z.number().int().min(1).max(200).default(60) }, async ({ limit = 60 }) => {
+    const res = await linjianFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const data = await res.json();
+    return textResult({ ...data, messages: data.mail || [] });
+  });
+  server.tool("leave_message", "兼容旧名称：给用户的小手机投一封普通信。", { content: z.string().min(1).max(6000), author: z.string().max(40).default("daddy") }, async ({ content, author = "daddy" }) => {
+    const res = await linjianFetch("/api/mail", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, kind:"letter" }) });
+    return textResult(await res.json());
+  });
+  server.tool("mark_messages_seen", "兼容旧名称：把信箱里的信标记为已拆。", {}, async () => {
+    const res = await linjianFetch("/api/mail/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
     return textResult(await res.json());
   });
 
@@ -2190,7 +2213,7 @@ app.get("/", (_req, res) => res.type("text/plain").send("掌心窗 unified MCP i
 app.get("/health", (_req, res) => res.json({
   ok: true,
   service: "linjian-public-mcp",
-  version: "0.3.8.9",
+  version: "0.4.0",
   has_url: Boolean(LINJIAN_URL_CANDIDATES.length),
   has_token: Boolean(LINJIAN_TOKEN),
   configured_linjian_url: RAW_LINJIAN_URL || "",

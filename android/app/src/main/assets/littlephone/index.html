@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#eef7ff">
+<title>小手机</title>
+<style>
+:root{
+  --ink:#202638; --ink2:#586178; --ink3:#8e95a8;
+  --blue:#7796ff; --cyan:#8edce7; --violet:#a691ef; --rose:#e5a7c8;
+  --glass:rgba(255,255,255,.46); --glass2:rgba(255,255,255,.30); --line:rgba(255,255,255,.77);
+  --shadow:0 18px 46px rgba(74,91,139,.13), inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 0 rgba(136,150,196,.10);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:#eef7ff}
+body{overflow-x:hidden;padding-bottom:112px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{border:0}
+.aurora{position:fixed;inset:0;z-index:-3;overflow:hidden;background:linear-gradient(145deg,#eef8ff 0%,#f3f1ff 48%,#fff3f8 100%)}
+.blob{position:absolute;border-radius:50%;filter:blur(7px);opacity:.82;animation:float 14s ease-in-out infinite alternate}
+.b1{width:72vw;height:72vw;left:-26vw;top:4vh;background:radial-gradient(circle at 62% 42%,rgba(131,204,255,.62),rgba(149,193,255,.16) 58%,transparent 72%)}
+.b2{width:68vw;height:68vw;right:-31vw;top:30vh;background:radial-gradient(circle at 38% 45%,rgba(196,166,255,.55),rgba(230,183,238,.15) 60%,transparent 75%);animation-delay:-4s}
+.b3{width:60vw;height:60vw;left:9vw;bottom:-17vh;background:radial-gradient(circle at 50% 50%,rgba(139,225,222,.35),rgba(255,189,219,.12) 64%,transparent 76%);animation-delay:-8s}
+@keyframes float{to{transform:translate3d(4vw,-2vh,0) scale(1.08)}}
+.noise{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.14;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E")}
+.shell{width:min(100%,760px);margin:0 auto;padding:18px 20px 24px}
+.top{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 22px}
+.eyebrow{font-size:12px;letter-spacing:.18em;color:#7383a9;margin-bottom:8px}
+.title{font-size:34px;line-height:1.08;font-weight:650;letter-spacing:-.04em}
+.subtitle{margin-top:7px;color:var(--ink2);font-size:14px}
+.iconBtn{width:48px;height:48px;border-radius:19px;background:rgba(255,255,255,.33);border:1px solid rgba(255,255,255,.72);box-shadow:var(--shadow);backdrop-filter:blur(22px) saturate(145%);-webkit-backdrop-filter:blur(22px) saturate(145%);display:grid;place-items:center;font-size:20px}
+.conn-dot{width:9px;height:9px;border-radius:50%;background:#c7c9d1;box-shadow:0 0 0 6px rgba(255,255,255,.34)}
+.conn-dot.on{background:#7fcaab;box-shadow:0 0 0 6px rgba(127,202,171,.14)}
+.page{display:none;animation:pageIn .28s ease}
+.page.active{display:block}
+@keyframes pageIn{from{opacity:.25;transform:translateY(7px)}to{opacity:1;transform:none}}
+.glass{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.28) 48%,rgba(239,226,255,.29));border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(26px) saturate(155%);-webkit-backdrop-filter:blur(26px) saturate(155%);overflow:hidden}
+.glass:before{content:"";position:absolute;inset:1px 1px auto 1px;height:44%;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.50),transparent);pointer-events:none;opacity:.75}
+.glass:after{content:"";position:absolute;width:150px;height:150px;right:-58px;bottom:-78px;border-radius:50%;background:radial-gradient(circle,rgba(184,147,255,.24),rgba(135,219,237,.08) 55%,transparent 70%);pointer-events:none}
+.hero{border-radius:35px;padding:27px 28px 25px;min-height:232px;margin-bottom:16px}
+.hero .date{font-size:13px;color:var(--ink2);position:relative;z-index:1}
+.hero .clock{font-size:64px;letter-spacing:-.055em;font-weight:320;margin:9px 0 2px;position:relative;z-index:1}
+.hero .place{font-size:17px;position:relative;z-index:1}
+.hero .weatherLine{display:flex;gap:9px;align-items:center;margin-top:26px;color:var(--ink2);font-size:14px;position:relative;z-index:1}
+.heroOrb{position:absolute;width:160px;height:160px;right:11px;top:28px;border-radius:50%;background:radial-gradient(circle at 33% 28%,rgba(255,255,255,.94),rgba(157,219,255,.34) 29%,rgba(194,159,244,.24) 53%,rgba(255,180,216,.17) 72%,transparent 74%);border:1px solid rgba(255,255,255,.76);box-shadow:inset 0 0 34px rgba(255,255,255,.55),0 18px 42px rgba(113,153,212,.16);opacity:.82}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.card{border-radius:29px;padding:19px 20px;min-height:135px}
+.cardLabel{font-size:13px;color:var(--ink2);position:relative;z-index:1;margin-bottom:9px}
+.cardValue{font-size:30px;letter-spacing:-.035em;position:relative;z-index:1}
+.cardText{font-size:15px;line-height:1.55;position:relative;z-index:1;color:#3e465b}
+.meta{font-size:12px;color:var(--ink3);margin-top:7px;position:relative;z-index:1}
+.wide{border-radius:29px;padding:19px 20px;margin-bottom:14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;position:relative;z-index:1}
+.row + .row{margin-top:13px}
+.miniTitle{font-size:13px;color:var(--ink2)}
+.miniContent{margin-top:6px;font-size:15px;line-height:1.45}
+.softBtn{padding:11px 15px;border-radius:18px;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.78);box-shadow:inset 0 1px 0 rgba(255,255,255,.85);font-size:13px;position:relative;z-index:1}
+.sectionHead{display:flex;align-items:flex-end;justify-content:space-between;margin:8px 2px 14px}
+.sectionHead h2{font-size:29px;margin:0;letter-spacing:-.04em;font-weight:650}.sectionHead p{margin:5px 0 0;color:var(--ink2);font-size:13px}
+.traceCard,.mailCard,.capsuleCard{border-radius:30px;padding:19px;margin-bottom:15px}
+.author{font-weight:620;font-size:14px;position:relative;z-index:1}.time{font-size:11px;color:var(--ink3);margin-top:3px;position:relative;z-index:1}.bodyText{font-size:16px;line-height:1.65;margin-top:13px;white-space:pre-wrap;position:relative;z-index:1}
+.photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px;position:relative;z-index:1}.photoGrid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:17px;border:1px solid rgba(255,255,255,.72)}
+.notes{margin-top:13px;position:relative;z-index:1}.note{padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.38);font-size:13px;line-height:1.45;margin-top:7px}.note b{font-weight:620}.noteTime{color:var(--ink3);font-size:10px;margin-left:6px}
+.actions{display:flex;gap:8px;position:relative;z-index:1;margin-top:13px}
+.empty{padding:48px 18px;text-align:center;color:var(--ink2)}
+.connectHint{border-radius:26px;padding:17px 18px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;gap:14px}.connectHint .txt{font-size:13px;line-height:1.45;color:var(--ink2);position:relative;z-index:1}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:6px 9px;font-size:11px;background:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.7);position:relative;z-index:1}.badgeDot{width:7px;height:7px;border-radius:50%;background:#c7c9d1}.badgeDot.on{background:#7fc8aa}
+.mailKind{font-size:11px;color:#6f72a4;text-transform:uppercase;letter-spacing:.08em}.mailCard.unseen{box-shadow:0 20px 52px rgba(102,113,191,.18), inset 0 1px 0 rgba(255,255,255,.88)}
+.composeBox{border-radius:31px;padding:20px;margin-bottom:16px}.field{width:100%;border:1px solid rgba(255,255,255,.72);background:rgba(255,255,255,.30);border-radius:21px;padding:14px 15px;outline:none;position:relative;z-index:1}.field:focus{border-color:rgba(118,148,255,.62);box-shadow:0 0 0 3px rgba(118,148,255,.10)}textarea.field{min-height:116px;resize:none}.primary{width:100%;padding:14px;border-radius:22px;background:linear-gradient(105deg,rgba(126,164,255,.84),rgba(169,137,235,.80),rgba(226,160,205,.72));color:white;font-weight:650;box-shadow:0 10px 24px rgba(115,122,208,.18),inset 0 1px 0 rgba(255,255,255,.7);margin-top:10px;position:relative;z-index:1}.fileBtn{display:inline-flex;align-items:center;gap:7px;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.36);border:1px solid rgba(255,255,255,.75);font-size:13px;position:relative;z-index:1}.fileBtn input{display:none}
+.navWrap{position:fixed;left:50%;bottom:max(13px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 32px),720px);z-index:40;padding:0 8px}
+.nav{height:76px;border-radius:33px;display:grid;grid-template-columns:1fr 1fr 1.05fr 1fr 1fr;align-items:center;padding:7px 8px;position:relative;overflow:visible}
+.nav .liquidIndicator{position:absolute;left:8px;top:7px;width:calc((100% - 16px)/5);height:62px;border-radius:27px;background:linear-gradient(140deg,rgba(255,255,255,.72),rgba(173,202,255,.34),rgba(222,186,247,.31));border:1px solid rgba(255,255,255,.83);box-shadow:0 8px 23px rgba(103,126,190,.13),inset 0 1px 0 rgba(255,255,255,.92);transition:transform .38s cubic-bezier(.2,.85,.2,1),width .3s ease;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.nav button{height:62px;background:transparent;color:#7b8091;z-index:2;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}.nav button.active{color:#566caf;font-weight:650}.nav .ico{font-size:19px;line-height:1}
+.plus{position:relative;width:68px!important;height:68px!important;border-radius:50%!important;margin:-16px auto 0;background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.95),rgba(125,168,255,.78) 34%,rgba(164,135,234,.79) 65%,rgba(229,162,208,.75));border:1px solid rgba(255,255,255,.9)!important;color:#fff!important;font-size:35px!important;box-shadow:0 14px 29px rgba(115,122,207,.28),inset 0 2px 6px rgba(255,255,255,.8);transition:transform .16s ease}.plus:active{transform:scale(.91,.86)}
+.sheetBackdrop{position:fixed;inset:0;background:rgba(45,52,78,.17);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:70;display:none;align-items:flex-end;justify-content:center}.sheetBackdrop.show{display:flex}.sheet{width:min(100%,760px);border-radius:35px 35px 0 0;padding:22px 20px calc(26px + env(safe-area-inset-bottom));background:linear-gradient(150deg,rgba(255,255,255,.80),rgba(239,243,255,.62),rgba(247,230,248,.62));border:1px solid rgba(255,255,255,.9);box-shadow:0 -20px 60px rgba(80,89,132,.18);backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%)}
+.sheetHandle{width:42px;height:5px;border-radius:9px;background:rgba(100,105,126,.25);margin:0 auto 18px}.sheetTitle{font-size:24px;font-weight:650;margin-bottom:16px}.choiceGrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.choice{min-height:103px;border-radius:25px;text-align:left;padding:17px;background:rgba(255,255,255,.43);border:1px solid rgba(255,255,255,.82);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}.choice strong{display:block;font-size:15px}.choice small{display:block;margin-top:6px;color:var(--ink2);line-height:1.35}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(45,52,78,.17);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:22px}.modal.show{display:flex}.modalCard{width:min(100%,560px);border-radius:34px;padding:22px;background:linear-gradient(145deg,rgba(255,255,255,.85),rgba(240,244,255,.72),rgba(250,232,246,.66));border:1px solid rgba(255,255,255,.94);box-shadow:0 24px 70px rgba(74,83,125,.22);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px)}.modalHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.modalTitle{font-size:23px;font-weight:650}.close{width:38px;height:38px;border-radius:15px;background:rgba(255,255,255,.45)}
+.previewPhotos{display:flex;gap:7px;overflow:auto;margin:10px 0}.previewPhotos img{width:72px;height:72px;object-fit:cover;border-radius:16px;border:1px solid rgba(255,255,255,.8)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin:7px 0 12px}.chip{padding:8px 11px;border-radius:99px;background:rgba(255,255,255,.36);border:1px solid rgba(255,255,255,.75);font-size:12px}.chip.active{background:linear-gradient(120deg,rgba(128,163,255,.45),rgba(192,158,239,.40));color:#4f5891}
+.toast{position:fixed;left:50%;bottom:108px;transform:translate(-50%,12px);max-width:calc(100% - 48px);padding:11px 15px;border-radius:18px;background:rgba(34,40,58,.82);color:white;font-size:13px;z-index:100;opacity:0;pointer-events:none;transition:.25s}.toast.show{opacity:1;transform:translate(-50%,0)}
+.usHero{border-radius:34px;padding:24px;margin-bottom:14px}.days{font-size:46px;letter-spacing:-.04em;margin:7px 0}.tiny{font-size:12px;color:var(--ink2)}
+.settingRow{padding:15px 2px;border-bottom:1px solid rgba(255,255,255,.48);display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}.settingRow:last-child{border-bottom:0}.settingRow .sTitle{font-size:14px}.settingRow .sSub{font-size:11px;color:var(--ink3);margin-top:3px}
+@media (max-width:390px){.shell{padding-left:15px;padding-right:15px}.title{font-size:31px}.hero{padding:23px}.hero .clock{font-size:56px}.grid2{gap:10px}.card{padding:17px}.navWrap{width:calc(100% - 22px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div><div class="noise"></div>
+<div class="shell">
+  <header class="top">
+    <div><div class="eyebrow" id="eyebrow">小手机 · 首页</div><div class="title" id="pageTitle">晚上好，宝宝</div><div class="subtitle" id="pageSubtitle">把今天，轻轻收进窗里。</div></div>
+    <button class="iconBtn" id="connectionButton" aria-label="连接状态"><span class="conn-dot" id="connDot"></span></button>
+  </header>
+
+  <main>
+    <section class="page active" id="page-home">
+      <div class="glass hero">
+        <div class="heroOrb"></div><div class="date" id="heroDate">9月24日 · 星期四</div><div class="clock" id="heroClock">19:49</div><div class="place" id="heroPlace">家 · 天气待更新</div><div class="weatherLine"><span>◌</span><span id="heroCalendar">日历 · 今天没有急事</span></div>
+      </div>
+      <div class="grid2">
+        <div class="glass card" id="recentMailCard"><div class="cardLabel">最近一封信</div><div class="cardText" id="recentMail">还没有投递过。</div><div class="meta" id="recentMailTime"></div></div>
+        <div class="glass card" id="recentTraceCard"><div class="cardLabel">最近留痕</div><div class="cardText" id="recentTrace">还没有留下痕迹。</div><div class="meta" id="recentTraceTime"></div></div>
+      </div>
+      <div class="grid2">
+        <div class="glass card"><div class="cardLabel">你的今天</div><div class="cardValue"><span id="screenMinutes">0</span><small style="font-size:15px"> 分钟</small></div><div class="meta">解锁 <span id="unlockCount">0</span> 次</div><button class="softBtn" style="margin-top:12px" id="usageButton">查看权限</button></div>
+        <div style="display:grid;gap:14px">
+          <div class="glass card" style="min-height:0"><div class="cardLabel">窗外</div><div class="cardValue" id="weatherTemp">--°</div><div class="meta" id="weatherSummary">天气待更新</div></div>
+          <div class="glass card" style="min-height:0"><div class="cardLabel">下一件事</div><div class="cardText" id="nextThing">没有临近的重要日子</div><div class="meta" id="nextThingMeta">把时间留给自己</div></div>
+        </div>
+      </div>
+      <div class="glass wide"><div class="row"><div><div class="miniTitle">daddy 在这里</div><div class="miniContent" id="whisperText">还没有留下小纸条。</div><div class="meta" id="whisperMeta"></div></div><button class="softBtn" id="whisperQuick">留纸条</button></div></div>
+      <div class="glass wide"><div class="row"><div><div class="miniTitle">手机电量</div><div class="miniContent"><span id="battery">--</span>% · <span id="chargeState">未充电</span></div></div><div class="cardValue" style="font-size:24px" id="batteryBig">--%</div></div></div>
+    </section>
+
+    <section class="page" id="page-traces">
+      <div class="sectionHead"><div><h2>留痕</h2><p>不是动态，是我们留下来的纸面。</p></div><button class="softBtn" id="traceComposeBtn">＋ 留下</button></div>
+      <div id="traceConnection"></div><div id="traceList"></div>
+    </section>
+
+    <section class="page" id="page-mail">
+      <div class="sectionHead"><div><h2>信箱</h2><p>错开的时间里，也可以把话留给彼此。</p></div><button class="softBtn" id="mailComposeBtn">投信</button></div>
+      <div id="mailConnection"></div><div id="mailList"></div>
+    </section>
+
+    <section class="page" id="page-us">
+      <div class="glass usHero"><div class="tiny">我们</div><div class="days" id="daysTogether">—</div><div class="cardText" id="usCalendar">日历与重要日期会放在这里。</div></div>
+      <div class="sectionHead"><div><h2 style="font-size:24px">时间胶囊</h2><p>到了那一天，再打开。</p></div><button class="softBtn" id="capsuleComposeBtn">放进去</button></div>
+      <div id="capsuleList"></div>
+      <div class="glass wide" style="margin-top:18px">
+        <div class="settingRow"><div><div class="sTitle">连接与配对</div><div class="sSub" id="connectionSummary">还没有连接自己的 server</div></div><button class="softBtn" id="connectionSettings2">设置</button></div>
+        <div class="settingRow"><div><div class="sTitle">设备、日历与权限</div><div class="sSub">掌心窗留下的原生能力都还在后面</div></div><button class="softBtn" id="nativeSettings">打开</button></div>
+        <div class="settingRow"><div><div class="sTitle">隐私</div><div class="sSub">不截屏；位置默认只在本机和自建 server 使用</div></div><span class="badge">本机优先</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="navWrap"><nav class="glass nav" id="nav"><div class="liquidIndicator" id="indicator"></div>
+  <button data-page="home" class="active"><span class="ico">⌂</span><span>首页</span></button>
+  <button data-page="traces"><span class="ico">♢</span><span>留痕</span></button>
+  <button class="plus" id="plusButton" aria-label="新增">＋</button>
+  <button data-page="mail"><span class="ico">▢</span><span>信箱</span></button>
+  <button data-page="us"><span class="ico">♧</span><span>我们</span></button>
+</nav></div>
+
+<div class="sheetBackdrop" id="plusSheet"><div class="sheet"><div class="sheetHandle"></div><div class="sheetTitle">想留下什么？</div><div class="choiceGrid">
+  <button class="choice" data-compose="trace"><strong>留一条痕迹</strong><small>文字、照片和下面的小纸条。</small></button>
+  <button class="choice" data-compose="mail"><strong>投一封信</strong><small>不是即时聊天，等对方回来再拆。</small></button>
+  <button class="choice" data-compose="whisper"><strong>贴一张小纸条</strong><small>让它留在首页，轻轻提醒彼此。</small></button>
+  <button class="choice" data-compose="capsule"><strong>时间胶囊</strong><small>先封起来，到指定日期再打开。</small></button>
+</div></div></div>
+
+<div class="modal" id="composerModal"><div class="modalCard"><div class="modalHead"><div class="modalTitle" id="composerTitle">留一条痕迹</div><button class="close" id="composerClose">×</button></div><div id="composerBody"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const state = { page:'home', native:{}, conn:{connected:false}, traces:[], mail:[], capsules:[], composeMode:'', noteTraceId:'', images:[] };
+const pending = new Map(); let reqSeq = 0;
+const hasNative = () => !!window.LittlePhoneNative;
+const parse = (s, fallback={}) => { try{return JSON.parse(s)}catch(e){return fallback} };
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const fmtTime = iso => { if(!iso)return''; const d=new Date(iso); if(Number.isNaN(+d))return iso; const now=new Date(); const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0'); if(d.toDateString()===now.toDateString())return `今天 ${hh}:${mm}`; const y=new Date(now);y.setDate(now.getDate()-1); if(d.toDateString()===y.toDateString())return `昨天 ${hh}:${mm}`; return `${d.getMonth()+1}月${d.getDate()}日 ${hh}:${mm}`; };
+const toast = msg => { const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200); };
+function nativeRequest(method,path,body){ return new Promise((resolve,reject)=>{ if(!hasNative())return reject(new Error('native_bridge_missing')); const id='r'+(++reqSeq);pending.set(id,{resolve,reject}); window.LittlePhoneNative.request(id,method,path,JSON.stringify(body||{})); setTimeout(()=>{if(pending.has(id)){pending.delete(id);reject(new Error('timeout'))}},20000); }); }
+window.__littlePhoneResolve=(id,status,text)=>{const p=pending.get(id);if(!p)return;pending.delete(id);const data=parse(text,{raw:text}); if(status>=200&&status<300)p.resolve(data);else{const e=new Error(data.error||`HTTP ${status||0}`);e.data=data;p.reject(e);} };
+function readNative(){ state.native=hasNative()?parse(window.LittlePhoneNative.getDeviceState(),{}):mockNative(); state.conn=hasNative()?parse(window.LittlePhoneNative.getConnectionState(),{}):{connected:false}; renderNative(); }
+function mockNative(){return {local_time:'19:49',local_date:'2026-09-24',battery_percent:40,charging:false,screen_time_today_minutes:0,unlock_count_today:0,city:'家',weather_note:'阴',user_name:'你',companion_name:'daddy',calendar_state:{nearest:[]}}}
+function renderNative(){
+  const n=state.native,c=state.conn; $('#connDot').classList.toggle('on',!!c.connected); $('#connectionSummary').textContent=c.connected?`已连接 · ${c.device_id||'android-phone'}`:'还没有连接自己的 server';
+  $('#battery').textContent=n.battery_percent??'--'; $('#batteryBig').textContent=(n.battery_percent??'--')+'%'; $('#chargeState').textContent=n.charging?'充电中':'未充电'; $('#screenMinutes').textContent=n.screen_time_today_minutes??0; $('#unlockCount').textContent=n.unlock_count_today??0;
+  const current=n.current_weather_location||{}; const temp=current.temperature ?? current.temp ?? current.temperature_c ?? ''; const summary=current.weather ?? current.condition ?? n.weather_note ?? '天气待更新'; const city=current.alias||current.city||n.city||'家';
+  $('#weatherTemp').textContent=temp!==''?`${temp}°`:'--°'; $('#weatherSummary').textContent=`${city} · ${summary||'待更新'}`; $('#heroPlace').textContent=`${city} · ${temp!==''?temp+'° ':''}${summary||''}`;
+  const cal=n.calendar_state||{}; const nearest=(cal.nearest&&cal.nearest[0])||null; if(nearest){const title=nearest.title||nearest.name||'重要日子'; const days=nearest.days_left ?? nearest.daysLeft; $('#nextThing').textContent=title; $('#nextThingMeta').textContent=days===0?'就是今天':(typeof days==='number'?`${days} 天后`:(nearest.date||'')); $('#heroCalendar').textContent=`日历 · ${title}${typeof days==='number'?' · '+(days===0?'今天':days+'天后'):''}`; $('#usCalendar').textContent=`下一件重要的事：${title}${typeof days==='number'?' · '+(days===0?'今天':days+'天后'):''}`;} else {$('#nextThing').textContent='没有临近的重要日子';$('#nextThingMeta').textContent='把时间留给自己';$('#heroCalendar').textContent='日历 · 今天没有急事';$('#usCalendar').textContent='日历里暂时没有临近的重要日子。';}
+  const user=n.user_name&&n.user_name!=='用户'?n.user_name:'宝宝'; const h=new Date().getHours(); const hello=h<6?'还没睡呀':h<11?'早上好':h<14?'中午好':h<18?'下午好':'晚上好'; if(state.page==='home')$('#pageTitle').textContent=`${hello}，${user}`;
+}
+function tick(){const d=new Date();$('#heroClock').textContent=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; const wd='日一二三四五六'[d.getDay()];$('#heroDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${wd}`;} tick(); setInterval(tick,1000);
+const pageMeta={home:['小手机 · 首页','', '把今天，轻轻收进窗里。'],traces:['小手机 · 留痕','留痕','把想留下的，都放在这里。'],mail:['小手机 · 信箱','信箱','错开的时间里，也可以彼此投递。'],us:['小手机 · 我们','我们','日历、胶囊和我们的那些小事。']};
+function go(page){if(!pageMeta[page])return;state.page=page; $$('.page').forEach(x=>x.classList.remove('active'));$(`#page-${page}`).classList.add('active');$$('#nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page)); const index={home:0,traces:1,mail:3,us:4}[page]; $('#indicator').style.transform=`translateX(${index*100}%)`; const [eye,title,sub]=pageMeta[page];$('#eyebrow').textContent=eye; if(page!=='home')$('#pageTitle').textContent=title;$('#pageSubtitle').textContent=sub;renderNative(); if(page==='traces')loadTraces();if(page==='mail')loadMail();if(page==='us')loadCapsules(); window.scrollTo({top:0,behavior:'smooth'});}
+$$('#nav button[data-page]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+$('#plusButton').addEventListener('click',()=>$('#plusSheet').classList.add('show'));$('#plusSheet').addEventListener('click',e=>{if(e.target===$('#plusSheet'))$('#plusSheet').classList.remove('show')});
+$$('.choice').forEach(b=>b.addEventListener('click',()=>{ $('#plusSheet').classList.remove('show'); openComposer(b.dataset.compose); }));
+$('#traceComposeBtn').onclick=()=>openComposer('trace');$('#mailComposeBtn').onclick=()=>openComposer('mail');$('#capsuleComposeBtn').onclick=()=>openComposer('capsule');$('#whisperQuick').onclick=()=>openComposer('whisper');
+$('#composerClose').onclick=()=>$('#composerModal').classList.remove('show');$('#composerModal').addEventListener('click',e=>{if(e.target===$('#composerModal'))$('#composerModal').classList.remove('show')});
+$('#connectionButton').onclick=()=>{if(hasNative())window.LittlePhoneNative.openConnectionSettings()};$('#connectionSettings2').onclick=$('#connectionButton').onclick;$('#nativeSettings').onclick=()=>hasNative()&&window.LittlePhoneNative.openNativeSettings();$('#usageButton').onclick=()=>hasNative()&&window.LittlePhoneNative.openUsageSettings();
+window.addEventListener('littlephone-connection-changed',()=>{readNative();toast('连接设置已保存');loadHomeRemote();});
+function connectionHint(){return `<div class="glass connectHint"><div class="txt"><b>还没和自己的 server 配对。</b><br>首页本机信息仍然可用；留痕、信箱和胶囊连接后会同步给 MCP。</div><button class="softBtn" id="connectNow">连接</button></div>`}
+function bindConnectNow(root){const b=root.querySelector('#connectNow');if(b)b.onclick=()=>hasNative()&&window.LittlePhoneNative.openConnectionSettings()}
+async function loadHomeRemote(){if(!state.conn.connected){$('#recentMail').textContent='连接后，这里会出现彼此投递的信。';$('#recentTrace').textContent='连接后，这里会出现我们留下的痕迹。';return;} try{const [m,t,w]=await Promise.all([nativeRequest('GET','/api/mail?limit=1'),nativeRequest('GET','/api/traces?limit=1'),nativeRequest('GET','/api/companion/state?limit=3')]); const mail=(m.mail||m.messages||[])[0]; const tr=(t.traces||[])[0]; if(mail){$('#recentMail').textContent=mail.content||'（空信）';$('#recentMailTime').textContent=fmtTime(mail.created_at)}else{$('#recentMail').textContent='信箱还安安静静的。';$('#recentMailTime').textContent=''} if(tr){$('#recentTrace').textContent=tr.content||((tr.images||[]).length?'留下了照片':'留下了一条痕迹');$('#recentTraceTime').textContent=fmtTime(tr.created_at)}else{$('#recentTrace').textContent='还没有留下痕迹。';$('#recentTraceTime').textContent=''} const whisper=w.whisper||{};$('#whisperText').textContent=whisper.content||'还没有留下小纸条。';$('#whisperMeta').textContent=whisper.updated_at?fmtTime(whisper.updated_at):'';}catch(e){console.log(e);}}
+async function loadTraces(){const box=$('#traceList'),con=$('#traceConnection');if(!state.conn.connected){con.innerHTML=connectionHint();bindConnectNow(con);box.innerHTML='<div class="empty">先连接以后，留痕才会在我们之间同步。</div>';return;}con.innerHTML='';box.innerHTML='<div class="empty">正在把痕迹捞回来…</div>';try{const r=await nativeRequest('GET','/api/traces?limit=40');state.traces=r.traces||[];renderTraces();}catch(e){box.innerHTML=`<div class="empty">暂时没有读到留痕。<br>${esc(e.message)}</div>`;}}
+function imageUrl(u){if(!u)return'';if(/^https?:/i.test(u)||u.startsWith('data:'))return u;return (state.conn.server||'').replace(/\/$/,'')+u;}
+function renderTraces(){const box=$('#traceList');if(!state.traces.length){box.innerHTML='<div class="empty">这里还安安静静的。<br>第一张纸，等我们来写。</div>';return;} box.innerHTML=state.traces.map(t=>{const photos=(t.images||[]).map(i=>`<img src="${esc(imageUrl(i.url||i))}" alt="留痕照片">`).join('');const notes=(t.notes||[]).map(n=>`<div class="note"><b>${esc(n.author||'纸条')}</b><span class="noteTime">${esc(fmtTime(n.created_at))}</span><br>${esc(n.content||'')}</div>`).join('');return `<article class="glass traceCard"><div class="author">${esc(t.author||'我们')}</div><div class="time">${esc(fmtTime(t.created_at))}</div>${t.content?`<div class="bodyText">${esc(t.content)}</div>`:''}${photos?`<div class="photoGrid">${photos}</div>`:''}<div class="notes">${notes}</div><div class="actions"><button class="softBtn noteBtn" data-id="${esc(t.id)}">贴纸条</button></div></article>`}).join(''); $$('.noteBtn').forEach(b=>b.onclick=()=>{state.noteTraceId=b.dataset.id;openComposer('note')});}
+async function loadMail(){const box=$('#mailList'),con=$('#mailConnection');if(!state.conn.connected){con.innerHTML=connectionHint();bindConnectNow(con);box.innerHTML='<div class="empty">信可以先想好。连接后再投递。</div>';return;}con.innerHTML='';box.innerHTML='<div class="empty">正在开信箱…</div>';try{const r=await nativeRequest('GET','/api/mail?limit=80');state.mail=r.mail||[];renderMail();}catch(e){box.innerHTML=`<div class="empty">暂时没有打开信箱。<br>${esc(e.message)}</div>`;}}
+const kindName={letter:'普通信',whisper:'悄悄话',waiting:'等你回来',important:'重要',future:'未来信'};
+function renderMail(){const box=$('#mailList');if(!state.mail.length){box.innerHTML='<div class="empty">信箱还是空的。<br>第一封信，写给彼此。</div>';return;}box.innerHTML=state.mail.map(m=>`<article class="glass mailCard ${m.seen?'':'unseen'}" data-id="${esc(m.id)}"><div class="row"><div><div class="mailKind">${esc(kindName[m.kind]||'信')}</div><div class="author">${esc(m.author||'我们')}</div></div>${m.seen?'':'<span class="badge"><span class="badgeDot on"></span>未拆</span>'}</div><div class="bodyText">${esc(m.content||'')}</div><div class="time">${esc(fmtTime(m.created_at))}</div></article>`).join(''); $$('.mailCard').forEach(card=>card.onclick=async()=>{if(card.classList.contains('unseen')){try{await nativeRequest('POST','/api/mail/seen',{id:card.dataset.id});card.classList.remove('unseen');}catch(e){}}});}
+async function loadCapsules(){const box=$('#capsuleList');if(!state.conn.connected){box.innerHTML='<div class="glass connectHint"><div class="txt">时间胶囊连接后会保存在自己的 server 上。</div><button class="softBtn" id="connectCapsule">连接</button></div>';$('#connectCapsule').onclick=()=>hasNative()&&window.LittlePhoneNative.openConnectionSettings();return;}try{const r=await nativeRequest('GET','/api/capsules?limit=30');state.capsules=r.capsules||[];renderCapsules();}catch(e){box.innerHTML='<div class="empty">时间胶囊暂时没有打开。</div>';}}
+function renderCapsules(){const box=$('#capsuleList');if(!state.capsules.length){box.innerHTML='<div class="empty">还没有胶囊。<br>把一句话留给未来的我们。</div>';return;}box.innerHTML=state.capsules.map(c=>`<div class="glass capsuleCard"><div class="row"><div><div class="author">${c.locked?'封存中':'可以打开了'}</div><div class="time">开启 · ${esc(c.unlock_at||'')}</div></div><span class="badge">${c.locked?'◌':'✦'}</span></div><div class="bodyText">${c.locked?'内容先藏在玻璃后面。':esc(c.content||'')}</div></div>`).join('');}
+function openComposer(mode){state.composeMode=mode;state.images=[];const modal=$('#composerModal'),body=$('#composerBody'),title=$('#composerTitle'); if(mode==='trace'){title.textContent='留一条痕迹';body.innerHTML=`<textarea class="field" id="composeText" placeholder="这一刻想留下什么？"></textarea><div class="previewPhotos" id="photoPreview"></div><label class="fileBtn">＋ 照片<input id="photoInput" type="file" accept="image/*" multiple></label><button class="primary" id="submitCompose">留下</button>`;$('#photoInput').onchange=handlePhotos;} else if(mode==='mail'){title.textContent='投一封信';body.innerHTML=`<div class="chips">${['letter','whisper','waiting','important','future'].map((k,i)=>`<button class="chip ${i===0?'active':''}" data-kind="${k}">${kindName[k]}</button>`).join('')}</div><textarea class="field" id="composeText" placeholder="写给对方，等他回来再拆。"></textarea><button class="primary" id="submitCompose">投进信箱</button>`;$$('.chip').forEach(x=>x.onclick=()=>{$$('.chip').forEach(y=>y.classList.remove('active'));x.classList.add('active')});} else if(mode==='whisper'){title.textContent='贴一张小纸条';body.innerHTML=`<textarea class="field" id="composeText" placeholder="短短一句，留在首页。"></textarea><button class="primary" id="submitCompose">贴上去</button>`;} else if(mode==='capsule'){title.textContent='时间胶囊';const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);body.innerHTML=`<textarea class="field" id="composeText" placeholder="写给未来的我们。"></textarea><input class="field" id="unlockDate" type="date" min="${new Date().toISOString().slice(0,10)}" value="${tomorrow}" style="margin-top:10px"><button class="primary" id="submitCompose">封进玻璃里</button>`;} else if(mode==='note'){title.textContent='贴一张纸条';body.innerHTML=`<textarea class="field" id="composeText" placeholder="贴在这条留痕下面。"></textarea><button class="primary" id="submitCompose">贴上</button>`;} $('#submitCompose').onclick=submitCompose;modal.classList.add('show');}
+async function handlePhotos(e){const files=[...e.target.files].slice(0,9);state.images=[];const preview=$('#photoPreview');preview.innerHTML='';for(const file of files){try{const data=await compressImage(file);state.images.push({data,mime:'image/jpeg'});const img=document.createElement('img');img.src=data;preview.appendChild(img);}catch(err){toast('有一张照片没读成功')}}}
+function compressImage(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=reject;r.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=1440,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.82))};img.src=r.result};r.readAsDataURL(file)})}
+async function submitCompose(){const text=($('#composeText')||{}).value?.trim()||'';if(!state.conn.connected){toast('先在“我们”里连接自己的 server');return;}const btn=$('#submitCompose');btn.disabled=true;try{if(state.composeMode==='trace'){if(!text&&!state.images.length)throw new Error('写一点或选一张照片');await nativeRequest('POST','/api/traces',{author:state.native.user_name||'用户',content:text,images:state.images});toast('留痕已经放好了');$('#composerModal').classList.remove('show');go('traces');loadHomeRemote();}else if(state.composeMode==='note'){if(!text)throw new Error('纸条还空着');await nativeRequest('POST',`/api/traces/${state.noteTraceId}/notes`,{author:state.native.user_name||'用户',content:text});toast('纸条贴好了');$('#composerModal').classList.remove('show');loadTraces();}else if(state.composeMode==='mail'){if(!text)throw new Error('信还空着');const kind=$('.chip.active')?.dataset.kind||'letter';await nativeRequest('POST','/api/mail',{author:state.native.user_name||'用户',content:text,kind});toast('信已经投进去了');$('#composerModal').classList.remove('show');go('mail');loadHomeRemote();}else if(state.composeMode==='whisper'){if(!text)throw new Error('纸条还空着');await nativeRequest('POST','/api/companion/whisper',{author:state.native.user_name||'用户',content:text});toast('小纸条贴到首页了');$('#composerModal').classList.remove('show');go('home');loadHomeRemote();}else if(state.composeMode==='capsule'){if(!text)throw new Error('胶囊还空着');const unlock=($('#unlockDate')||{}).value;if(!unlock)throw new Error('选一个打开日期');await nativeRequest('POST','/api/capsules',{author:state.native.user_name||'用户',content:text,unlock_at:unlock});toast('时间胶囊封好了');$('#composerModal').classList.remove('show');go('us');}}catch(e){toast(e.message||'没有成功');}finally{btn.disabled=false;}}
+function calculateDays(){const start=new Date('2026-09-14T00:00:00');const now=new Date();const days=Math.max(1,Math.floor((now-start)/86400000)+1);$('#daysTogether').textContent=`第 ${days} 天`;}
+function refreshAll(){readNative();tick();calculateDays();loadHomeRemote();if(state.page==='traces')loadTraces();if(state.page==='mail')loadMail();if(state.page==='us')loadCapsules();}
+window.LittlePhone={refreshNative:refreshAll,go};
+readNative();calculateDays();loadHomeRemote();setInterval(()=>{readNative();loadHomeRemote()},60000);
+})();
+</script>
+</body>
+</html>

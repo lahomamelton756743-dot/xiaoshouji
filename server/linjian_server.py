@@ -28,7 +28,7 @@ from urllib.request import Request, urlopen
 DEFAULT_PORT = 8513
 DEFAULT_KEEP = 3
 MAX_UPLOAD_BYTES = 24 * 1024 * 1024
-VERSION = "0.3.8.9"
+VERSION = "0.4.0-fusion"
 DEFAULT_DEVICE = os.environ.get("LINJIAN_DEFAULT_DEVICE", "android-phone")
 ACTIVITY_EVENT_LIMIT = 500
 
@@ -49,7 +49,7 @@ KNOWN_APPS = {
     "京东": "com.jingdong.app.mall", "jd": "com.jingdong.app.mall",
 }
 SENSITIVE_PACKAGES = {"com.eg.android.AlipayGphone", "com.tencent.mm.plugin.wallet"}
-ALLOWED_ACTIONS = {"noop", "peek", "open_app", "home", "back", "recents", "screen_off", "turn_screen_off", "lock_screen", "phone_screen_off", "tap", "swipe", "set_alarm", "send_notification", "run_sequence", "save_known_app", "get_screen_nodes", "tap_text", "input_text", "lock_app", "unlock_app", "temporary_unlock_app", "extend_lock", "deny_unlock_request", "get_lock_state", "set_emergency_passphrase", "add_locked_app", "remove_locked_app", "list_lockable_apps", "screen_break_app", "start_screen_break", "screen_break", "end_screen_break", "stop_screen_break", "temporary_screen_break_release", "temporary_screen_release", "extend_screen_break", "deny_screen_break_release_request", "deny_break_release_request", "get_screen_break_state", "set_screen_break_passphrase", "add_screen_break_app", "remove_screen_break_app", "list_screen_break_apps", "get_focus_status", "start_focus_mode", "end_focus_mode", "set_focus_plan", "reply_focus_request", "approve_focus_unlock", "deny_focus_unlock", "request_focus_unlock", "create_focus_request", "get_guidian_state", "set_guidian_config", "trigger_guidian", "mark_guidian_returned", "get_calendar_state", "upsert_calendar_event", "add_calendar_event", "delete_calendar_event", "create_diary_book", "list_diary_books", "rename_diary_book", "update_diary_book_cover", "write_diary_entry", "list_diary_entries", "read_diary_entry", "read_diary_entry_with_annotations", "add_diary_annotation", "list_diary_annotations", "mark_diary_annotations_seen", "delete_diary_annotation", "search_diary_entries", "update_diary_entry", "delete_diary_entry", "delete_diary_book", "get_wallet_state", "get_wallet_month_state", "list_wallet_months", "add_wallet_record", "list_wallet_pending", "list_wallet_approvals", "list_companion_wallet_requests", "list_wallet_request_results", "submit_wallet_approval", "submit_companion_wallet_request", "decide_wallet_approval", "save_wallet_request_result", "update_wallet_request_result", "save_user_wallet_request_result", "edit_wallet_record", "update_wallet_record", "delete_wallet_record", "remove_wallet_record", "confirm_wallet_record", "get_wallet_rules", "set_wallet_rules", "wallet_approval_request", "get_takeout_state", "list_takeout_cards", "list_takeout_meals", "remember_takeout_meal", "remember_current_takeout_meal", "set_takeout_budget", "set_takeout_preferences", "add_takeout_card", "save_takeout_card", "update_takeout_card", "remove_takeout_card", "delete_takeout_card", "suggest_takeout_options", "create_takeout_plan", "takeout_wallet_request", "open_takeout_link", "open_takeout_plan", "copy_takeout_note", "record_takeout_order", "prepare_takeout_checkout", "auto_takeout_checkout", "get_takeout_checkout_status", "cancel_takeout_checkout"}
+ALLOWED_ACTIONS = {"noop", "open_app", "home", "back", "recents", "screen_off", "turn_screen_off", "lock_screen", "phone_screen_off", "tap", "swipe", "set_alarm", "send_notification", "run_sequence", "save_known_app", "get_screen_nodes", "tap_text", "input_text", "lock_app", "unlock_app", "temporary_unlock_app", "extend_lock", "deny_unlock_request", "get_lock_state", "set_emergency_passphrase", "add_locked_app", "remove_locked_app", "list_lockable_apps", "screen_break_app", "start_screen_break", "screen_break", "end_screen_break", "stop_screen_break", "temporary_screen_break_release", "temporary_screen_release", "extend_screen_break", "deny_screen_break_release_request", "deny_break_release_request", "get_screen_break_state", "set_screen_break_passphrase", "add_screen_break_app", "remove_screen_break_app", "list_screen_break_apps", "get_focus_status", "start_focus_mode", "end_focus_mode", "set_focus_plan", "reply_focus_request", "approve_focus_unlock", "deny_focus_unlock", "request_focus_unlock", "create_focus_request", "get_guidian_state", "set_guidian_config", "trigger_guidian", "mark_guidian_returned", "get_calendar_state", "upsert_calendar_event", "add_calendar_event", "delete_calendar_event", "create_diary_book", "list_diary_books", "rename_diary_book", "update_diary_book_cover", "write_diary_entry", "list_diary_entries", "read_diary_entry", "read_diary_entry_with_annotations", "add_diary_annotation", "list_diary_annotations", "mark_diary_annotations_seen", "delete_diary_annotation", "search_diary_entries", "update_diary_entry", "delete_diary_entry", "delete_diary_book", "get_wallet_state", "get_wallet_month_state", "list_wallet_months", "add_wallet_record", "list_wallet_pending", "list_wallet_approvals", "list_companion_wallet_requests", "list_wallet_request_results", "submit_wallet_approval", "submit_companion_wallet_request", "decide_wallet_approval", "save_wallet_request_result", "update_wallet_request_result", "save_user_wallet_request_result", "edit_wallet_record", "update_wallet_record", "delete_wallet_record", "remove_wallet_record", "confirm_wallet_record", "get_wallet_rules", "set_wallet_rules", "wallet_approval_request", "get_takeout_state", "list_takeout_cards", "list_takeout_meals", "remember_takeout_meal", "remember_current_takeout_meal", "set_takeout_budget", "set_takeout_preferences", "add_takeout_card", "save_takeout_card", "update_takeout_card", "remove_takeout_card", "delete_takeout_card", "suggest_takeout_options", "create_takeout_plan", "takeout_wallet_request", "open_takeout_link", "open_takeout_plan", "copy_takeout_note", "record_takeout_order", "prepare_takeout_checkout", "auto_takeout_checkout", "get_takeout_checkout_status", "cancel_takeout_checkout"}
 
 
 
@@ -237,10 +237,16 @@ class State:
         self.trace_media_dir.mkdir(parents=True, exist_ok=True)
         self.traces_lock = Lock()
         self.traces = self._load_traces()
-        # 「消息」：和留痕分开的双人消息流。
+        # 旧「消息」保留兼容；v0.4 主界面改为「信箱」。
         self.messages_path = self.data_dir / "messages.json"
         self.messages_lock = Lock()
         self.messages = self._load_messages()
+        self.mail_path = self.data_dir / "mailbox.json"
+        self.mail_lock = Lock()
+        self.mail = self._load_mail()
+        self.capsules_path = self.data_dir / "time_capsules.json"
+        self.capsules_lock = Lock()
+        self.capsules = self._load_capsules()
 
 
     def _load_messages(self) -> list[dict]:
@@ -281,6 +287,96 @@ class State:
                     message["seen"] = True; changed += 1
             if changed: self.save_messages()
         return changed
+
+    # v0.4 「信箱」：异步投递，不假装即时聊天。
+    def _load_mail(self) -> list[dict]:
+        try:
+            if self.mail_path.exists():
+                loaded = json.loads(self.mail_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list): return loaded[:2000]
+            # 第一次升级时，把旧消息复制成普通信，避免历史突然消失。
+            if self.messages:
+                return [{**x, "kind": x.get("kind") or "letter", "reply_to": x.get("reply_to") or ""} for x in self.messages[:2000]]
+        except Exception:
+            pass
+        return []
+
+    def save_mail(self) -> None:
+        self.mail_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self.mail_path.with_suffix(".tmp")
+        temp.write_text(json.dumps(self.mail[:2000], ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self.mail_path)
+
+    def add_mail(self, data: dict) -> dict:
+        kind = str(data.get("kind") or "letter").strip().lower()
+        if kind not in {"letter", "whisper", "waiting", "important", "future"}: kind = "letter"
+        with self.mail_lock:
+            entry = {
+                "id": str(uuid.uuid4()),
+                "author": clip_text(str(data.get("author") or "用户"), 40),
+                "content": clip_text(str(data.get("content") or ""), 6000),
+                "kind": kind,
+                "reply_to": clip_text(str(data.get("reply_to") or ""), 80),
+                "created_at": now_iso(),
+                "seen": bool(data.get("seen", False)),
+            }
+            self.mail.insert(0, entry); del self.mail[2000:]; self.save_mail(); return dict(entry)
+
+    def list_mail(self, limit: int = 80) -> list[dict]:
+        with self.mail_lock:
+            return json.loads(json.dumps(self.mail[:max(1, min(300, limit))], ensure_ascii=False))
+
+    def mark_mail_seen(self, mail_id: str = "") -> int:
+        changed = 0
+        with self.mail_lock:
+            for item in self.mail:
+                if mail_id and item.get("id") != mail_id: continue
+                if not item.get("seen"):
+                    item["seen"] = True; changed += 1
+            if changed: self.save_mail()
+        return changed
+
+    # 时间胶囊：日期到了才把正文返回给客户端。
+    def _load_capsules(self) -> list[dict]:
+        try:
+            if self.capsules_path.exists():
+                loaded = json.loads(self.capsules_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list): return loaded[:1000]
+        except Exception:
+            pass
+        return []
+
+    def save_capsules(self) -> None:
+        self.capsules_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self.capsules_path.with_suffix(".tmp")
+        temp.write_text(json.dumps(self.capsules[:1000], ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self.capsules_path)
+
+    def add_capsule(self, data: dict) -> dict:
+        unlock_at = clip_text(str(data.get("unlock_at") or ""), 32)
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", unlock_at):
+            unlock_at = time.strftime("%Y-%m-%d", time.gmtime(time.time() + 86400))
+        with self.capsules_lock:
+            entry = {
+                "id": str(uuid.uuid4()),
+                "author": clip_text(str(data.get("author") or "用户"), 40),
+                "content": clip_text(str(data.get("content") or ""), 8000),
+                "created_at": now_iso(),
+                "unlock_at": unlock_at,
+            }
+            self.capsules.insert(0, entry); del self.capsules[1000:]; self.save_capsules(); return dict(entry)
+
+    def list_capsules(self, limit: int = 30) -> list[dict]:
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        out = []
+        with self.capsules_lock:
+            for raw in self.capsules[:max(1, min(100, limit))]:
+                item = dict(raw)
+                locked = str(item.get("unlock_at") or "9999-12-31") > today
+                item["locked"] = locked
+                if locked: item.pop("content", None)
+                out.append(item)
+        return out
 
     def _load_traces(self) -> list[dict]:
         try:
@@ -575,7 +671,7 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path
         qs = parse_qs(parsed.query)
         if path in ("/", "/health"):
-            self._json(200, {"ok": True, "service": "linjian-public", "name": "掌心窗", "version": VERSION, "tools": sorted(ALLOWED_ACTIONS), "guidian": True, "calendar": True, "diary": True, "diary_storage": "phone_local", "app_gate": True, "focus_tools": True, "diary_rename_fix": True, "diary_write_fallback": True, "diary_annotation_tools": True, "diary_annotation_whitelist_fix": True})
+            self._json(200, {"ok": True, "service": "linjian-public", "name": "掌心窗", "version": VERSION, "tools": sorted(ALLOWED_ACTIONS), "guidian": True, "calendar": True, "diary": True, "diary_storage": "phone_local", "app_gate": True, "focus_tools": True, "diary_rename_fix": True, "diary_write_fallback": True, "diary_annotation_tools": True, "diary_annotation_whitelist_fix": True, "mailbox": True, "time_capsules": True, "ui_shell": "hybrid-webview"})
             return
         if path in ("/mcp", "/sse"):
             self._json(400, {"ok": False, "error": "LINJIAN_ERR_WRONG_SERVICE", "message": "你访问的是掌心窗 server 服务，不是 MCP 服务。请单独部署 mcp 目录，并在 MCP 客户端填写 MCP 服务域名 + /mcp 或 /sse。"})
@@ -648,6 +744,14 @@ class Handler(BaseHTTPRequestHandler):
             if not self._require_token(): return
             q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [60])[0])
             self._json(200, {"ok": True, "messages": self.state.list_messages(limit)}); return
+        if path == "/api/mail":
+            if not self._require_token(): return
+            q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [80])[0])
+            self._json(200, {"ok": True, "mail": self.state.list_mail(limit)}); return
+        if path == "/api/capsules":
+            if not self._require_token(): return
+            q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [30])[0])
+            self._json(200, {"ok": True, "capsules": self.state.list_capsules(limit)}); return
         if path == "/api/traces":
             if not self._require_token(): return
             q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [30])[0])
@@ -673,6 +777,26 @@ class Handler(BaseHTTPRequestHandler):
             message = self.state.add_message({**data, "content": content})
             self.state.add_activity_event({"source":"user" if message.get("author") != "daddy" else "companion", "type":"message", "title":"留下了一条消息", "subtitle":message.get("content", "")[:160], "status":"completed", "metadata_json":{"message_id":message.get("id")}})
             self._json(200, {"ok": True, "message": message}); return
+        if path == "/api/mail":
+            if not self._require_token(): return
+            data = self._read_json(); content = clip_text(str(data.get("content") or ""), 6000)
+            if not content:
+                self._json(400, {"ok": False, "error": "content_required"}); return
+            item = self.state.add_mail({**data, "content": content})
+            self.state.add_activity_event({"source":"user" if item.get("author") != "daddy" else "companion", "type":"mail", "title":"投递了一封信", "subtitle":item.get("content", "")[:160], "status":"completed", "metadata_json":{"mail_id":item.get("id"), "kind":item.get("kind")}})
+            self._json(200, {"ok": True, "mail": item}); return
+        if path == "/api/mail/seen":
+            if not self._require_token(): return
+            data = self._read_json(); count = self.state.mark_mail_seen(str(data.get("id") or ""))
+            self._json(200, {"ok": True, "marked": count}); return
+        if path == "/api/capsules":
+            if not self._require_token(): return
+            data = self._read_json(); content = clip_text(str(data.get("content") or ""), 8000)
+            if not content:
+                self._json(400, {"ok": False, "error": "content_required"}); return
+            capsule = self.state.add_capsule({**data, "content": content})
+            locked_view = dict(capsule); locked_view["locked"] = True; locked_view.pop("content", None)
+            self._json(200, {"ok": True, "capsule": locked_view}); return
         if path == "/api/messages/seen":
             if not self._require_token(): return
             self._json(200, {"ok": True, "marked": self.state.mark_messages_seen()}); return
@@ -782,7 +906,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "request": data, "count": len(self.state.unlock_requests)}); return
         if path == "/api/screenshot":
             if not self._require_token(): return
-            self._handle_screenshot(); return
+            self._json(410, {"ok": False, "error": "screenshot_disabled", "message": "小手机已关闭截图能力"}); return
         self._json(404, {"ok": False, "error": ERR_BAD_METHOD})
 
     def _queue(self, cmd: dict) -> None:

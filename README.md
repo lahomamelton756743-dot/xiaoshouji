@@ -1,3 +1,7 @@
+# 小手机 v0.4 融合版
+
+> 当前自用分支：Web/PWA 风格液态玻璃前台 + 掌心窗 Android 原生能力 + 自建 server/MCP。详情见 `docs/LITTLE_PHONE_V0.4_FUSION.md`。
+
 # 掌心窗公开版 v0.3.8.9
 
 ## v0.3.8.9 MCP 兼容与日记批注读取修复

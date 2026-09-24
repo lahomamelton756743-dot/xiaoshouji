@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="dev.linjian.peek"
-    android:versionCode="30809"
-    android:versionName="0.3.8.9">
+    package="com.littlephone.app"
+    android:versionCode="30000"
+    android:versionName="0.3.0">
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 
@@ -46,7 +46,7 @@
     </queries>
 
     <application
-        android:label="掌心窗"
+        android:label="小手机"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="true"
@@ -67,6 +67,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".TraceActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 
         <activity
             android:name=".WalletActivity"
@@ -132,7 +138,7 @@
 
         <service
             android:name=".MediaNotificationService"
-            android:label="掌心窗媒体状态"
+            android:label="小手机媒体状态"
             android:exported="true"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>

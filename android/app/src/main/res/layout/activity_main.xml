@@ -578,7 +578,7 @@
         android:background="@drawable/bottom_bar_bg">
 
         <Button android:id="@+id/tabLife" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="今天" android:textSize="9sp" android:drawableTop="@drawable/ic_home" android:drawablePadding="1dp" android:background="@android:color/transparent" />
-        <Button android:id="@+id/tabSee" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="陪伴" android:textSize="9sp" android:drawableTop="@drawable/ic_heart_wave" android:drawablePadding="1dp" android:background="@android:color/transparent" />
+        <Button android:id="@+id/tabSee" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="留痕" android:textSize="9sp" android:drawableTop="@drawable/ic_heart_wave" android:drawablePadding="1dp" android:background="@android:color/transparent" />
         <Button android:id="@+id/tabGate" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="守护" android:textSize="9sp" android:drawableTop="@drawable/ic_shield" android:drawablePadding="1dp" android:background="@android:color/transparent" />
         <Button android:id="@+id/tabControl" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
         <Button android:id="@+id/tabDebug" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />

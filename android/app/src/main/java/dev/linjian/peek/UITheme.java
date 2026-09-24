@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -16,11 +16,15 @@ public class UITheme {
     }
 
     public static UITheme current(Context ctx) {
-        String n = AppPrefs.get(ctx).getString(AppPrefs.KEY_THEME, "白桃粉");
+        String n = AppPrefs.get(ctx).getString(AppPrefs.KEY_THEME, "液态玻璃");
         return byName(n);
     }
 
     public static UITheme byName(String n) {
+        if ("液态玻璃".equals(n)) return new UITheme("液态玻璃",
+                Color.rgb(239, 246, 252), Color.rgb(249, 247, 252), Color.argb(196, 255, 255, 255), Color.argb(150, 246, 248, 253),
+                Color.rgb(119, 137, 191), Color.argb(112, 220, 229, 250), Color.rgb(207, 166, 187),
+                Color.rgb(45, 48, 60), Color.rgb(112, 116, 133), Color.argb(120, 211, 220, 235), Color.rgb(211, 105, 126), false);
         if ("雾蓝白".equals(n)) return new UITheme("雾蓝白",
                 Color.rgb(239, 247, 252), Color.rgb(250, 252, 255), Color.WHITE, Color.rgb(244, 249, 252),
                 Color.rgb(112, 178, 198), Color.rgb(228, 244, 249), Color.rgb(190, 132, 160),
@@ -96,7 +100,7 @@ public class UITheme {
 
     public GradientDrawable navBar() {
         GradientDrawable g = new GradientDrawable();
-        g.setColor(dark ? Color.argb(218, 38, 45, 55) : Color.argb(220, 255, 250, 252));
+        g.setColor(dark ? Color.argb(218, 38, 45, 55) : Color.argb(168, 255, 255, 255));
         g.setCornerRadius(dp(34));
         g.setStroke((int) dp(0.45f), Color.argb(dark ? 90 : 112, Color.red(line), Color.green(line), Color.blue(line)));
         return g;

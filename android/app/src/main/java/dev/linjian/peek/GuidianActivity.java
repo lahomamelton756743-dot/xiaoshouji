@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.app.Activity;
 import android.animation.ValueAnimator;

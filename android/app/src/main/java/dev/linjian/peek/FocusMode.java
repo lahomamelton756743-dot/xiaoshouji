@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.content.Context;
 import android.content.Intent;
@@ -22,7 +22,7 @@ import java.util.Locale;
  */
 public class FocusMode {
     public static final String KEY_STATE = "focus_mode_state_v1";
-    private static final String SELF_PACKAGE = "dev.linjian.peek";
+    private static final String SELF_PACKAGE = "com.littlephone.app";
     private static volatile long lastLockAt = 0L;
     private static volatile boolean lockActivityVisible = false;
     private static volatile long lockActivityVisibleAt = 0L;

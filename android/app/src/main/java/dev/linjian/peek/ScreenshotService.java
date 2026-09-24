@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
@@ -92,7 +92,7 @@ public class ScreenshotService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         NowState.start(this);
-        DebugState.append(this, "无障碍服务已连接：截图/读屏/节点坐标/活动轨迹/远程息屏/专注模式可用 v0.3.8.9");
+        DebugState.append(this, "无障碍服务已连接：读屏/节点坐标/活动轨迹/远程息屏/专注模式可用（截图已关闭） v0.3.8.9");
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
         startBackgroundPolling();
@@ -340,26 +340,7 @@ public class ScreenshotService extends AccessibilityService {
     }
 
     public void doScreenshot(String serverUrl, String token) {
-        if (Build.VERSION.SDK_INT < 30) { DebugState.append(this, "截图失败：Android 版本低于 11"); return; }
-        final String finalUrl = normalizeUrl(serverUrl);
-        DebugState.append(this, "开始调用系统截图 API");
-        takeScreenshot(Display.DEFAULT_DISPLAY, executor, new TakeScreenshotCallback() {
-            @Override public void onSuccess(ScreenshotResult result) {
-                try {
-                    DebugState.append(ScreenshotService.this, "系统截图成功，开始编码");
-                    Bitmap hardwareBitmap = Bitmap.wrapHardwareBuffer(result.getHardwareBuffer(), result.getColorSpace());
-                    if (hardwareBitmap == null) { DebugState.append(ScreenshotService.this, "截图失败：Bitmap 为空"); return; }
-                    Bitmap bitmap = hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false);
-                    hardwareBitmap.recycle(); result.getHardwareBuffer().close();
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out); bitmap.recycle();
-                    byte[] data = out.toByteArray();
-                    DebugState.append(ScreenshotService.this, "截图编码完成：" + data.length + " bytes");
-                    if (data.length > 100) uploadScreenshot(data, finalUrl, token); else DebugState.append(ScreenshotService.this, "上传取消：截图数据太小");
-                } catch (Exception e) { DebugState.append(ScreenshotService.this, "截图处理异常：" + shortMsg(e)); }
-            }
-            @Override public void onFailure(int errorCode) { DebugState.append(ScreenshotService.this, "系统截图失败：errorCode=" + errorCode + "（可尝试关闭再开启无障碍）"); }
-        });
+        DebugState.append(this, "小手机已关闭截图能力");
     }
 
     private void uploadScreenshot(byte[] data, String serverUrl, String token) {

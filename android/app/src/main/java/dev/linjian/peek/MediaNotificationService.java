@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;

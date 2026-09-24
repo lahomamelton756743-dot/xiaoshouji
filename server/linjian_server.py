@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import calendar
 import json
+import base64
+import re
 import os
 import subprocess
 import sys
@@ -229,6 +231,83 @@ class State:
         self.activity_path = self.data_dir / "activity_events.json"
         self.activity_lock = Lock()
         self.activity_events = self._load_activity_events()
+        # 「留痕」：两个人共享的轻量图文/纸条墙。服务端持久化，不依赖无障碍。
+        self.traces_path = self.data_dir / "traces.json"
+        self.trace_media_dir = self.data_dir / "trace_media"
+        self.trace_media_dir.mkdir(parents=True, exist_ok=True)
+        self.traces_lock = Lock()
+        self.traces = self._load_traces()
+
+
+    def _load_traces(self) -> list[dict]:
+        try:
+            if self.traces_path.exists():
+                loaded = json.loads(self.traces_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list): return loaded[:1000]
+        except Exception:
+            pass
+        return []
+
+    def save_traces(self) -> None:
+        self.traces_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self.traces_path.with_suffix(".tmp")
+        temp.write_text(json.dumps(self.traces[:1000], ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self.traces_path)
+
+    def add_trace(self, data: dict) -> dict:
+        with self.traces_lock:
+            trace_id = str(uuid.uuid4())
+            images = []
+            raw_images = data.get("images") or []
+            if not isinstance(raw_images, list): raw_images = []
+            for i, item in enumerate(raw_images[:9]):
+                if isinstance(item, str): item = {"data": item}
+                if not isinstance(item, dict): continue
+                remote_url = clip_text(str(item.get("url") or ""), 1000)
+                if remote_url:
+                    images.append({"url": remote_url, "kind": "remote"}); continue
+                raw = str(item.get("data") or item.get("base64") or "").strip()
+                if not raw: continue
+                mime = str(item.get("mime") or "image/jpeg").lower()
+                m = re.match(r"^data:(image/[^;]+);base64,(.+)$", raw, re.S)
+                if m: mime, raw = m.group(1).lower(), m.group(2)
+                ext = ".png" if "png" in mime else (".webp" if "webp" in mime else ".jpg")
+                try:
+                    blob = base64.b64decode(raw, validate=False)
+                    if not blob or len(blob) > 12 * 1024 * 1024: continue
+                    name = f"{trace_id}_{i}{ext}"
+                    (self.trace_media_dir / name).write_bytes(blob)
+                    images.append({"url": f"/media/traces/{name}", "kind": "local", "mime": mime})
+                except Exception:
+                    continue
+            entry = {
+                "id": trace_id, "author": clip_text(str(data.get("author") or "瑞安"), 40),
+                "content": clip_text(str(data.get("content") or ""), 4000), "created_at": now_iso(),
+                "images": images, "notes": [], "note_count": 0
+            }
+            self.traces.insert(0, entry); del self.traces[1000:]; self.save_traces(); return dict(entry)
+
+    def list_traces(self, limit: int = 30) -> list[dict]:
+        with self.traces_lock: return json.loads(json.dumps(self.traces[:max(1, min(100, limit))], ensure_ascii=False))
+
+    def add_trace_note(self, trace_id: str, data: dict) -> dict | None:
+        with self.traces_lock:
+            trace = next((x for x in self.traces if x.get("id") == trace_id), None)
+            if trace is None: return None
+            note = {"id": str(uuid.uuid4()), "author": clip_text(str(data.get("author") or "daddy"), 40),
+                    "content": clip_text(str(data.get("content") or ""), 2000), "created_at": now_iso(),
+                    "seen": bool(data.get("seen", False))}
+            trace.setdefault("notes", []).append(note); trace["note_count"] = len(trace["notes"]); self.save_traces(); return dict(note)
+
+    def mark_trace_notes_seen(self, trace_id: str = "") -> int:
+        changed = 0
+        with self.traces_lock:
+            for trace in self.traces:
+                if trace_id and trace.get("id") != trace_id: continue
+                for note in trace.get("notes") or []:
+                    if not note.get("seen"): note["seen"] = True; changed += 1
+            if changed: self.save_traces()
+        return changed
 
     def _load_activity_events(self) -> list[dict]:
         try:
@@ -518,6 +597,15 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "requests": self.state.unlock_requests[-50:]}); return
         if path == "/api/known_apps":
             self._json(200, {"ok": True, "apps": KNOWN_APPS}); return
+        if path == "/api/traces":
+            if not self._require_token(): return
+            q = parse_qs(urlparse(self.path).query); limit = int((q.get("limit") or [30])[0])
+            self._json(200, {"ok": True, "traces": self.state.list_traces(limit)}); return
+        if path.startswith("/media/traces/"):
+            name = Path(path).name; f = self.state.trace_media_dir / name
+            if not f.exists() or not f.is_file(): self._json(404, {"ok": False, "error": "not_found"}); return
+            ctype = "image/png" if f.suffix.lower()==".png" else ("image/webp" if f.suffix.lower()==".webp" else "image/jpeg")
+            self._send_bytes(200, f.read_bytes(), ctype); return
         self._json(404, {"ok": False, "error": ERR_BAD_METHOD})
 
     def do_POST(self) -> None:
@@ -525,6 +613,20 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/mcp", "/sse"):
             self._json(400, {"ok": False, "error": "LINJIAN_ERR_WRONG_SERVICE", "message": "你访问的是掌心窗 server 服务，不是 MCP 服务。请单独部署 mcp 目录，并在 MCP 客户端填写 MCP 服务域名 + /mcp 或 /sse。"})
             return
+        if path == "/api/traces":
+            if not self._require_token(): return
+            data = self._read_json(); trace = self.state.add_trace(data)
+            self.state.add_activity_event({"source":"user" if trace.get("author") != "daddy" else "companion", "type":"trace", "title":"留下了一条留痕", "subtitle":trace.get("content", "")[:160], "status":"completed", "metadata_json":{"trace_id":trace.get("id")}})
+            self._json(200, {"ok": True, "trace": trace}); return
+        if path.startswith("/api/traces/") and path.endswith("/notes"):
+            if not self._require_token(): return
+            trace_id = path.split("/")[3]; data = self._read_json(); note = self.state.add_trace_note(trace_id, data)
+            if note is None: self._json(404, {"ok": False, "error":"trace_not_found"}); return
+            self._json(200, {"ok": True, "note": note}); return
+        if path == "/api/traces/notes/seen":
+            if not self._require_token(): return
+            data = self._read_json(); count = self.state.mark_trace_notes_seen(str(data.get("trace_id") or ""))
+            self._json(200, {"ok": True, "marked": count}); return
         if path == "/api/companion/whisper":
             if not self._require_token(): return
             data = self._read_json()

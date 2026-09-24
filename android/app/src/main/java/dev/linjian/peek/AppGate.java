@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.content.Context;
 import android.content.Intent;
@@ -45,7 +45,7 @@ public class AppGate {
     public static final String KEY_ENABLED = "app_gate_enabled";
     public static final String KEY_GATE_APPS = "app_gate_apps_lines";
 
-    private static final String SELF_PACKAGE = "dev.linjian.peek";
+    private static final String SELF_PACKAGE = "com.littlephone.app";
     private static volatile String lastForegroundPackage = "";
     private static volatile long lastForegroundSince = 0;
     private static volatile long lastGateAt = 0;

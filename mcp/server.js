@@ -1039,6 +1039,27 @@ function makeServer() {
 
 
   // v0.3.8.2：专注模式工具靠前注册，避免部分客户端只读取前若干个 schema 时漏掉接口。
+  // 「留痕」v0.1：共享图文墙。数据直接走 server，不依赖手机无障碍执行器。
+  server.tool("list_traces", "读取最近的『留痕』：瑞安和陪伴对象留下的文字、图片以及下面贴的纸条。", { limit: z.number().int().min(1).max(100).default(30) }, async ({ limit = 30 }) => {
+    const res = await linjianFetch(`/api/traces?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const data = await res.json();
+    const base = effectiveLinjianUrl();
+    for (const trace of (data.traces || [])) for (const img of (trace.images || [])) if (img.url?.startsWith("/")) img.url = `${base}${img.url}`;
+    return textResult(data);
+  });
+  server.tool("create_trace", "在『留痕』发布一条新的文字/图片记录。图片可传公开可访问的 URL；最多 9 张。", { content: z.string().max(4000).default(""), image_urls: z.array(z.string().url()).max(9).default([]), author: z.string().max(40).default("daddy") }, async ({ content = "", image_urls = [], author = "daddy" }) => {
+    const res = await linjianFetch("/api/traces", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, images:image_urls.map(url => ({url})) }) });
+    return textResult(await res.json());
+  });
+  server.tool("add_trace_note", "给某条『留痕』贴一张纸条/留言。", { trace_id: z.string(), content: z.string().min(1).max(2000), author: z.string().max(40).default("daddy") }, async ({ trace_id, content, author = "daddy" }) => {
+    const res = await linjianFetch(`/api/traces/${encodeURIComponent(trace_id)}/notes`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({content, author}) });
+    return textResult(await res.json());
+  });
+  server.tool("mark_trace_notes_seen", "把『留痕』里的未读纸条标记为已看；trace_id 留空表示全部。", { trace_id: z.string().default("") }, async ({ trace_id = "" }) => {
+    const res = await linjianFetch("/api/traces/notes/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trace_id}) });
+    return textResult(await res.json());
+  });
+
   server.tool("get_focus_status", "读取手机端专注模式 Focus Mode 状态：是否开启、目标、剩余时间、留言、应急次数。用户问专注模式、锁手机、全机专注、留言给他时优先调用。", {
     device_id: z.string().default(DEFAULT_DEVICE)
   }, async ({ device_id = DEFAULT_DEVICE }) => {
@@ -1142,36 +1163,7 @@ function makeServer() {
   // 把小金库/外卖统一入口放在普通 /mcp 的靠前位置，避免客户端只读取前若干个工具时漏掉新版能力。
   registerWalletTakeoutTools(server, { includeUnified: true });
 
-  server.tool(
-    "peek_screen",
-    "向掌心窗手机端请求一张新截图，并等待手机上传后把图片返回。当用户提到页面、按钮、红点、报错弹窗、截图、看不清或“陪伴对象看看这里”时应主动使用；手机端必须已启动、无障碍截图权限已开启。",
-    { wait_seconds: z.number().int().min(3).max(60).default(25).describe("等待手机上传新截图的秒数，默认 25。Render 免费实例刚醒时可以调大。") },
-    async ({ wait_seconds = 25 }) => {
-      const before = await latestMtime();
-      await postCommand({ action: "peek", device_id: DEFAULT_DEVICE });
-      const deadline = Date.now() + wait_seconds * 1000;
-      while (Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        const info = await latestInfo().catch(() => null);
-        if (info && Number(info.mtime || 0) > before) {
-          const img = await fetchLatestImage();
-          return { content: [
-            { type: "text", text: `掌心窗已收到新截图：${info.filename || "latest"}，大小约 ${info.size || img.bytes} bytes。` },
-            { type: "image", data: img.data, mimeType: img.mimeType }
-          ] };
-        }
-      }
-      return { content: [{ type: "text", text: `等待 ${wait_seconds} 秒后还没有收到新截图。请检查：手机 App 是否点了启动、无障碍权限是否开启、服务器地址和 Token 是否一致、Render 是否刚从休眠中醒来。` }], isError: true };
-    }
-  );
-
-  server.tool("latest_screen", "不敲门，直接读取服务器里最近一次掌心窗截图。当用户提到刚刚那个页面、上一张截图、红点还在不在、页面刚才是什么样时可主动使用，避免反复请求新截图。", {}, async () => {
-    const info = await latestInfo(); const img = await fetchLatestImage();
-    return { content: [
-      { type: "text", text: `最近截图：${info.filename || "latest"}，时间戳 ${info.mtime || "unknown"}。` },
-      { type: "image", data: img.data, mimeType: img.mimeType }
-    ] };
-  });
+  // 小手机 v0.3：截图工具已移除。
 
   server.tool("linjian_status", "检查掌心窗后端是否在线，以及 MCP 是否配置了 LINJIAN_URL 和 LINJIAN_TOKEN。当用户在聊天里提到掌心窗报错、出错、有点问题、连接不上、没反应、配置异常、Render/MCP/Token/URL 相关问题时，陪伴对象应主动调用。", {}, async () => {
     const configErrors = [];

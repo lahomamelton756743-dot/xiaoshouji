@@ -1,4 +1,4 @@
-package dev.linjian.peek;
+package com.littlephone.app;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.Manifest;
@@ -198,7 +198,7 @@ public class MainActivity extends Activity {
         bindDrawer(drawerVersionButton, drawerVersion, "版本、更新与许可");
 
         if (tabSettings != null) tabSettings.setOnClickListener(v -> showTab("settings"));
-        if (tabSee != null) tabSee.setOnClickListener(v -> showTab("see"));
+        if (tabSee != null) tabSee.setOnClickListener(v -> startActivity(new Intent(this, TraceActivity.class)));
         if (tabControl != null) tabControl.setOnClickListener(v -> showTab("settings"));
         if (tabLife != null) tabLife.setOnClickListener(v -> showTab("life"));
         if (tabGate != null) tabGate.setOnClickListener(v -> showTab("gate"));
@@ -1963,7 +1963,7 @@ public class MainActivity extends Activity {
             else { headerTitle.setText("Toujours à tes côtés"); headerSubtitle.setText("一直在你身边 · 守护状态与重要日子"); }
         }
         else { headerTitle.setText("设置这扇窗"); headerSubtitle.setText("调整" + AppPrefs.companionName(this) + "、窗面、提醒与隐私记录。"); }
-        if (brandText != null) brandText.setText("掌心窗  ·  " + ("life".equals(tab) ? "今天" : ("see".equals(tab) ? (diaryPageOpen ? "TA 的日记" : "陪伴") : ("gate".equals(tab) ? (guardianCalendarDetailOpen ? "守护日历" : "守护") : "设置"))));
+        if (brandText != null) brandText.setText("小手机  ·  " + ("life".equals(tab) ? "今天" : ("see".equals(tab) ? (diaryPageOpen ? "TA 的日记" : "陪伴") : ("gate".equals(tab) ? (guardianCalendarDetailOpen ? "守护日历" : "守护") : "设置"))));
     }
     private String greeting() { int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY); return h < 5 ? "夜深了" : (h < 11 ? "早上好" : (h < 14 ? "午安" : (h < 18 ? "下午好" : (h < 23 ? "晚上好" : "夜深了")))); }
     private void setVisible(View v, boolean visible) { if (v != null) v.setVisibility(visible ? View.VISIBLE : View.GONE); }
@@ -2926,9 +2926,11 @@ public class MainActivity extends Activity {
             secondary = app.isEmpty() ? "窗外安安静静，状态都在轻轻更新。" : "此刻在 " + app + "，掌心窗替你看着今天。";
         }
 
-        if (overviewAdviceText != null) overviewAdviceText.setText(formatHeroMessage(primary));
-        if (overviewSecondaryText != null) overviewSecondaryText.setText(secondary);
-        if (overviewMetaText != null) overviewMetaText.setText(weatherBrief(s) + "   ·   " + calendarBrief(nearest));
+        String nowClock = new SimpleDateFormat("HH:mm", Locale.CHINA).format(new Date());
+        String nowDate = new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date());
+        if (overviewAdviceText != null) overviewAdviceText.setText(nowClock + "\n" + nowDate);
+        if (overviewSecondaryText != null) overviewSecondaryText.setText(weatherBrief(s));
+        if (overviewMetaText != null) overviewMetaText.setText(calendarBrief(nearest) + "   ·   " + formatHeroMessage(primary).replace("\n", " "));
         if (todayNextTitle != null) todayNextTitle.setText("下一件事");
         if (todayNextDetail != null) todayNextDetail.setText(nearest == null ? "晚间无安排" : nearest.optString("title", "临近日子"));
     }

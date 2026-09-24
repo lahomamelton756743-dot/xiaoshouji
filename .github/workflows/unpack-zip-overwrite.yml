@@ -47,10 +47,10 @@ jobs:
             fi
           fi
 
-          rsync -a --delete \
-            --exclude ".git" \
-            --exclude ".github/workflows/unpack-zip-overwrite.yml" \
-            "$CONTENT_DIR"/ ./
+         rsync -a --delete \
+  --exclude ".git/" \
+  --exclude ".github/" \
+  "$CONTENT_DIR"/ ./
 
           rm -f "$ZIP_FILE"
 

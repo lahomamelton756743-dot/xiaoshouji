@@ -59,7 +59,7 @@ body{overflow-x:hidden}button,input,textarea{font:inherit;color:inherit}button{b
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 <div class="shell">
-  <header class="top">
+  <header class="top" id="globalTop">
     <div><div class="eyebrow" id="eyebrow">小手机 · 首页</div><div class="title" id="pageTitle">晚上好，瑞安</div><div class="subtitle" id="pageSubtitle">把今天，轻轻收进窗里。</div></div>
     <button class="iconBtn" id="connectionButton" aria-label="连接状态"><span class="conn-dot" id="connDot"></span></button>
   </header>
@@ -221,7 +221,29 @@ function tick(){const d=new Date(),wd='日一二三四五六'[d.getDay()];$('#he
 function ago(iso){if(!iso)return'';const t=new Date(iso).getTime();if(!Number.isFinite(t))return'';const s=Math.max(0,Math.floor((Date.now()-t)/1000));if(s<60)return'刚刚';if(s<3600)return`${Math.floor(s/60)} 分钟前`;if(s<86400)return`${Math.floor(s/3600)} 小时前`;return`${Math.floor(s/86400)} 天前`}
 function fmt(iso){if(!iso)return'';const d=new Date(iso);return Number.isNaN(d.getTime())?iso:d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
 function dayLabel(iso){const d=new Date(iso);if(Number.isNaN(+d))return iso||'某一天';const now=new Date();if(d.toDateString()===now.toDateString())return'今天';const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return'昨天';return`${d.getMonth()+1}月${d.getDate()}日`}
-function go(page,push=true){if(!pageMeta[page]||page===state.page)return;if(push)state.navHistory.push(state.page);state.page=page;$$('.page').forEach(x=>x.classList.remove('active'));$(`#page-${page}`).classList.add('active');$$('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const idx={home:0,traces:1,mail:3,us:4,diary:4}[page];if(idx!==undefined)$('#indicator').style.transform=`translateX(${idx*100}%)`;$('#eyebrow').textContent=pageMeta[page][0];$('#pageSubtitle').textContent=pageMeta[page][1];window.scrollTo({top:0,behavior:'smooth'});if(page==='traces'){renderTraceHub();renderRiver()}if(page==='mail'){renderMail();renderCapsules()}if(page==='us')renderUs();if(page==='diary')renderJournal()}
+function go(page,push=true){
+  if(!pageMeta[page])return;
+  const same=page===state.page;
+  if(!same&&push)state.navHistory.push(state.page);
+  state.page=page;
+  $$('.page').forEach(x=>x.classList.remove('active'));
+  $(`#page-${page}`).classList.add('active');
+  $$('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  const idx={home:0,traces:1,mail:3,us:4,diary:4}[page];
+  if(idx!==undefined)$('#indicator').style.transform=`translateX(${idx*100}%)`;
+  const top=$('#globalTop');
+  if(top)top.style.display=page==='home'?'flex':'none';
+  if(page==='home'){
+    $('#eyebrow').textContent=pageMeta.home[0];
+    $('#pageSubtitle').textContent=pageMeta.home[1];
+  }
+  if(!same)window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='home')renderHome();
+  if(page==='traces'){renderTraceHub();renderRiver()}
+  if(page==='mail'){renderMail();renderCapsules()}
+  if(page==='us')renderUs();
+  if(page==='diary')renderJournal();
+}
 $$('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));$$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
 function serverUrl(path){const base=(state.conn.server||'').replace(/\/$/,'');return /^(https?:|data:|blob:)/i.test(path)?path:`${base}${path.startsWith('/')?'':'/'}${path}`}
 const CACHE_KEY='lp_v052_remote_cache';
@@ -262,7 +284,10 @@ async function addLocalTrace(title,content='',type='local'){const author=state.n
 async function flushPendingEvents(){if(!state.conn.connected||!state.pendingEvents.length)return false;let changed=false;for(const ev of [...state.pendingEvents].reverse()){try{await nativeRequest('POST','/api/littlephone/events',{author:ev.author||state.native.user_name||'瑞安',title:ev.title,content:ev.content||'',client_id:ev.id,type:ev.type||'local'});state.pendingEvents=state.pendingEvents.filter(x=>x.id!==ev.id);changed=true}catch(e){state.lastRemoteError=e.message||'request_failed';state.remoteError=true;break}}if(changed)savePendingEvents();mergePendingEvents();return changed}
 function loadCache(){let raw='';if(hasNative()&&window.LittlePhoneNative.getLocalCache){try{raw=window.LittlePhoneNative.getLocalCache()||''}catch{}}if(!raw)raw=localStorage.getItem(CACHE_KEY)||'';const c=parse(raw,null);if(!c)return;for(const k of ['visit','events','papers','mail','capsules','dailybook','diaries','todos','dates','cycle','statuses','calls','health'])if(c[k]!==undefined)state[k]=c[k]}
 function saveCache(){try{const raw=JSON.stringify({visit:state.visit,events:state.events,papers:state.papers,mail:state.mail,capsules:state.capsules,dailybook:state.dailybook,diaries:state.diaries,todos:state.todos,dates:state.dates,cycle:state.cycle,statuses:state.statuses,calls:state.calls,health:state.health,saved_at:Date.now()});localStorage.setItem(CACHE_KEY,raw);if(hasNative()&&window.LittlePhoneNative.setLocalCache){try{window.LittlePhoneNative.setLocalCache(raw)}catch{}}}catch{}}
-function renderAll(){renderHome();renderTraceHub();renderMail();renderCapsules();renderRiver();renderTodos();renderUs();renderPaperBox();renderDates();renderJournal();renderHealth()}
+function renderAll(){
+  const jobs=[renderHome,renderTraceHub,renderMail,renderCapsules,renderRiver,renderTodos,renderUs,renderPaperBox,renderDates,renderJournal,renderHealth];
+  for(const job of jobs){try{job()}catch(e){console.warn('render failed',job.name,e)}}
+}
 async function loadRemote(){
   loadCache();loadPendingEvents();loadPendingWrites();
   if(!state.conn.connected){state.remoteError=true;state.lastRemoteError='not_connected';updateOfflineBanner();renderAll();return}
@@ -298,6 +323,44 @@ function openBook(id){const e=state.dailybook.find(x=>x.id===id);if(!e)return;co
 function renderTodos(){const open=state.todos.filter(t=>!t.done);$('#todayTodo').innerHTML=open.length?open.slice(0,3).map(t=>`<label class="todoLine"><input type="checkbox" data-todo-home="${esc(t.id)}"><span>${esc(t.title)}</span></label>`).join(''):'<div class="cardText">今天没有待办。</div>';$$('[data-todo-home]').forEach(x=>x.onchange=()=>toggleTodo(x.dataset.todoHome,x.checked));renderTodoModal()}
 function renderTodoModal(){const root=$('#todoList');if(!root)return;if(!state.conn.connected&&!state.todos.length){root.innerHTML='<div class="glass empty">连接后显示待办。</div>';return}root.innerHTML=state.todos.length?state.todos.map(t=>`<div class="glass contentGlass todoItem"><input type="checkbox" data-todo-modal="${esc(t.id)}" ${t.done?'checked':''}><div class="todoBody"><div class="todoTitle" style="${t.done?'text-decoration:line-through;opacity:.55':''}">${esc(t.title)}</div><div class="todoMeta">${t.due_at?'到期 '+esc(t.due_at):'没有到期时间'}${t.remind_at?' · 提醒 '+esc(t.remind_at):''} · ${esc(actorName(t.author||''))}</div></div><button class="softBtn" data-edit-todo="${esc(t.id)}">编辑</button><button class="dangerBtn" data-delete-todo="${esc(t.id)}">删</button></div>`).join(''):'<div class="glass empty">还没有待办。</div>';$$('[data-todo-modal]').forEach(x=>x.onchange=()=>toggleTodo(x.dataset.todoModal,x.checked));$$('[data-edit-todo]').forEach(b=>b.onclick=()=>openCompose('todo-edit',state.todos.find(t=>t.id===b.dataset.editTodo)));$$('[data-delete-todo]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/todos/delete',b.dataset.deleteTodo,'这个待办'))}
 async function toggleTodo(id,done){try{await apiWrite('/api/littlephone/todos/toggle',{id,done});await loadRemote()}catch(e){toast(e.message||'没有成功')}}
+function selectPaper(force=false){
+  const text=$('#randomPaper'),meta=$('#randomPaperMeta');
+  if(!text||!meta)return null;
+  const papers=[...(state.papers||[])].filter(p=>p&&p.id&&String(p.content||'').trim());
+  if(!papers.length){
+    state.paperCurrentId='';
+    text.textContent='纸条箱还是空的。';
+    meta.textContent='点开纸条箱';
+    localDataSet('lp_v052_paper_current','');
+    localDataSet('lp_v052_paper_bag','[]');
+    return null;
+  }
+  let current=state.paperCurrentId||localDataGet('lp_v052_paper_current')||'';
+  let chosen=papers.find(p=>String(p.id)===String(current))||null;
+  const changed=Number(localDataGet('lp_v051_paper_changed')||0);
+  const expired=!changed||Date.now()-changed>=600000;
+  if(force||!chosen||expired){
+    const valid=new Set(papers.map(p=>String(p.id)));
+    let bag=parse(localDataGet('lp_v052_paper_bag'),[]);
+    if(!Array.isArray(bag))bag=[];
+    bag=bag.map(String).filter(id=>valid.has(id)&&id!==String(current));
+    if(!bag.length){
+      bag=papers.map(p=>String(p.id)).filter(id=>papers.length===1||id!==String(current));
+      for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}
+    }
+    current=bag.shift()||String(papers[0].id);
+    chosen=papers.find(p=>String(p.id)===current)||papers[0];
+    state.paperCurrentId=String(chosen.id);
+    localDataSet('lp_v052_paper_current',state.paperCurrentId);
+    localDataSet('lp_v052_paper_bag',JSON.stringify(bag));
+    localDataSet('lp_v051_paper_changed',String(Date.now()));
+  }else{
+    state.paperCurrentId=String(chosen.id);
+  }
+  text.textContent=chosen.content||'';
+  meta.textContent=`${actorName(chosen.author||'')} · ${fmt(chosen.created_at)}${chosen.pending?' · 待同步':''}`;
+  return chosen;
+}
 function renderCalls(){state.calls=mergeCalls(state.calls||[]);const mini=$('#callRecordsMini');if(!mini)return;const label={accepted:'已接通',rejected:'已拒绝',hung_up:'已挂断',ringing:'来电中',missed:'未接'};mini.innerHTML=state.calls.length?state.calls.slice(0,4).map(c=>`<div class="callMini"><div class="callState ${esc(c.status||'')}">${label[c.status]||esc(c.status||'来电')}</div><div class="callMeta">${fmt(c.created_at)}${c.note?` · ${esc(c.note)}`:''}</div></div>`).join(''):'<div class="meta">还没有来电记录。</div>'}
 function renderTraceHub(){selectPaper(false);renderCalls()}
 function openCallRecords(){openDetail('来电记录',state.calls.length?state.calls.map(c=>`<div class="glass contentGlass paperItem"><div class="dateLine"><div class="dateTitle">${esc(c.caller||actorName('daddy'))}</div><span class="tinyBadge">${esc(c.status||'来电')}</span></div><div class="cardText" style="margin-top:7px">${esc(c.prompt||'')}</div><div class="meta">${fmt(c.created_at)}${c.note?` · 留言：${esc(c.note)}`:''}</div></div>`).join(''):'<div class="glass empty">还没有来电记录。</div>')}
@@ -362,7 +425,7 @@ $$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)hide('#'+
 document.addEventListener('visibilitychange',()=>{if(document.hidden){state.hiddenAt=Date.now()}else if(state.hiddenAt&&Date.now()-state.hiddenAt>=600000){selectPaper(true);renderTraceHub();state.hiddenAt=0}});setInterval(()=>{const changed=Number(localStorage.getItem('lp_v051_paper_changed')||0);if(state.papers.length&&Date.now()-changed>=600000){selectPaper(true);renderTraceHub()}},60000);
 function handleBack(){if(closeTopOverlay())return true;if($('#plusSheet').classList.contains('show')){hide('#plusSheet');return true}if(state.navHistory.length){const prev=state.navHistory.pop();go(prev,false);return true}if(state.page!=='home'){go('home',false);return true}return false}
 window.addEventListener('littlephone-connection-changed',()=>{readNative();loadRemote().then(logOpenOnce)});window.addEventListener('littlephone-profile-changed',()=>{readNative();if($('#profileModal').classList.contains('show')){const src=getAvatarSrc(state.profileEditing),name=state.profileEditing==='daddy'?(state.profile.daddy_name||'daddy'):(state.profile.ryan_name||'瑞安');$('#profileAvatarPreview').innerHTML=src?`<img src="${src}" alt="">`:esc(name?.[0]||'?')}});window.addEventListener('littlephone-permission-changed',()=>readNative());window.addEventListener('littlephone-weather-updated',()=>readNative());window.LittlePhone={refreshNative:()=>{readNative();loadRemote().then(logOpenOnce)},go,handleBack};
-mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();tick();setInterval(tick,1000);calcDays();applyAvatars();loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
+mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();tick();setInterval(tick,1000);calcDays();applyAvatars();go('home',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
 })();
 </script>
 </body>

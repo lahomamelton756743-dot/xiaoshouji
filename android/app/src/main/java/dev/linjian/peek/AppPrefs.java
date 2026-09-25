@@ -12,7 +12,7 @@ import java.util.Map;
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
     public static final String APP_VERSION_NAME = "0.5.2";
-    public static final int APP_VERSION_CODE = 50200;
+    public static final int APP_VERSION_CODE = 50201;
     public static final String KEY_SERVER = "server_url";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";

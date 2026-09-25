@@ -74,13 +74,12 @@ public class GuidianActivity extends Activity {
     private void buildUi(String prompt) {
         if (prompt == null || prompt.trim().isEmpty()) prompt = GuidianState.pickPrompt(this);
         root = new FrameLayout(this);
-        root.setBackgroundColor(theme.background);
+        root.setBackground(screenBackground());
         setContentView(root);
 
-        addDecor(R.drawable.decor_guidian_rose, Gravity.TOP | Gravity.RIGHT,
-                dp(164), dp(220), -dp(12), dp(8), theme.roseAlpha);
-        addDecor(R.drawable.decor_guidian_butterfly, Gravity.BOTTOM | Gravity.LEFT,
-                dp(126), dp(190), -dp(20), dp(76), theme.butterflyAlpha);
+        addGlowOrb(Gravity.TOP | Gravity.RIGHT, dp(220), -dp(70), dp(22), withAlpha(theme.wave, .16f));
+        addGlowOrb(Gravity.BOTTOM | Gravity.LEFT, dp(250), -dp(92), dp(38), withAlpha(theme.decor, .10f));
+        addGlowOrb(Gravity.CENTER, dp(180), dp(72), -dp(18), withAlpha(theme.primary, .055f));
 
         LinearLayout body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
@@ -89,18 +88,25 @@ public class GuidianActivity extends Activity {
         root.addView(body, new FrameLayout.LayoutParams(-1, -1));
 
         String companion = GuidianState.callerName(this);
-        TextView eyebrow = text(GuidianState.callerSubtitle(this), 9, theme.primary, true);
-        eyebrow.setLetterSpacing(.18f);
-        eyebrow.setGravity(Gravity.CENTER);
-        body.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(22)));
+        TextView brand = text("小手机 · 来电", 9, theme.subtext, true);
+        brand.setLetterSpacing(.20f);
+        brand.setGravity(Gravity.CENTER);
+        body.addView(brand, new LinearLayout.LayoutParams(-1, dp(20)));
 
-        callerName = text(companion, 28, theme.text, true);
+        TextView eyebrow = text(GuidianState.callerSubtitle(this), 10, theme.primary, false);
+        eyebrow.setLetterSpacing(.08f);
+        eyebrow.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams eyebrowLp = new LinearLayout.LayoutParams(-1, -2);
+        eyebrowLp.topMargin = dp(4);
+        body.addView(eyebrow, eyebrowLp);
+
+        callerName = text(companion, 30, theme.text, true);
         callerName.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, -2);
         nameLp.topMargin = dp(9);
         body.addView(callerName, nameLp);
 
-        callState = text("正在找你", 9, theme.subtext, false);
+        callState = text("正在呼叫你", 9, theme.subtext, false);
         callState.setGravity(Gravity.CENTER);
         callState.setLetterSpacing(.08f);
         LinearLayout.LayoutParams stateLp = new LinearLayout.LayoutParams(-1, -2);
@@ -108,12 +114,12 @@ public class GuidianActivity extends Activity {
         body.addView(callState, stateLp);
 
         FrameLayout callVisual = new FrameLayout(this);
-        LinearLayout.LayoutParams visualLp = new LinearLayout.LayoutParams(-1, dp(142));
+        LinearLayout.LayoutParams visualLp = new LinearLayout.LayoutParams(-1, dp(154));
         visualLp.topMargin = dp(12);
         body.addView(callVisual, visualLp);
 
         avatarBox = createAvatar();
-        FrameLayout.LayoutParams avatarLp = new FrameLayout.LayoutParams(dp(102), dp(102), Gravity.CENTER);
+        FrameLayout.LayoutParams avatarLp = new FrameLayout.LayoutParams(dp(112), dp(112), Gravity.CENTER);
         callVisual.addView(avatarBox, avatarLp);
 
         AlphaAnimation breath = new AlphaAnimation(.82f, 1f);
@@ -125,11 +131,13 @@ public class GuidianActivity extends Activity {
         TextView message = text("“" + prompt.trim() + "”", 14, theme.text, false);
         message.setGravity(Gravity.CENTER);
         message.setLineSpacing(dp(5), 1f);
+        message.setPadding(dp(18), dp(14), dp(18), dp(14));
+        message.setBackground(rounded(theme.panel, 24, theme.line, 1));
         LinearLayout.LayoutParams messageLp = new LinearLayout.LayoutParams(-1, -2);
         messageLp.topMargin = dp(5);
         body.addView(message, messageLp);
 
-        TextView quiet = text("不用急着回答，听见就好。", 9, theme.subtext, false);
+        TextView quiet = text("接通后会回到你设定的 App；不方便时也可以留一句话。", 9, theme.subtext, false);
         quiet.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams quietLp = new LinearLayout.LayoutParams(-1, -2);
         quietLp.topMargin = dp(9);
@@ -147,7 +155,7 @@ public class GuidianActivity extends Activity {
         actions.setGravity(Gravity.CENTER);
         body.addView(actions, new LinearLayout.LayoutParams(-1, dp(72)));
 
-        LinearLayout rejectAction = compactAction("×", "稍后", false);
+        LinearLayout rejectAction = compactAction("×", "拒绝", false);
         rejectButton = (TextView) rejectAction.getChildAt(0);
         LinearLayout acceptAction = compactAction("⌁", "接通", true);
         acceptButton = (TextView) acceptAction.getChildAt(0);
@@ -255,6 +263,28 @@ public class GuidianActivity extends Activity {
         return frame;
     }
 
+    private GradientDrawable screenBackground() {
+        int[] colors;
+        if (theme.dark) {
+            colors = new int[]{theme.background, 0xFF171A27, 0xFF211A24};
+        } else {
+            colors = new int[]{theme.background, 0xFFF1F7FF, 0xFFF8F1F9};
+        }
+        return new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors);
+    }
+
+    private void addGlowOrb(int gravity, int size, int horizontalMargin, int verticalMargin, int color) {
+        View orb = new View(this);
+        orb.setBackground(circle(color, Color.TRANSPARENT, 0));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size, gravity);
+        if ((gravity & Gravity.RIGHT) == Gravity.RIGHT) lp.rightMargin = horizontalMargin;
+        else if ((gravity & Gravity.LEFT) == Gravity.LEFT) lp.leftMargin = horizontalMargin;
+        if ((gravity & Gravity.TOP) == Gravity.TOP) lp.topMargin = verticalMargin;
+        else if ((gravity & Gravity.BOTTOM) == Gravity.BOTTOM) lp.bottomMargin = verticalMargin;
+        else lp.topMargin = verticalMargin;
+        root.addView(orb, lp);
+    }
+
     private void addDecor(int drawable, int gravity, int width, int height, int horizontalMargin, int verticalMargin, float alpha) {
         ImageView art = new ImageView(this);
         art.setImageResource(drawable);
@@ -320,7 +350,7 @@ public class GuidianActivity extends Activity {
         drawerLp.bottomMargin = dp(14);
         root.addView(reasonDrawer, drawerLp);
 
-        TextView title = text("晚一点，也没关系。", 19, theme.text, true);
+        TextView title = text("这次先不接。", 19, theme.text, true);
         reasonDrawer.addView(title, new LinearLayout.LayoutParams(-1, -2));
         TextView hint = text("拒绝也可以留一句话给" + AppPrefs.companionName(this), 10, theme.subtext, false);
         LinearLayout.LayoutParams hintLp = new LinearLayout.LayoutParams(-1, -2);
@@ -543,9 +573,11 @@ public class GuidianActivity extends Activity {
                         0xFF242124, 0xFF777076, 0xFFE2DEE0, 0xFF514A50, 0xFFB7AFB4,
                         0xFFF0ECEE, 0xFF79AB8F, Color.WHITE, 0x55000000, .18f, .09f, false);
             }
-            return new GuidianTheme(0xFFFFF3F7, 0xFFFFFCFD, 0xFFFFE7EF, 0xFFD46A91,
-                    0xFF392C31, 0xFF8F6E7A, 0xFFF1CBD8, 0xFFB64F75, 0xFFE2A7BB,
-                    0xFFFFDFE9, 0xFF78AE90, Color.WHITE, 0x550E0508, .24f, .10f, false);
+            // 旧“粉色”设置也落到小手机自己的冰蓝 / 珍珠白主题，
+            // 不再沿用掌心窗的玫瑰粉来电视觉。
+            return new GuidianTheme(0xFFEDF7FF, 0xDFFFFFFF, 0xBDEBF3FF, 0xFF6F84C4,
+                    0xFF273147, 0xFF7D8599, 0xB8FFFFFF, 0xFF9A8FC7, 0xFF9DB4E2,
+                    0xFFE0E9FF, 0xFF70A18A, Color.WHITE, 0x553A4660, .0f, .0f, false);
         }
     }
 }

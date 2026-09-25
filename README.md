@@ -114,3 +114,7 @@ bash android/build.sh
 ```
 
 输出：`android/LittlePhone-v0.5.2.apk`
+
+
+### ChatGPT OAuth 创建器
+固定 Client ID：`chatgpt-little-phone`，Client Secret 留空。

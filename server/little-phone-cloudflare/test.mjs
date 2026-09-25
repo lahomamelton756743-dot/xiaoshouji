@@ -148,6 +148,15 @@ oj=await ox.json(); assert.equal(oj.authorization_endpoint,base+'/authorize'); a
 ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:91,method:'initialize',params:{}})}),env);
 assert.equal(ox.status,401); assert.match(ox.headers.get('WWW-Authenticate')||'',/oauth-protected-resource\/mcp/);
 
+// Static ChatGPT public OAuth client used by the current ChatGPT MCP creation UI.
+const staticVerifier='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~abc';
+const staticDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(staticVerifier)));
+const staticChallenge=Buffer.from(staticDigest).toString('base64url');
+const staticRedirect='https://chatgpt.com/connector/oauth/test-callback-id';
+const staticQuery=new URLSearchParams({client_id:'chatgpt-little-phone',redirect_uri:staticRedirect,response_type:'code',scope:'little-phone offline_access',state:'static-state',code_challenge:staticChallenge,code_challenge_method:'S256',resource:base+'/mcp'});
+ox = await worker.fetch(new Request(base+'/authorize?'+staticQuery.toString()),env);
+assert.equal(ox.status,200); assert.match(await ox.text(),/ChatGPT · 小手机/);
+
 ox = await worker.fetch(new Request(base+'/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_name:'ChatGPT Test',redirect_uris:['https://chatgpt.example/callback'],token_endpoint_auth_method:'none'})}),env);
 assert.equal(ox.status,201); oj=await ox.json(); const oauthClient=oj.client_id; assert.ok(oauthClient.startsWith('lp_'));
 

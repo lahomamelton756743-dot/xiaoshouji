@@ -148,6 +148,7 @@ const OAUTH_OFFLINE_SCOPE = "offline_access";
 const OAUTH_ACCESS_TTL_SECONDS = 60 * 60;
 const OAUTH_REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
 const OAUTH_CODE_TTL_SECONDS = 5 * 60;
+const CHATGPT_OAUTH_CLIENT_ID = "chatgpt-little-phone";
 
 function originOf(url) { return `${url.protocol}//${url.host}`; }
 function resourceUri(url) { return `${originOf(url)}/mcp`; }
@@ -256,12 +257,28 @@ async function oauthRegister(request, env, url) {
   },201);
 }
 
+function isChatGptOauthRedirect(redirectUri) {
+  try {
+    const u = new URL(String(redirectUri || ""));
+    return u.protocol === "https:" && u.hostname === "chatgpt.com" && u.pathname.startsWith("/connector/oauth/");
+  } catch { return false; }
+}
 async function getOauthClient(env, clientId) {
   if (!clientId) return null;
+  if (String(clientId) === CHATGPT_OAUTH_CLIENT_ID) {
+    return {
+      client_id: CHATGPT_OAUTH_CLIENT_ID,
+      client_name: "ChatGPT · 小手机",
+      redirect_uris_json: "[]",
+      static_chatgpt_client: 1
+    };
+  }
   return env.DB.prepare("SELECT * FROM lp_oauth_clients WHERE client_id=?").bind(String(clientId)).first();
 }
 function clientAllowsRedirect(row, redirectUri) {
-  return Boolean(row && safeJson(row.redirect_uris_json,[]).includes(String(redirectUri || "")));
+  if (!row) return false;
+  if (Number(row.static_chatgpt_client || 0) === 1) return isChatGptOauthRedirect(redirectUri);
+  return safeJson(row.redirect_uris_json,[]).includes(String(redirectUri || ""));
 }
 function authorizeParams(source) {
   const get = k => source instanceof URLSearchParams ? source.get(k) : source.get(k);

@@ -1,0 +1,10 @@
+{
+  "connected": false,
+  "source": "not_connected",
+  "sleep": null,
+  "steps": null,
+  "heart_rate": null,
+  "cycle": null,
+  "updated_at": null,
+  "error": "health_source_not_connected"
+}

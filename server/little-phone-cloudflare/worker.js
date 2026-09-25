@@ -807,13 +807,15 @@ const MCP_TOOLS = [
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"])
 ];
-function tool(name,description,properties={},required=[]){return{name,description,inputSchema:{type:"object",properties,required,additionalProperties:false}};}
+function tool(name,description,properties={},required=[]){return{name,description,inputSchema:{type:"object",properties,required,additionalProperties:false},securitySchemes:[{type:"oauth2",scopes:[OAUTH_SCOPE]}]};}
 function mcpText(data,isError=false){return{isError,content:[{type:"text",text:JSON.stringify(data,null,2)}],structuredContent:data};}
 function rpcResult(id,result){return{jsonrpc:"2.0",id,result};}
 function rpcError(id,code,message){return{jsonrpc:"2.0",id,error:{code,message}};}
 async function handleMcp(request,env,url){
-  if(!(await oauthAccessTokenOk(request,env,url))) return oauth401(url);
-  if(request.method==="GET")return json({ok:true,service:"little-phone-mcp",version:VERSION,protocol:MCP_PROTOCOL_VERSION,tools:MCP_TOOLS.map(t=>t.name)});
+  // Tool discovery must remain available before account linking so ChatGPT can
+  // scan the server and see each tool's OAuth securitySchemes. Actual tool calls
+  // stay protected by OAuth (or the existing private LINJIAN_TOKEN path).
+  if(request.method==="GET")return json({ok:true,service:"little-phone-mcp",version:VERSION,protocol:MCP_PROTOCOL_VERSION,tools:MCP_TOOLS.map(t=>t.name),auth:"oauth2"});
   if(request.method!=="POST")return json(rpcError(null,-32000,"Use POST /mcp"),405);
   const msg=await readJson(request); const id=msg.id??null; const method=msg.method||"";
   if(msg.jsonrpc!=="2.0")return json(rpcError(id,-32600,"Invalid JSON-RPC request"),400);
@@ -822,6 +824,15 @@ async function handleMcp(request,env,url){
   if(method==="notifications/initialized")return new Response(null,{status:204,headers:corsHeaders({"MCP-Protocol-Version":MCP_PROTOCOL_VERSION})});
   if(method==="tools/list")return json(rpcResult(id,{tools:MCP_TOOLS}));
   if(method==="tools/call"){
+    if(!(await oauthAccessTokenOk(request,env,url))){
+      const metadata=`${originOf(url)}/.well-known/oauth-protected-resource/mcp`;
+      const challenge=`Bearer resource_metadata="${metadata}", error="invalid_token", error_description="Link your private Little Phone account to continue", scope="${OAUTH_SCOPE}"`;
+      return json(rpcResult(id,{
+        isError:true,
+        content:[{type:"text",text:"Authentication required. Link your private Little Phone account to continue."}],
+        _meta:{"mcp/www_authenticate":[challenge]}
+      }));
+    }
     const name=msg.params?.name||"";const args=msg.params?.arguments||{};try{return json(rpcResult(id,await callTool(name,args,env)));}catch(err){return json(rpcResult(id,mcpText({ok:false,error:"tool_exception",detail:String(err?.message||err)},true)));}
   }
   return json(rpcError(id,-32601,`Method not found: ${method}`),404);

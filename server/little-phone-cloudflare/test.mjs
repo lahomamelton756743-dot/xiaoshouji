@@ -144,9 +144,14 @@ assert.equal(ox.status,200); let oj=await ox.json(); assert.equal(oj.resource,ba
 ox = await worker.fetch(new Request(base+'/.well-known/oauth-authorization-server'),env);
 oj=await ox.json(); assert.equal(oj.authorization_endpoint,base+'/authorize'); assert.equal(oj.token_endpoint,base+'/token'); assert.equal(oj.registration_endpoint,base+'/register'); assert.ok(oj.scopes_supported.includes('offline_access'));
 
-// Unauthenticated MCP must challenge with RFC 9728 resource metadata.
+// Unauthenticated MCP discovery must work so ChatGPT can scan tools before account linking.
 ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:91,method:'initialize',params:{}})}),env);
-assert.equal(ox.status,401); assert.match(ox.headers.get('WWW-Authenticate')||'',/oauth-protected-resource\/mcp/);
+assert.equal(ox.status,200); oj=await ox.json(); assert.equal(oj.result.serverInfo.name,'little-phone');
+ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:92,method:'tools/list',params:{}})}),env);
+assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.result.tools.every(t=>Array.isArray(t.securitySchemes)&&t.securitySchemes.some(s=>s.type==='oauth2')));
+// Actual tool calls without an access token must return an MCP OAuth challenge.
+ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:93,method:'tools/call',params:{name:'little_phone_status',arguments:{}}})}),env);
+assert.equal(ox.status,200); oj=await ox.json(); assert.equal(oj.result.isError,true); assert.match((oj.result._meta?.['mcp/www_authenticate']||[]).join(' '),/oauth-protected-resource\/mcp/);
 
 // Static ChatGPT public OAuth client used by the current ChatGPT MCP creation UI.
 const staticVerifier='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~abc';

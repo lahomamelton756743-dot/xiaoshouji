@@ -12,6 +12,13 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
+
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -34,6 +41,11 @@ public class GuidianState {
     public static final String KEY_PROMPTS = "guidian_prompts";
     public static final String KEY_REASONS = "guidian_reasons";
     public static final String KEY_AVATAR_URI = "guidian_avatar_uri";
+    public static final String KEY_CALLER_NAME = "guidian_caller_name";
+    public static final String KEY_CALLER_SUBTITLE = "guidian_caller_subtitle";
+    public static final String KEY_DEFAULT_RETRY_MIN = "guidian_default_retry_min";
+    public static final String KEY_CURRENT_CALL_ID = "guidian_current_call_id";
+    public static final String KEY_CALL_RECORDS = "little_phone_call_records_v1";
     public static final String KEY_LAST_RETURN_AT = "guidian_last_return_at";
     public static final String KEY_LAST_RETURN_SOURCE = "guidian_last_return_source";
     public static final String KEY_LAST_PROMPT_AT = "guidian_last_prompt_at";
@@ -83,6 +95,9 @@ public class GuidianState {
             o.put("quiet_start", p.getString(KEY_QUIET_START, "23:30"));
             o.put("quiet_end", p.getString(KEY_QUIET_END, "08:00"));
             o.put("target_package", targetPackage(ctx));
+            o.put("caller_name", callerName(ctx));
+            o.put("caller_subtitle", callerSubtitle(ctx));
+            o.put("default_retry_minutes", defaultRetryMinutes(ctx));
             o.put("theme", themeName(ctx));
             o.put("avatar_uri", p.getString(KEY_AVATAR_URI, ""));
             o.put("today_date", today());
@@ -118,21 +133,21 @@ public class GuidianState {
     public static String summaryText(Context ctx) {
         ensureInitialized(ctx);
         SharedPreferences p = prefs(ctx);
-        if (!p.getBoolean(KEY_ENABLED, true)) return "归电已关闭 · " + AppPrefs.companionName(ctx) + "暂不敲门";
+        if (!p.getBoolean(KEY_ENABLED, true)) return "来电已关闭 · " + AppPrefs.companionName(ctx) + "暂不来电";
         resetDailyIfNeeded(ctx);
         long now = System.currentTimeMillis();
         long lastReturn = p.getLong(KEY_LAST_RETURN_AT, now);
         long diff = Math.max(0, now - lastReturn);
         String last = diff < 60000 ? "刚刚" : (diff < 3600000 ? (diff / 60000) + "分钟前" : (diff / 3600000) + "小时" + ((diff / 60000) % 60) + "分钟前");
         String quiet = inQuietTime(ctx, now) ? " · 安静时段" : "";
-        return "归电开启 · 上次回来 " + last + " · 间隔 " + intervalMin(ctx) + "分钟" + quiet;
+        return "来电开启 · 上次回应 " + last + " · 间隔 " + intervalMin(ctx) + "分钟" + quiet;
     }
 
     public static String detailText(Context ctx) {
         JSONObject o = config(ctx);
         StringBuilder sb = new StringBuilder();
         sb.append("主题：").append(o.optString("theme", "粉色")).append("\n");
-        sb.append("今日归电：").append(o.optInt("today_count", 0)).append("/").append(o.optInt("daily_max", 3)).append("\n");
+        sb.append("今日来电：").append(o.optInt("today_count", 0)).append("/").append(o.optInt("daily_max", 3)).append("\n");
         sb.append("下次最早：").append(o.optString("next_prompt_after", "-")).append("\n");
         String reason = o.optString("last_reject_reason", "");
         if (reason.length() > 0) sb.append("最近拒绝理由：").append(reason).append("\n");
@@ -166,13 +181,61 @@ public class GuidianState {
         return target;
     }
 
+    public static String callerName(Context ctx) {
+        String v = prefs(ctx).getString(KEY_CALLER_NAME, AppPrefs.companionName(ctx));
+        return v == null || v.trim().isEmpty() ? AppPrefs.companionName(ctx) : v.trim();
+    }
+    public static String callerSubtitle(Context ctx) {
+        String v = prefs(ctx).getString(KEY_CALLER_SUBTITLE, "从小手机打给你");
+        return v == null || v.trim().isEmpty() ? "从小手机打给你" : v.trim();
+    }
+    public static int defaultRetryMinutes(Context ctx) { return clamp(prefs(ctx).getInt(KEY_DEFAULT_RETRY_MIN, 15), 1, 1440); }
+
+    public static JSONArray callRecords(Context ctx, int limit) {
+        JSONArray out = new JSONArray();
+        try {
+            JSONArray all = new JSONArray(prefs(ctx).getString(KEY_CALL_RECORDS, "[]"));
+            for (int i=0;i<all.length() && out.length()<Math.max(1,limit);i++) { JSONObject x=all.optJSONObject(i); if(x!=null)out.put(x); }
+        } catch (Exception ignored) { }
+        return out;
+    }
+    private static synchronized JSONObject recordCall(Context ctx, String callId, String prompt, String status, String note) {
+        JSONObject item = new JSONObject();
+        try {
+            String id = callId == null || callId.trim().isEmpty() ? UUID.randomUUID().toString() : callId.trim();
+            JSONArray old = new JSONArray(prefs(ctx).getString(KEY_CALL_RECORDS, "[]"));
+            JSONObject previous = null;
+            for(int i=0;i<old.length();i++){JSONObject x=old.optJSONObject(i);if(x!=null&&id.equals(x.optString("id"))){previous=x;break;}}
+            String created = previous == null ? isoNow() : previous.optString("created_at", isoNow());
+            item.put("id",id).put("caller",callerName(ctx)).put("prompt",prompt==null?"":prompt)
+                    .put("status",status==null?"ringing":status).put("note",note==null?"":note)
+                    .put("target_package",targetPackage(ctx)).put("created_at",created).put("updated_at",isoNow());
+            JSONArray kept = new JSONArray(); kept.put(item);
+            for(int i=0;i<old.length()&&kept.length()<120;i++){JSONObject x=old.optJSONObject(i);if(x!=null&&!id.equals(x.optString("id")))kept.put(x);}
+            prefs(ctx).edit().putString(KEY_CALL_RECORDS,kept.toString()).putString(KEY_CURRENT_CALL_ID,id).apply();
+            uploadCallAsync(ctx.getApplicationContext(), item);
+        } catch (Exception ignored) { }
+        return item;
+    }
+    private static void uploadCallAsync(Context ctx, JSONObject item) {
+        String base=AppPrefs.server(ctx),token=AppPrefs.token(ctx); if(base==null||base.isEmpty()||token==null||token.isEmpty())return;
+        new Thread(() -> { try {
+            HttpURLConnection c=(HttpURLConnection)new URL(base.replaceAll("/+$","")+"/api/littlephone/calls").openConnection();
+            c.setRequestMethod("POST");c.setConnectTimeout(7000);c.setReadTimeout(8000);c.setDoOutput(true);
+            c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("Content-Type","application/json; charset=utf-8");
+            byte[] bytes=item.toString().getBytes(StandardCharsets.UTF_8); try(OutputStream out=c.getOutputStream()){out.write(bytes);} c.getResponseCode();c.disconnect();
+        } catch(Exception ignored){} },"little-phone-call-sync").start();
+    }
+    private static String isoNow() { java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'",Locale.US);f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));return f.format(new Date()); }
+
     public static void markReturned(Context ctx, String source) {
         long now = System.currentTimeMillis();
         prefs(ctx).edit()
                 .putLong(KEY_LAST_RETURN_AT, now)
                 .putString(KEY_LAST_RETURN_SOURCE, source == null ? "unknown" : source)
                 .apply();
-        DebugState.append(ctx, "归电已记录回来：" + (source == null ? "unknown" : source));
+        DebugState.append(ctx, "来电已记录接通：" + (source == null ? "unknown" : source));
+        String cid=prefs(ctx).getString(KEY_CURRENT_CALL_ID,""); if(!cid.isEmpty()) recordCall(ctx,cid,prefs(ctx).getString(KEY_LAST_PROMPT_TEXT,""),"accepted","");
         if (!"target_foreground".equals(source))
             ActivityEventStore.recordPhone(ctx, "guidian_return", "回应归电", source == null ? "" : source);
     }
@@ -183,8 +246,17 @@ public class GuidianState {
                 .putLong(KEY_LAST_REJECT_AT, now)
                 .putString(KEY_LAST_REJECT_REASON, reason == null ? "" : reason.trim())
                 .apply();
-        DebugState.append(ctx, "归电已拒绝：" + (reason == null ? "" : reason.trim()));
-        ActivityEventStore.recordPhone(ctx, "guidian_reject", "稍后回应归电", reason == null ? "" : reason.trim());
+        DebugState.append(ctx, "来电已拒绝：" + (reason == null ? "" : reason.trim()));
+        String cid=prefs(ctx).getString(KEY_CURRENT_CALL_ID,""); if(!cid.isEmpty()) recordCall(ctx,cid,prefs(ctx).getString(KEY_LAST_PROMPT_TEXT,""),"rejected",reason==null?"":reason.trim());
+        ActivityEventStore.recordPhone(ctx, "guidian_reject", "拒绝来电", reason == null ? "" : reason.trim());
+    }
+
+    public static void hangup(Context ctx) {
+        prefs(ctx).edit().putLong(KEY_LAST_REJECT_AT, System.currentTimeMillis()).apply();
+        String cid=prefs(ctx).getString(KEY_CURRENT_CALL_ID,"");
+        if(!cid.isEmpty()) recordCall(ctx,cid,prefs(ctx).getString(KEY_LAST_PROMPT_TEXT,""),"hung_up","");
+        ActivityEventStore.recordPhone(ctx, "guidian_hangup", "挂断来电", "");
+        DebugState.append(ctx, "来电已挂断");
     }
 
     public static void evaluate(Context ctx, JSONObject state) {
@@ -214,8 +286,8 @@ public class GuidianState {
 
             String reason = can.optString("reason", "not_due");
             recordAutoCheck(ctx, now, due ? next : 0, due, reason, can.toString());
-            if (due) DebugState.append(ctx, "归电到点未弹：" + reason);
-        } catch (Exception e) { DebugState.append(ctx, "归电判断异常：" + ScreenshotService.shortMsg(e)); }
+            if (due) DebugState.append(ctx, "来电到点未弹：" + reason);
+        } catch (Exception e) { DebugState.append(ctx, "来电判断异常：" + ScreenshotService.shortMsg(e)); }
     }
 
     public static JSONObject canPrompt(Context ctx, boolean force) {
@@ -238,12 +310,15 @@ public class GuidianState {
         } catch (Exception e) { try { o.put("ok", false).put("reason", ScreenshotService.shortMsg(e)); } catch (Exception ignored) { } return o; }
     }
 
-    public static JSONObject showPrompt(Context ctx, boolean force) {
+    public static JSONObject showPrompt(Context ctx, boolean force) { return showPrompt(ctx, force, "", ""); }
+
+    public static JSONObject showPrompt(Context ctx, boolean force, String promptOverride, String callId) {
         JSONObject out = new JSONObject();
         try {
             JSONObject can = canPrompt(ctx, force);
             if (!can.optBoolean("ok") && !force) return can;
-            String prompt = pickPrompt(ctx);
+            String prompt = promptOverride == null || promptOverride.trim().isEmpty() ? pickPrompt(ctx) : promptOverride.trim();
+            String effectiveCallId = callId == null || callId.trim().isEmpty() ? UUID.randomUUID().toString() : callId.trim();
             SharedPreferences p = prefs(ctx);
             int count = p.getInt(KEY_TODAY_COUNT, 0) + 1;
             p.edit()
@@ -251,14 +326,16 @@ public class GuidianState {
                     .putInt(KEY_TODAY_COUNT, count)
                     .putLong(KEY_LAST_PROMPT_AT, System.currentTimeMillis())
                     .putString(KEY_LAST_PROMPT_TEXT, prompt)
+                    .putString(KEY_CURRENT_CALL_ID, effectiveCallId)
                     .apply();
+            recordCall(ctx,effectiveCallId,prompt,"ringing","");
             Intent i = new Intent(ctx, GuidianActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             i.putExtra("prompt", prompt);
             boolean started = false;
-            try { ctx.startActivity(i); started = true; } catch (Exception e) { DebugState.append(ctx, "归电全屏启动被系统拦截：" + ScreenshotService.shortMsg(e)); }
+            try { ctx.startActivity(i); started = true; } catch (Exception e) { DebugState.append(ctx, "来电全屏启动被系统拦截：" + ScreenshotService.shortMsg(e)); }
             boolean notified = showFullScreenNotification(ctx, prompt);
-            DebugState.append(ctx, "归电触发：" + prompt + "，全屏=" + started + "，通知=" + notified);
+            DebugState.append(ctx, "来电触发：" + prompt + "，全屏=" + started + "，通知=" + notified);
             out.put("ok", started || notified); out.put("fullscreen_started", started); out.put("notification_sent", notified); out.put("prompt", prompt); out.put("today_count", count);
             recordAutoCheck(ctx, System.currentTimeMillis(), 0, false, force ? "manual_prompt" : "prompt_shown", out.toString());
         } catch (Exception e) { try { out.put("ok", false).put("error", ScreenshotService.shortMsg(e)); } catch (Exception ignored) { } }
@@ -271,7 +348,7 @@ public class GuidianState {
             String action = cmd.optString("action", "get_guidian_state");
             if ("get_guidian_state".equals(action)) return config(ctx).put("ok", true);
             if ("mark_guidian_returned".equals(action)) { markReturned(ctx, cmd.optString("source", "mcp")); return config(ctx).put("ok", true); }
-            if ("trigger_guidian".equals(action)) return showPrompt(ctx, true);
+            if ("trigger_guidian".equals(action)) return showPrompt(ctx, true, cmd.optString("prompt",cmd.optString("message","")), cmd.optString("call_id",""));
             if ("set_guidian_config".equals(action)) {
                 if (!prefs(ctx).getBoolean(KEY_ALLOW_REMOTE, true)) return out.put("ok", false).put("error", "remote_config_disabled");
                 JSONObject p = cmd.optJSONObject("payload"); if (p == null) p = cmd;
@@ -285,12 +362,15 @@ public class GuidianState {
                 if (p.has("quiet_enabled")) e.putBoolean(KEY_QUIET_ENABLED, p.optBoolean("quiet_enabled", true));
                 if (p.has("quiet_start")) e.putString(KEY_QUIET_START, p.optString("quiet_start", "23:30"));
                 if (p.has("quiet_end")) e.putString(KEY_QUIET_END, p.optString("quiet_end", "08:00"));
-                if (p.has("target_package")) { String pkg = p.optString("target_package", targetPackage(ctx)); if (AppPrefs.isPackageLike(pkg)) e.putString(KEY_TARGET_PACKAGE, pkg); }
+                if (p.has("target_package")) { String pkg = p.optString("target_package", targetPackage(ctx)); if (pkg.trim().isEmpty()||AppPrefs.isPackageLike(pkg)) e.putString(KEY_TARGET_PACKAGE, pkg.trim()); }
+                if (p.has("caller_name")) e.putString(KEY_CALLER_NAME, p.optString("caller_name", AppPrefs.companionName(ctx)).trim());
+                if (p.has("caller_subtitle")) e.putString(KEY_CALLER_SUBTITLE, p.optString("caller_subtitle", "从小手机打给你").trim());
+                if (p.has("default_retry_minutes")) e.putInt(KEY_DEFAULT_RETRY_MIN, clamp(p.optInt("default_retry_minutes",15),1,1440));
                 if (p.has("theme")) e.putString(KEY_THEME, normalizeTheme(p.optString("theme", "粉色")));
                 if (p.has("prompts")) e.putString(KEY_PROMPTS, p.optString("prompts", defaultPrompts(ctx)));
                 if (p.has("quick_reasons")) e.putString(KEY_REASONS, p.optString("quick_reasons", defaultReasons()));
                 e.apply();
-                DebugState.append(ctx, "归电设置已由 MCP 更新");
+                DebugState.append(ctx, "来电设置已由 MCP 更新");
                 return config(ctx).put("ok", true).put("result", "guidian_config_saved");
             }
             return out.put("ok", false).put("error", "unknown_guidian_action");
@@ -355,7 +435,7 @@ public class GuidianState {
             NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm == null) return false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "小手机归电", NotificationManager.IMPORTANCE_HIGH);
+                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "小手机来电", NotificationManager.IMPORTANCE_HIGH);
                 channel.setDescription(AppPrefs.companionName(ctx) + "的来电式全屏提醒");
                 channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
                 channel.enableVibration(true);
@@ -379,7 +459,7 @@ public class GuidianState {
                     .build();
             nm.notify(NOTIFICATION_ID, n);
             return true;
-        } catch (Exception e) { DebugState.append(ctx, "归电通知异常：" + ScreenshotService.shortMsg(e)); return false; }
+        } catch (Exception e) { DebugState.append(ctx, "来电通知异常：" + ScreenshotService.shortMsg(e)); return false; }
     }
 
     private static void ensureInitialized(Context ctx) {

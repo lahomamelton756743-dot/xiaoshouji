@@ -249,3 +249,14 @@ Render 一键部署时，`LINJIAN_URL` 会由 Blueprint 自动引用 server 的�
 - `update_little_phone_todo`：修改待办标题、到期时间、提醒时间。
 
 纸条仍使用 `leave_little_phone_paper` / `list_little_phone_papers`，已从信箱 UI 中独立为“纸条箱”。
+
+## 小手机 v0.5.2 补充工具
+
+- `set_little_phone_status`：修改“我们”页状态（user / daddy；online / away / quiet）。
+- `get_little_phone_statuses`：读取双方状态。
+- `call_little_phone`：发起来电，可自定义本次文案并用 `delay_minutes` 延迟再次来电。
+- `list_little_phone_calls`：读取来电、接通、拒绝、挂断与拒绝留言记录。
+- `get_health_summary`：读取健康摘要；健康桥未接入时返回 `health_source_not_connected`。
+- `get_sleep_summary`：只读取睡眠摘要；健康桥未接入时同样明确返回未连接。
+
+v0.5.2 只固定 MCP 契约；正式 ChatGPT 插件等真机功能稳定后再创建。

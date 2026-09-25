@@ -1,4 +1,4 @@
-const VERSION = "0.5.1-r4-little-phone";
+const VERSION = "0.5.2-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SNAPSHOT_TTL_SECONDS = 30 * 60;
@@ -58,6 +58,9 @@ async function handle(request, env) {
     if (path === "/api/littlephone/todos") return listTodosApi(env, url);
     if (path === "/api/littlephone/dates") return listDatesApi(env, url);
     if (path === "/api/littlephone/cycle") return getCycleApi(env);
+    if (path === "/api/littlephone/statuses") return getStatusesApi(env);
+    if (path === "/api/littlephone/calls") return listCallsApi(env, url);
+    if (path === "/api/littlephone/health-summary") return getHealthSummaryApi(env);
     if (path === "/api/mail") return listMailApi(env, url);
     if (path === "/api/capsules") return listCapsulesApi(env, url);
   }
@@ -88,6 +91,10 @@ async function handle(request, env) {
     if (path === "/api/littlephone/cycle/records") return addCycleRecordApi(env, await readJson(request));
     if (path === "/api/littlephone/cycle/records/update") return updateCycleRecordApi(env, await readJson(request));
     if (path === "/api/littlephone/cycle/records/delete") return deleteRowApi(env, "lp_cycle_records", await readJson(request));
+    if (path === "/api/littlephone/statuses") return setStatusApi(env, await readJson(request));
+    if (path === "/api/littlephone/calls") return upsertCallApi(env, await readJson(request));
+    if (path === "/api/littlephone/calls/delete") return deleteRowApi(env, "lp_calls", await readJson(request));
+    if (path === "/api/littlephone/health-summary") return setHealthSummaryApi(env, await readJson(request));
     if (path === "/api/littlephone/command") return queueGenericCommandApi(env, await readJson(request));
     if (path === "/api/mail") return addMailApi(env, await readJson(request));
     if (path === "/api/mail/seen") return markMailSeenApi(env, await readJson(request));
@@ -211,7 +218,23 @@ async function ensureSchema(env) {
         id TEXT PRIMARY KEY, start_date TEXT NOT NULL, end_date TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
       )`,
-      `CREATE INDEX IF NOT EXISTS idx_lp_cycle_records_start ON lp_cycle_records(start_date DESC)`
+      `CREATE INDEX IF NOT EXISTS idx_lp_cycle_records_start ON lp_cycle_records(start_date DESC)`,
+      `CREATE TABLE IF NOT EXISTS lp_statuses (
+        actor TEXT PRIMARY KEY, text TEXT NOT NULL DEFAULT '', presence TEXT NOT NULL DEFAULT 'online',
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS lp_calls (
+        id TEXT PRIMARY KEY, caller TEXT NOT NULL DEFAULT 'daddy', prompt TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'ringing', note TEXT NOT NULL DEFAULT '', target_package TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_calls_created ON lp_calls(created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS lp_health_summary (
+        id TEXT PRIMARY KEY, connected INTEGER NOT NULL DEFAULT 0, source TEXT NOT NULL DEFAULT 'not_connected',
+        sleep_json TEXT NOT NULL DEFAULT 'null', steps_json TEXT NOT NULL DEFAULT 'null',
+        heart_rate_json TEXT NOT NULL DEFAULT 'null', cycle_json TEXT NOT NULL DEFAULT 'null',
+        updated_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT ''
+      )`
     ];
     schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).catch(err => { schemaReady = null; throw err; });
   }
@@ -364,8 +387,8 @@ async function addDiaryApi(env,body){const item=await addDiary(env,body);return 
 async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const title=clip(body.title!==undefined?body.title:old.title,160).trim()||old.title,content=clip(body.content!==undefined?body.content:old.content,20000).trim(),date=clip(body.date!==undefined?body.date:old.event_date,20);if(!content)return json({ok:false,error:"content_required"},400);if(!validDate(date))return json({ok:false,error:"invalid_date"},400);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return json({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
 
 async function bootstrapApi(env){
-  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,160),listTodos(env,160),listDates(env,300),(async()=>cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)))()]);
-  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle});
+  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env)]);
+  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health});
 }
 
 function rowTodo(r){return {...r,done:Boolean(r.done)};}
@@ -390,7 +413,7 @@ async function updateTodoApi(env,body){const item=await updateTodo(env,body);ret
 
 
 async function deleteRowApi(env, table, body){
-  const allowed=new Set(["lp_events","lp_papers","lp_mail","lp_capsules","lp_diaries","lp_todos","lp_dates","lp_cycle_records"]);
+  const allowed=new Set(["lp_events","lp_papers","lp_mail","lp_capsules","lp_diaries","lp_todos","lp_dates","lp_cycle_records","lp_calls"]);
   if(!allowed.has(table))return json({ok:false,error:"delete_not_allowed"},400);
   const id=clip(body.id||"",100);if(!id)return json({ok:false,error:"id_required"},400);
   const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
@@ -434,7 +457,41 @@ async function getCycleApi(env){return json({ok:true,...cycleProjection(await cy
 async function setCycleSettingsApi(env,body){const old=await cycleSettings(env),enabled=body.enabled!==undefined?Boolean(body.enabled):old.enabled,last=body.last_start!==undefined?clip(body.last_start||"",20):old.last_start,cl=Math.max(15,Math.min(60,Number(body.cycle_length??old.cycle_length)||30)),pl=Math.max(1,Math.min(14,Number(body.period_length??old.period_length)||6)),rb=Math.max(0,Math.min(14,Number(body.remind_before??old.remind_before)||3)),now=nowIso();if(last&&!validDate(last))return json({ok:false,error:"invalid_last_start"},400);await env.DB.prepare("UPDATE lp_cycle_settings SET enabled=?,last_start=?,cycle_length=?,period_length=?,remind_before=?,updated_at=? WHERE id='default'").bind(boolInt(enabled),last,cl,pl,rb,now).run();return getCycleApi(env);}
 async function addCycleRecordApi(env,body){const start=clip(body.start_date||"",20),end=clip(body.end_date||"",20);if(!validDate(start)||end&&!validDate(end))return json({ok:false,error:"invalid_date"},400);const id=clientId(body),existing=await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first();if(existing)return json({ok:true,record:existing,deduped:true});const item={id,start_date:start,end_date:end,note:clip(body.note||"",500),created_at:nowIso()};await env.DB.prepare("INSERT OR IGNORE INTO lp_cycle_records(id,start_date,end_date,note,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.start_date,item.end_date,item.note,item.created_at).run();return json({ok:true,record:(await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first())||item});}
 async function updateCycleRecordApi(env,body){const id=clip(body.id||"",100);const old=await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const start=clip(body.start_date!==undefined?body.start_date:old.start_date,20),end=clip(body.end_date!==undefined?body.end_date:old.end_date,20),note=clip(body.note!==undefined?body.note:old.note,500);if(!validDate(start)||end&&!validDate(end))return json({ok:false,error:"invalid_date"},400);await env.DB.prepare("UPDATE lp_cycle_records SET start_date=?,end_date=?,note=? WHERE id=?").bind(start,end,note,id).run();return json({ok:true,record:{...old,start_date:start,end_date:end,note}});}
-async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","trigger_guidian","lock_app","unlock_app","add_locked_app","remove_locked_app"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),created=nowIso(),device=clip(body.device_id||DEFAULT_DEVICE,120);const cmd={id,device_id:device,action,status:"pending",created_at:created,requested_by:clip(body.requested_by||"daddy",40),...body};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,action,JSON.stringify(cmd),"pending",created).run();return cmd;}
+
+async function getStatuses(env){
+  const rows=await env.DB.prepare("SELECT * FROM lp_statuses").all();
+  const out={user:{text:"",presence:"online",updated_at:""},daddy:{text:"",presence:"online",updated_at:""}};
+  for(const r of rows.results||[]){const key=r.actor==="daddy"?"daddy":"user";out[key]={text:r.text||"",presence:r.presence||"online",updated_at:r.updated_at||""};}
+  return out;
+}
+async function getStatusesApi(env){return json({ok:true,statuses:await getStatuses(env)});}
+async function setStatusApi(env,body){
+  const actor=String(body.actor||"user").toLowerCase()==="daddy"?"daddy":"user";
+  const text=clip(body.text||"",160),presence=["online","away","quiet"].includes(String(body.presence||"online"))?String(body.presence||"online"):"online",updated=nowIso();
+  await env.DB.prepare("INSERT INTO lp_statuses(actor,text,presence,updated_at) VALUES(?,?,?,?) ON CONFLICT(actor) DO UPDATE SET text=excluded.text,presence=excluded.presence,updated_at=excluded.updated_at").bind(actor,text,presence,updated).run();
+  return json({ok:true,status:{actor,text,presence,updated_at:updated}});
+}
+function rowCall(r){return {id:r.id,caller:r.caller,prompt:r.prompt,status:r.status,note:r.note,target_package:r.target_package,created_at:r.created_at,updated_at:r.updated_at};}
+async function listCalls(env,limit=80){const rows=await env.DB.prepare("SELECT * FROM lp_calls ORDER BY created_at DESC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowCall);}
+async function listCallsApi(env,url){return json({ok:true,calls:await listCalls(env,asLimit(url,80,300))});}
+async function upsertCallApi(env,body){
+  const id=clip(body.id||body.call_id||"",100).trim()||uuid(),old=await env.DB.prepare("SELECT * FROM lp_calls WHERE id=?").bind(id).first(),now=nowIso();
+  const item={id,caller:clip(body.caller||(old?.caller)||"daddy",80),prompt:clip(body.prompt!==undefined?body.prompt:(old?.prompt||""),600),status:clip(body.status||(old?.status)||"ringing",40),note:clip(body.note!==undefined?body.note:(old?.note||""),800),target_package:clip(body.target_package!==undefined?body.target_package:(old?.target_package||""),180),created_at:old?.created_at||clip(body.created_at||now,40),updated_at:now};
+  await env.DB.prepare("INSERT INTO lp_calls(id,caller,prompt,status,note,target_package,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET caller=excluded.caller,prompt=excluded.prompt,status=excluded.status,note=excluded.note,target_package=excluded.target_package,updated_at=excluded.updated_at").bind(item.id,item.caller,item.prompt,item.status,item.note,item.target_package,item.created_at,item.updated_at).run();
+  return json({ok:true,call:item});
+}
+async function healthSummary(env){
+  const r=await env.DB.prepare("SELECT * FROM lp_health_summary WHERE id='default'").first();
+  if(!r)return {connected:false,source:"not_connected",sleep:null,steps:null,heart_rate:null,cycle:null,updated_at:null,error:"health_source_not_connected"};
+  return {connected:Boolean(r.connected),source:r.source||"not_connected",sleep:safeJson(r.sleep_json,null),steps:safeJson(r.steps_json,null),heart_rate:safeJson(r.heart_rate_json,null),cycle:safeJson(r.cycle_json,null),updated_at:r.updated_at||null,error:r.error||""};
+}
+async function getHealthSummaryApi(env){return json({ok:true,...await healthSummary(env)});}
+async function setHealthSummaryApi(env,body){
+  const connected=Boolean(body.connected),source=clip(body.source||"mi-fitness-bridge",80),sleep=body.sleep??null,steps=body.steps??null,heart=body.heart_rate??null,cycle=body.cycle??null,updated=clip(body.updated_at||nowIso(),40),error=clip(body.error||"",240);
+  await env.DB.prepare("INSERT INTO lp_health_summary(id,connected,source,sleep_json,steps_json,heart_rate_json,cycle_json,updated_at,error) VALUES('default',?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET connected=excluded.connected,source=excluded.source,sleep_json=excluded.sleep_json,steps_json=excluded.steps_json,heart_rate_json=excluded.heart_rate_json,cycle_json=excluded.cycle_json,updated_at=excluded.updated_at,error=excluded.error").bind(boolInt(connected),source,JSON.stringify(sleep),JSON.stringify(steps),JSON.stringify(heart),JSON.stringify(cycle),updated,error).run();
+  return json({ok:true,...await healthSummary(env)});
+}
+async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","trigger_guidian","trigger_call","lock_app","unlock_app","add_locked_app","remove_locked_app"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),delay=Math.max(0,Math.min(1440,Number(body.delay_minutes||0)||0)),created=new Date(Date.now()+delay*60000).toISOString().replace(/\.\d{3}Z$/,"Z"),device=clip(body.device_id||DEFAULT_DEVICE,120),normalizedAction=action==="trigger_call"?"trigger_guidian":action;const cmd={id,device_id:device,action:normalizedAction,status:"pending",created_at:created,scheduled_for:created,requested_by:clip(body.requested_by||"daddy",40),...body,action:normalizedAction};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,normalizedAction,JSON.stringify(cmd),"pending",created).run();return cmd;}
 async function queueGenericCommandApi(env,body){const c=await queueGenericCommand(env,body);return c.error?json({ok:false,error:c.error},400):json({ok:true,command:c});}
 
 async function queueVisit(env,deviceId=DEFAULT_DEVICE){
@@ -443,7 +500,7 @@ async function queueVisit(env,deviceId=DEFAULT_DEVICE){
 }
 async function queueVisitApi(env,body){const cmd=await queueVisit(env,clip(body.device_id||DEFAULT_DEVICE,120));return json({ok:true,command:cmd,mode:"read_once"});}
 async function pollCommand(env,url){
-  const deviceId=clip(url.searchParams.get("device_id")||DEFAULT_DEVICE,120); const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE device_id=? AND status='pending' ORDER BY created_at ASC LIMIT 1").bind(deviceId).first();
+  const deviceId=clip(url.searchParams.get("device_id")||DEFAULT_DEVICE,120); const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE device_id=? AND status='pending' AND created_at<=? ORDER BY created_at ASC LIMIT 1").bind(deviceId,nowIso()).first();
   if(!row)return json({ok:true,command:null}); const cmd=safeJson(row.command_json,{}); cmd.status="dispatched";cmd.dispatched_at=nowIso();
   await env.DB.prepare("UPDATE lp_commands SET command_json=?,status='dispatched',dispatched_at=? WHERE id=?").bind(JSON.stringify(cmd),cmd.dispatched_at,row.id).run(); return json({ok:true,command:cmd});
 }
@@ -499,7 +556,13 @@ const MCP_TOOLS = [
   tool("list_little_phone_todos","读取待办。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_little_phone_todo","修改待办标题、到期时间或提醒时间。",{id:{type:"string"},title:{type:"string"},due_at:{type:"string"},remind_at:{type:"string"}},["id"]),
   tool("set_little_phone_todo_done","设置待办完成/未完成。",{id:{type:"string"},done:{type:"boolean",default:true}},["id"]),
-  tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","cycle_record"]},id:{type:"string"}},["kind","id"]),
+  tool("set_little_phone_status","修改小手机‘我们’页的一条状态。daddy 通常修改自己的状态。",{actor:{type:"string",enum:["daddy","user"],default:"daddy"},text:{type:"string"},presence:{type:"string",enum:["online","away","quiet"],default:"online"}},["text"]),
+  tool("get_little_phone_statuses","读取‘我们’页双方状态。",{}),
+  tool("call_little_phone","给小手机发起一次来电；可设置延迟分钟数和本次来电文案。",{message:{type:"string"},delay_minutes:{type:"integer",minimum:0,maximum:1440,default:0},device_id:{type:"string",default:DEFAULT_DEVICE}},["message"]),
+  tool("list_little_phone_calls","读取来电/接通/拒绝记录和拒绝留言。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("get_health_summary","读取小米健康桥提供的最新健康摘要；未接入时明确返回 health_source_not_connected。",{}),
+  tool("get_sleep_summary","只读取最新睡眠摘要；未接入时明确返回 health_source_not_connected。",{}),
+  tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","cycle_record","call"]},id:{type:"string"}},["kind","id"]),
   tool("list_important_dates","读取纪念日/重要日期。",{limit:{type:"integer",minimum:1,maximum:500,default:300}}),
   tool("add_important_date","添加纪念日或重要日期。",{title:{type:"string"},date:{type:"string",description:"YYYY-MM-DD"},kind:{type:"string",default:"important"},remind_days:{type:"integer",default:3},note:{type:"string",default:""}},["title","date"]),
   tool("update_important_date","修改纪念日或重要日期。",{id:{type:"string"},title:{type:"string"},date:{type:"string"},kind:{type:"string"},remind_days:{type:"integer"},note:{type:"string"}},["id"]),
@@ -552,7 +615,13 @@ async function callTool(name,args,env){
     case "list_little_phone_todos": return mcpText({ok:true,todos:await listTodos(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_little_phone_todo": {const t=await updateTodo(env,args);return mcpText(t?{ok:true,todo:t}:{ok:false,error:"todo_not_found"},!t);}
     case "set_little_phone_todo_done": {const old=await getTodo(env,args.id||"");if(!old)return mcpText({ok:false,error:"todo_not_found"},true);await env.DB.prepare("UPDATE lp_todos SET done=?,updated_at=? WHERE id=?").bind(boolInt(args.done!==false),nowIso(),args.id).run();return mcpText({ok:true,todo:await getTodo(env,args.id)});}
-    case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",diary:"lp_diaries",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
+    case "set_little_phone_status": {const actor=String(args.actor||"daddy").toLowerCase()==="user"?"user":"daddy",text=clip(args.text||"",160),presence=["online","away","quiet"].includes(String(args.presence||"online"))?String(args.presence||"online"):"online",updated=nowIso();await env.DB.prepare("INSERT INTO lp_statuses(actor,text,presence,updated_at) VALUES(?,?,?,?) ON CONFLICT(actor) DO UPDATE SET text=excluded.text,presence=excluded.presence,updated_at=excluded.updated_at").bind(actor,text,presence,updated).run();return mcpText({ok:true,status:{actor,text,presence,updated_at:updated}});}
+    case "get_little_phone_statuses": return mcpText({ok:true,statuses:await getStatuses(env)});
+    case "call_little_phone": {const callId=uuid(),c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"trigger_call",message:clip(args.message||"想听听你的声音。",600),prompt:clip(args.message||"想听听你的声音。",600),call_id:callId,delay_minutes:Number(args.delay_minutes||0),requested_by:"daddy"});return mcpText(c.error?{ok:false,error:c.error}:{ok:true,command:c,call_id:callId},Boolean(c.error));}
+    case "list_little_phone_calls": return mcpText({ok:true,calls:await listCalls(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
+    case "get_health_summary": {const h=await healthSummary(env);return mcpText(h.connected?{ok:true,...h}:{ok:false,error:"health_source_not_connected",...h},!h.connected);}
+    case "get_sleep_summary": {const h=await healthSummary(env);return mcpText(h.connected&&h.sleep?{ok:true,source:h.source,sleep:h.sleep,updated_at:h.updated_at}:{ok:false,error:"health_source_not_connected",source:h.source,updated_at:h.updated_at},!(h.connected&&h.sleep));}
+    case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",diary:"lp_diaries",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records",call:"lp_calls"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
     case "list_important_dates": return mcpText({ok:true,dates:await listDates(env,Math.max(1,Math.min(500,Number(args.limit||300))))});
     case "add_important_date": {const title=clip(args.title||"",120),date=clip(args.date||"",20);if(!title||!validDate(date))return mcpText({ok:false,error:"title_and_date_required"},true);const now=nowIso(),item={id:uuid(),title,date,kind:clip(args.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(args.remind_days??3)||0)),note:clip(args.note||"",500),created_at:now,updated_at:now};if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.created_at,item.updated_at).run();return mcpText({ok:true,date:item});}
     case "get_cycle_record": return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});

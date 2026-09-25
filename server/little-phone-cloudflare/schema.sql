@@ -1,4 +1,4 @@
--- 小手机 v0.5.1 Cloudflare D1 schema
+-- 小手机 v0.5.2 Cloudflare D1 schema
 -- worker.js 会自动 CREATE TABLE IF NOT EXISTS；本文件用于人工检查/初始化。
 
 CREATE TABLE IF NOT EXISTS lp_commands (
@@ -133,3 +133,34 @@ CREATE TABLE IF NOT EXISTS lp_cycle_records (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_lp_cycle_records_start ON lp_cycle_records(start_date DESC);
+
+CREATE TABLE IF NOT EXISTS lp_statuses (
+  actor TEXT PRIMARY KEY,
+  text TEXT NOT NULL DEFAULT '',
+  presence TEXT NOT NULL DEFAULT 'online',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS lp_calls (
+  id TEXT PRIMARY KEY,
+  caller TEXT NOT NULL DEFAULT 'daddy',
+  prompt TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'ringing',
+  note TEXT NOT NULL DEFAULT '',
+  target_package TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lp_calls_created ON lp_calls(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS lp_health_summary (
+  id TEXT PRIMARY KEY,
+  connected INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'not_connected',
+  sleep_json TEXT NOT NULL DEFAULT 'null',
+  steps_json TEXT NOT NULL DEFAULT 'null',
+  heart_rate_json TEXT NOT NULL DEFAULT 'null',
+  cycle_json TEXT NOT NULL DEFAULT 'null',
+  updated_at TEXT NOT NULL DEFAULT '',
+  error TEXT NOT NULL DEFAULT ''
+);

@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.5.1 Web/PWA 外壳。
+ * 小手机 v0.5.2 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -374,7 +374,7 @@ public class LittlePhoneActivity extends Activity {
 
         @JavascriptInterface
         public void openNativeSettings() {
-            // v0.5.1：权限入口留在“小手机”里，不再跳回旧掌心窗主页。
+            // v0.5.2：权限入口留在“小手机”里，不再跳回旧掌心窗主页。
             runOnUiThread(() -> {
                 try {
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
@@ -538,6 +538,11 @@ public class LittlePhoneActivity extends Activity {
                 if (o.has("quiet_enabled")) e.putBoolean(GuidianState.KEY_QUIET_ENABLED, o.optBoolean("quiet_enabled", true));
                 if (o.has("quiet_start")) e.putString(GuidianState.KEY_QUIET_START, o.optString("quiet_start", "23:30"));
                 if (o.has("quiet_end")) e.putString(GuidianState.KEY_QUIET_END, o.optString("quiet_end", "08:00"));
+                if (o.has("target_package")) { String pkg=o.optString("target_package","").trim(); if(pkg.isEmpty()||AppPrefs.isPackageLike(pkg)) e.putString(GuidianState.KEY_TARGET_PACKAGE,pkg); }
+                if (o.has("caller_name")) e.putString(GuidianState.KEY_CALLER_NAME,o.optString("caller_name",AppPrefs.companionName(LittlePhoneActivity.this)).trim());
+                if (o.has("caller_subtitle")) e.putString(GuidianState.KEY_CALLER_SUBTITLE,o.optString("caller_subtitle","从小手机打给你").trim());
+                if (o.has("prompts")) e.putString(GuidianState.KEY_PROMPTS, o.optString("prompts", GuidianState.defaultPrompts(LittlePhoneActivity.this)));
+                if (o.has("default_retry_minutes")) e.putInt(GuidianState.KEY_DEFAULT_RETRY_MIN,Math.max(1,Math.min(1440,o.optInt("default_retry_minutes",15))));
                 e.apply();
                 return true;
             } catch (Exception ex) { return false; }
@@ -610,6 +615,19 @@ public class LittlePhoneActivity extends Activity {
                 return true;
             } catch (Exception e) { return false; }
         }
+
+        @JavascriptInterface
+        public String getFootprints() {
+            try {
+                JSONObject out=new JSONObject();
+                out.put("user",ActivityEventStore.todayJourney(LittlePhoneActivity.this,20));
+                out.put("daddy",PublicCompanionState.actions(LittlePhoneActivity.this,20));
+                return out.toString();
+            } catch(Exception e){ return "{\"user\":[],\"daddy\":[]}"; }
+        }
+
+        @JavascriptInterface
+        public String getCallRecords() { return GuidianState.callRecords(LittlePhoneActivity.this,80).toString(); }
 
         @JavascriptInterface
         public String getAppGateState() { return AppGate.config(LittlePhoneActivity.this).toString(); }

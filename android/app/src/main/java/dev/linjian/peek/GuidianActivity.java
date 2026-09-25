@@ -31,7 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.util.Base64;
 
-/** 归电的沉浸式来电页；只调整展示，不改变归电判断与记录逻辑。 */
+/** 小手机的沉浸式来电页。 */
 public class GuidianActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private FrameLayout root;
@@ -88,8 +88,8 @@ public class GuidianActivity extends Activity {
         body.setPadding(dp(30), dp(34), dp(30), dp(24));
         root.addView(body, new FrameLayout.LayoutParams(-1, -1));
 
-        String companion = AppPrefs.companionName(this);
-        TextView eyebrow = text("来自 " + companion, 9, theme.primary, true);
+        String companion = GuidianState.callerName(this);
+        TextView eyebrow = text(GuidianState.callerSubtitle(this), 9, theme.primary, true);
         eyebrow.setLetterSpacing(.18f);
         eyebrow.setGravity(Gravity.CENTER);
         body.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(22)));
@@ -158,7 +158,7 @@ public class GuidianActivity extends Activity {
         right.leftMargin = dp(13);
         actions.addView(acceptAction, right);
 
-        TextView returnHint = text("接通后回到 " + GuidianState.targetLabel(this), 8, withAlpha(theme.subtext, .72f), false);
+        TextView returnHint = text("接通后打开 · " + GuidianState.targetLabel(this), 8, withAlpha(theme.subtext, .72f), false);
         returnHint.setGravity(Gravity.CENTER);
         returnHint.setLetterSpacing(.06f);
         LinearLayout.LayoutParams hintLp = new LinearLayout.LayoutParams(-1, -2);
@@ -288,9 +288,9 @@ public class GuidianActivity extends Activity {
             finish();
             handler.postDelayed(() -> {
                 String result = target == null || target.trim().isEmpty() ? "package_empty" : CompanionService.openPackageResult(appCtx, target.trim());
-                DebugState.append(appCtx, "归电接通打开目标：" + result + "；target=" + (target == null ? "" : target));
+                DebugState.append(appCtx, "来电接通打开目标：" + result + "；target=" + (target == null ? "" : target));
                 if (!result.startsWith("opened_")) {
-                    Toast.makeText(appCtx, "归电目标打开失败：" + result, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(appCtx, "来电目标打开失败：" + result, Toast.LENGTH_SHORT).show();
                 }
             }, 260L);
         }, 220L);
@@ -322,7 +322,7 @@ public class GuidianActivity extends Activity {
 
         TextView title = text("晚一点，也没关系。", 19, theme.text, true);
         reasonDrawer.addView(title, new LinearLayout.LayoutParams(-1, -2));
-        TextView hint = text("留一句话给" + AppPrefs.companionName(this), 10, theme.subtext, false);
+        TextView hint = text("拒绝也可以留一句话给" + AppPrefs.companionName(this), 10, theme.subtext, false);
         LinearLayout.LayoutParams hintLp = new LinearLayout.LayoutParams(-1, -2);
         hintLp.topMargin = dp(5);
         reasonDrawer.addView(hint, hintLp);
@@ -390,13 +390,14 @@ public class GuidianActivity extends Activity {
 
     private void submitReason(String reason) {
         GuidianState.reject(this, reason);
-        Toast.makeText(this, "好，" + AppPrefs.companionName(this) + "晚点再来", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "留言收好了。", Toast.LENGTH_SHORT).show();
         finish();
     }
 
     @Override public void onBackPressed() {
-        if (reasonDrawer != null) hideReasonDrawer();
-        else super.onBackPressed();
+        if (reasonDrawer != null) { hideReasonDrawer(); return; }
+        if (!connected) { GuidianState.hangup(this); finish(); return; }
+        super.onBackPressed();
     }
 
     @Override protected void onDestroy() {

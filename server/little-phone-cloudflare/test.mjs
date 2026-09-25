@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.5.1-r4-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.5.2-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -74,8 +74,25 @@ r = await req('/api/littlephone/cycle/records',{method:'POST',body:{start_date:'
 r = await req('/api/littlephone/cycle/records/update',{method:'POST',body:{id:cycleId,start_date:'2026-09-20',end_date:'2026-09-24',note:'已修改'}}); assert.equal(r.data.record.note,'已修改');
 r = await req('/api/littlephone/cycle'); assert.ok(r.data.records.some(x=>x.id===cycleId));
 
+// 我们页双方状态。
+r = await req('/api/littlephone/statuses'); assert.equal(r.status,200); assert.equal(r.data.statuses.daddy.presence,'online');
+r = await req('/api/littlephone/statuses',{method:'POST',body:{actor:'daddy',text:'在小手机里晃',presence:'online'}}); assert.equal(r.status,200); assert.equal(r.data.status.text,'在小手机里晃');
+r = await req('/api/littlephone/statuses'); assert.equal(r.data.statuses.daddy.text,'在小手机里晃');
+
+// 来电记录 + 延迟来电。
+r = await req('/api/littlephone/calls',{method:'POST',body:{id:'call-test-1',caller:'daddy',prompt:'想听听你的声音。',status:'rejected',note:'晚一点再打',target_package:'com.example.app'}}); assert.equal(r.status,200); const callId=r.data.call.id;
+r = await req('/api/littlephone/calls?limit=20'); assert.equal(r.data.calls[0].note,'晚一点再打');
+r = await req('/api/littlephone/command',{method:'POST',body:{action:'trigger_call',message:'十分钟后又想你了。',delay_minutes:10,call_id:'call-delayed-1'}}); assert.equal(r.status,200); const delayedCallCmd=r.data.command.id;
+r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command,null);
+assert.equal(env.DB.db.prepare('SELECT status FROM lp_commands WHERE id=?').get(delayedCallCmd).status,'pending');
+
+// 小米健康桥预留：未接入时明确 not_connected；接入后沿固定结构返回摘要。
+r = await req('/api/littlephone/health-summary'); assert.equal(r.status,200); assert.equal(r.data.connected,false); assert.equal(r.data.error,'health_source_not_connected');
+r = await req('/api/littlephone/health-summary',{method:'POST',body:{connected:true,source:'mi-fitness-python',sleep:{total_minutes:438,score:86,sleep_at:'2026-09-24T23:48:00+08:00',wake_at:'2026-09-25T07:31:00+08:00'},steps:{count:6421},heart_rate:{resting:67}}}); assert.equal(r.status,200); assert.equal(r.data.connected,true); assert.equal(r.data.sleep.total_minutes,438);
+r = await req('/api/littlephone/health-summary'); assert.equal(r.data.source,'mi-fitness-python'); assert.equal(r.data.steps.count,6421);
+
 // bootstrap：前端一次请求拿到核心同步数据，减少慢网络并发 timeout。
-r = await req('/api/littlephone/bootstrap'); assert.equal(r.status,200); assert.ok(Array.isArray(r.data.papers)); assert.ok(Array.isArray(r.data.diaries)); assert.ok(r.data.cycle && Array.isArray(r.data.cycle.records));
+r = await req('/api/littlephone/bootstrap'); assert.equal(r.status,200); assert.ok(Array.isArray(r.data.papers)); assert.ok(Array.isArray(r.data.diaries)); assert.ok(r.data.cycle && Array.isArray(r.data.cycle.records)); assert.equal(r.data.statuses.daddy.text,'在小手机里晃'); assert.ok(Array.isArray(r.data.calls)); assert.equal(r.data.health.connected,true);
 
 r = await req('/api/littlephone/visit',{method:'POST',body:{device_id:'android-phone'}}); assert.equal(r.status,200); const cmdId=r.data.command.id;
 r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.action,'little_phone_visit'); assert.equal(r.data.command.id,cmdId);
@@ -107,9 +124,13 @@ r = await req('/api/littlephone/visit/latest'); assert.equal(r.data.visit.expire
 
 // MCP 初始化 + 工具列表 + 写纸条。
 let m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{}})}),env); let mj=await m.json(); assert.equal(mj.result.serverInfo.name,'little-phone');
-m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})}),env); mj=await m.json(); assert.ok(mj.result.tools.some(t=>t.name==='visit_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='update_important_date')); assert.ok(mj.result.tools.some(t=>t.name==='add_cycle_period')); assert.ok(mj.result.tools.some(t=>t.name==='lock_little_phone_app'));
+m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})}),env); mj=await m.json(); assert.ok(mj.result.tools.some(t=>t.name==='visit_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='update_important_date')); assert.ok(mj.result.tools.some(t=>t.name==='add_cycle_period')); assert.ok(mj.result.tools.some(t=>t.name==='lock_little_phone_app')); assert.ok(mj.result.tools.some(t=>t.name==='set_little_phone_status')); assert.ok(mj.result.tools.some(t=>t.name==='call_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='get_health_summary')); assert.ok(mj.result.tools.some(t=>t.name==='get_sleep_summary'));
 m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'leave_little_phone_paper',arguments:{content:'MCP 测试纸条',author:'daddy'}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.ok,true);
+m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'set_little_phone_status',arguments:{actor:'daddy',text:'等你回来',presence:'away'}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.status.text,'等你回来');
+m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'get_health_summary',arguments:{}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.sleep.total_minutes,438);
+m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:6,method:'tools/call',params:{name:'call_little_phone',arguments:{message:'晚一点再打给你。',delay_minutes:20}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.ok,true);
 
+r = await req('/api/littlephone/calls/delete',{method:'POST',body:{id:callId}}); assert.equal(r.data.ok,true);
 r = await req('/api/littlephone/cycle/records/delete',{method:'POST',body:{id:cycleId}}); assert.equal(r.data.ok,true);
 r = await req('/api/littlephone/dates/delete',{method:'POST',body:{id:dateId}}); assert.equal(r.data.ok,true);
 r = await req('/api/mail/delete',{method:'POST',body:{id:mailId}}); assert.equal(r.data.ok,true);
@@ -118,5 +139,5 @@ r = await req('/api/littlephone/diaries/delete',{method:'POST',body:{id:diaryId}
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.5.1 R4');
-console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));
+console.log('PASS little-phone backend v0.5.2');
+console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

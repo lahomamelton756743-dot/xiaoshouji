@@ -5,6 +5,7 @@ import android.animation.ValueAnimator;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
@@ -28,6 +29,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.util.Base64;
 
 /** 归电的沉浸式来电页；只调整展示，不改变归电判断与记录逻辑。 */
 public class GuidianActivity extends Activity {
@@ -196,14 +198,34 @@ public class GuidianActivity extends Activity {
         frame.setBackgroundColor(Color.TRANSPARENT);
         frame.setPadding(dp(1), dp(1), dp(1), dp(1));
 
+        boolean avatarApplied = false;
+        String profileAvatar = AppPrefs.get(this).getString(AppPrefs.KEY_COMPANION_AVATAR, "");
+        if (profileAvatar != null && profileAvatar.startsWith("data:image/") && profileAvatar.contains(",")) {
+            try {
+                String b64 = profileAvatar.substring(profileAvatar.indexOf(',') + 1);
+                byte[] bytes = Base64.decode(b64, Base64.DEFAULT);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                if (bitmap != null) {
+                    SoftAvatarView image = new SoftAvatarView(this);
+                    image.setCircle(true);
+                    image.setColors(theme.panel, withAlpha(theme.line, .62f), theme.online);
+                    image.setFallbackPaddingDp(0);
+                    image.setFallbackBitmap(bitmap);
+                    frame.addView(image, new FrameLayout.LayoutParams(-1, -1));
+                    avatarApplied = true;
+                }
+            } catch (Exception ignored) { }
+        }
         String uri = GuidianState.prefs(this).getString(GuidianState.KEY_AVATAR_URI, "");
-        if (uri != null && !uri.trim().isEmpty()) {
+        if (!avatarApplied && uri != null && !uri.trim().isEmpty()) {
             SoftAvatarView image = new SoftAvatarView(this);
             image.setCircle(true);
             image.setColors(theme.panel, withAlpha(theme.line, .62f), theme.online);
             image.setImageUri(Uri.parse(uri));
             frame.addView(image, new FrameLayout.LayoutParams(-1, -1));
-        } else {
+            avatarApplied = true;
+        }
+        if (!avatarApplied) {
             SoftAvatarView initials = new SoftAvatarView(this);
             initials.setCircle(true);
             initials.setColors(theme.panel, withAlpha(theme.line, .62f), theme.online);
@@ -212,11 +234,13 @@ public class GuidianActivity extends Activity {
             Canvas avatarCanvas = new Canvas(fallback);
             Paint avatarText = new Paint(Paint.ANTI_ALIAS_FLAG);
             avatarText.setColor(theme.text);
-            avatarText.setTextSize(dp(22));
+            avatarText.setTextSize(dp(28));
             avatarText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             avatarText.setTextAlign(Paint.Align.CENTER);
             Paint.FontMetrics metrics = avatarText.getFontMetrics();
-            avatarCanvas.drawText(AppPrefs.companionName(this), fallback.getWidth() / 2f,
+            String name = AppPrefs.companionName(this);
+            String initial = name == null || name.trim().isEmpty() ? "G" : name.trim().substring(0, 1).toUpperCase();
+            avatarCanvas.drawText(initial, fallback.getWidth() / 2f,
                     fallback.getHeight() / 2f - (metrics.ascent + metrics.descent) / 2f, avatarText);
             initials.setFallbackBitmap(fallback);
             frame.addView(initials, new FrameLayout.LayoutParams(-1, -1));

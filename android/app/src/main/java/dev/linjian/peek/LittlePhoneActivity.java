@@ -135,6 +135,17 @@ public class LittlePhoneActivity extends Activity {
     }
 
     @Override
+    public void onBackPressed() {
+        if (webView == null) { super.onBackPressed(); return; }
+        webView.evaluateJavascript("(window.LittlePhone&&window.LittlePhone.handleBack)?String(window.LittlePhone.handleBack()):'false'", value -> {
+            boolean handled = value != null && value.replace("\"", "").contains("true");
+            if (handled) return;
+            if (webView.canGoBack()) webView.goBack();
+            else LittlePhoneActivity.super.onBackPressed();
+        });
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == FILE_CHOOSER_REQUEST && filePathCallback != null) {
@@ -511,6 +522,34 @@ public class LittlePhoneActivity extends Activity {
         }
 
         @JavascriptInterface
+        public String getGuidianConfig() { return GuidianState.config(LittlePhoneActivity.this).toString(); }
+
+        @JavascriptInterface
+        public boolean setGuidianConfig(String raw) {
+            try {
+                JSONObject o = new JSONObject(raw == null ? "{}" : raw);
+                android.content.SharedPreferences.Editor e = GuidianState.prefs(LittlePhoneActivity.this).edit();
+                if (o.has("enabled")) e.putBoolean(GuidianState.KEY_ENABLED, o.optBoolean("enabled", true));
+                if (o.has("allow_remote")) e.putBoolean(GuidianState.KEY_ALLOW_REMOTE, o.optBoolean("allow_remote", true));
+                if (o.has("fullscreen")) e.putBoolean(GuidianState.KEY_FULLSCREEN, o.optBoolean("fullscreen", true));
+                if (o.has("interval_minutes")) e.putInt(GuidianState.KEY_INTERVAL_MIN, Math.max(15, Math.min(10080, o.optInt("interval_minutes",180))));
+                if (o.has("cooldown_minutes")) e.putInt(GuidianState.KEY_COOLDOWN_MIN, Math.max(0, Math.min(10080, o.optInt("cooldown_minutes",60))));
+                if (o.has("daily_max")) e.putInt(GuidianState.KEY_DAILY_MAX, Math.max(0, Math.min(99, o.optInt("daily_max",3))));
+                if (o.has("quiet_enabled")) e.putBoolean(GuidianState.KEY_QUIET_ENABLED, o.optBoolean("quiet_enabled", true));
+                if (o.has("quiet_start")) e.putString(GuidianState.KEY_QUIET_START, o.optString("quiet_start", "23:30"));
+                if (o.has("quiet_end")) e.putString(GuidianState.KEY_QUIET_END, o.optString("quiet_end", "08:00"));
+                e.apply();
+                return true;
+            } catch (Exception ex) { return false; }
+        }
+
+        @JavascriptInterface
+        public boolean testGuidian() {
+            try { return GuidianState.showPrompt(LittlePhoneActivity.this, true).optBoolean("ok", false); }
+            catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
         public String getCycleConfig() { return CycleState.collect(LittlePhoneActivity.this).toString(); }
 
         @JavascriptInterface
@@ -601,8 +640,9 @@ public class LittlePhoneActivity extends Activity {
                     URL url = new URL(base + safePath);
                     HttpURLConnection c = (HttpURLConnection) url.openConnection();
                     c.setRequestMethod((method == null ? "GET" : method.trim().toUpperCase()));
-                    c.setConnectTimeout(12000);
-                    c.setReadTimeout(16000);
+                    c.setConnectTimeout(7000);
+                    c.setReadTimeout(10000);
+                    c.setUseCaches(false);
                     c.setRequestProperty("Authorization", "Bearer " + token);
                     c.setRequestProperty("Accept", "application/json");
                     if (!"GET".equals(c.getRequestMethod()) && !"HEAD".equals(c.getRequestMethod())) {
@@ -617,6 +657,7 @@ public class LittlePhoneActivity extends Activity {
                     if (in != null) response = readAll(in);
                     c.disconnect();
                 } catch (Exception e) {
+                    status = 599;
                     try {
                         JSONObject err = new JSONObject();
                         err.put("ok", false);

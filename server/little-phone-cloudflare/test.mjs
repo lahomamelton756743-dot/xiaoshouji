@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.5.1-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.5.1-r4-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -38,15 +38,26 @@ r = await req('/api/mail', { method:'POST', body:{author:'瑞安',content:'第�
 assert.equal(r.status, 200); assert.equal(r.data.mail.content, '第一封测试信'); const mailId=r.data.mail.id;
 r = await req('/api/mail?limit=10'); assert.equal(r.data.mail.length,1); assert.equal(r.data.mail[0].seen,false);
 r = await req('/api/mail/seen',{method:'POST',body:{id:mailId}}); assert.equal(r.data.marked,1);
+r = await req('/api/mail',{method:'POST',body:{client_id:'lp_mail_idempotent_001',author:'瑞安',content:'断网重试信'}}); assert.equal(r.status,200);
+r = await req('/api/mail',{method:'POST',body:{client_id:'lp_mail_idempotent_001',author:'瑞安',content:'断网重试信'}}); assert.equal(r.status,200);
+assert.equal(env.DB.db.prepare("SELECT count(*) AS n FROM lp_mail WHERE id='lp_mail_idempotent_001'").get().n,1);
 
 r = await req('/api/littlephone/papers',{method:'POST',body:{author:'daddy',content:'一张测试纸条'}}); assert.equal(r.status,200);
 r = await req('/api/littlephone/papers?limit=10'); assert.equal(r.data.papers[0].content,'一张测试纸条');
+r = await req('/api/littlephone/papers',{method:'POST',body:{client_id:'lp_paper_idempotent_001',author:'瑞安',content:'断网重试纸条'}}); assert.equal(r.status,200);
+r = await req('/api/littlephone/papers',{method:'POST',body:{client_id:'lp_paper_idempotent_001',author:'瑞安',content:'断网重试纸条'}}); assert.equal(r.status,200);
+assert.equal(env.DB.db.prepare("SELECT count(*) AS n FROM lp_papers WHERE id='lp_paper_idempotent_001'").get().n,1);
 
 r = await req('/api/capsules',{method:'POST',body:{author:'daddy',content:'未来见',unlock_at:'2999-01-01'}}); assert.equal(r.status,200); assert.equal(r.data.capsule.locked,true); assert.equal('content' in r.data.capsule,false);
 r = await req('/api/capsules?limit=10'); assert.equal(r.data.capsules[0].locked,true); assert.equal('content' in r.data.capsules[0],false);
 
 r = await req('/api/littlephone/dailybook',{method:'POST',body:{author:'瑞安',title:'今天',mood:'好',content:'时间河测试',date:'2026-09-24',images:[{data:'data:image/png;base64,iVBORw0KGgo='}]}}); assert.equal(r.status,200); const dailyId=r.data.entry.id; assert.equal(r.data.entry.images[0].kind,'inline');
 r = await req('/api/littlephone/dailybook?limit=10'); assert.equal(r.data.entries[0].title,'今天'); assert.ok(r.data.entries[0].images[0].url.startsWith('data:image/png;base64,'));
+
+// daddy 日记：独立日记页，一篇一页。
+r = await req('/api/littlephone/diaries',{method:'POST',body:{author:'daddy',title:'第一篇',content:'今天小手机继续长大。',date:'2026-09-25'}}); assert.equal(r.status,200); const diaryId=r.data.diary.id;
+r = await req('/api/littlephone/diaries?limit=10'); assert.equal(r.data.diaries[0].title,'第一篇');
+r = await req('/api/littlephone/diaries/update',{method:'POST',body:{id:diaryId,title:'第一篇·改',content:'改过的日记'}}); assert.equal(r.data.diary.title,'第一篇·改');
 
 r = await req('/api/littlephone/todos',{method:'POST',body:{author:'daddy',title:'测试待办'}}); assert.equal(r.status,200); const todoId=r.data.todo.id;
 r = await req('/api/littlephone/todos/update',{method:'POST',body:{id:todoId,title:'改过的待办',due_at:'2026-09-25T10:00'}}); assert.equal(r.data.todo.title,'改过的待办');
@@ -62,6 +73,9 @@ r = await req('/api/littlephone/cycle/settings',{method:'POST',body:{enabled:tru
 r = await req('/api/littlephone/cycle/records',{method:'POST',body:{start_date:'2026-09-20',end_date:'2026-09-25',note:'测试'}}); assert.equal(r.status,200); const cycleId=r.data.record.id;
 r = await req('/api/littlephone/cycle/records/update',{method:'POST',body:{id:cycleId,start_date:'2026-09-20',end_date:'2026-09-24',note:'已修改'}}); assert.equal(r.data.record.note,'已修改');
 r = await req('/api/littlephone/cycle'); assert.ok(r.data.records.some(x=>x.id===cycleId));
+
+// bootstrap：前端一次请求拿到核心同步数据，减少慢网络并发 timeout。
+r = await req('/api/littlephone/bootstrap'); assert.equal(r.status,200); assert.ok(Array.isArray(r.data.papers)); assert.ok(Array.isArray(r.data.diaries)); assert.ok(r.data.cycle && Array.isArray(r.data.cycle.records));
 
 r = await req('/api/littlephone/visit',{method:'POST',body:{device_id:'android-phone'}}); assert.equal(r.status,200); const cmdId=r.data.command.id;
 r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.action,'little_phone_visit'); assert.equal(r.data.command.id,cmdId);
@@ -100,8 +114,9 @@ r = await req('/api/littlephone/cycle/records/delete',{method:'POST',body:{id:cy
 r = await req('/api/littlephone/dates/delete',{method:'POST',body:{id:dateId}}); assert.equal(r.data.ok,true);
 r = await req('/api/mail/delete',{method:'POST',body:{id:mailId}}); assert.equal(r.data.ok,true);
 r = await req('/api/littlephone/dailybook/delete',{method:'POST',body:{id:dailyId}}); assert.equal(r.data.ok,true);
+r = await req('/api/littlephone/diaries/delete',{method:'POST',body:{id:diaryId}}); assert.equal(r.data.ok,true);
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.5.1');
-console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));
+console.log('PASS little-phone backend v0.5.1 R4');
+console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

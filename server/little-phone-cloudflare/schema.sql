@@ -80,6 +80,17 @@ CREATE TABLE IF NOT EXISTS lp_dailybook (
 );
 CREATE INDEX IF NOT EXISTS idx_lp_dailybook_date ON lp_dailybook(event_date DESC,created_at DESC);
 
+CREATE TABLE IF NOT EXISTS lp_diaries (
+  id TEXT PRIMARY KEY,
+  author TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  event_date TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lp_diaries_date ON lp_diaries(event_date DESC,created_at DESC);
+
 CREATE TABLE IF NOT EXISTS lp_todos (
   id TEXT PRIMARY KEY,
   author TEXT NOT NULL,

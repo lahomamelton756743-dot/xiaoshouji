@@ -57,3 +57,10 @@ bash android/build.sh
 ```
 
 输出：`android/LittlePhone-v0.5.1.apk`
+
+## v0.5.1 R3 hotfix
+
+- 原生头像选择器，修复 WebView 头像无法更换；头像略放大。
+- 本机留痕待同步队列：server 临时断开时不再“什么都没发生”。
+- 离线条显示具体连接错误并可点击重试。
+- 连接地址自动纠正常见的 `/mcp`、`/health` 误填。

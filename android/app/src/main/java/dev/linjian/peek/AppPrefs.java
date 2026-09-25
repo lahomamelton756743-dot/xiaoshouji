@@ -12,7 +12,7 @@ import java.util.Map;
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
     public static final String APP_VERSION_NAME = "0.5.1";
-    public static final int APP_VERSION_CODE = 50100;
+    public static final int APP_VERSION_CODE = 50103;
     public static final String KEY_SERVER = "server_url";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";
@@ -76,6 +76,10 @@ public class AppPrefs {
         if (value.equalsIgnoreCase("null")) return "";
         int query = value.indexOf('?');
         if (query >= 0) value = value.substring(0, query);
+        while (value.endsWith("/")) value = value.substring(0, value.length() - 1);
+        String lower = value.toLowerCase(Locale.ROOT);
+        if (lower.endsWith("/mcp")) value = value.substring(0, value.length() - 4);
+        else if (lower.endsWith("/health")) value = value.substring(0, value.length() - 7);
         while (value.endsWith("/")) value = value.substring(0, value.length() - 1);
         return value;
     }

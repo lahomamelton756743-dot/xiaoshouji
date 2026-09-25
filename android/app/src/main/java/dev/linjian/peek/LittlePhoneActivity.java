@@ -12,6 +12,11 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,11 +33,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -54,6 +61,8 @@ public class LittlePhoneActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 9040;
     private static final int LOCATION_PERMISSION_REQUEST = 9041;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 9042;
+    private static final int AVATAR_PICK_REQUEST = 9043;
+    private String avatarPickWho = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,6 +141,53 @@ public class LittlePhoneActivity extends Activity {
             Uri[] result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
             filePathCallback.onReceiveValue(result);
             filePathCallback = null;
+            return;
+        }
+        if (requestCode == AVATAR_PICK_REQUEST) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                final Uri uri = data.getData();
+                final String who = avatarPickWho == null || avatarPickWho.isEmpty() ? "ryan" : avatarPickWho;
+                avatarPickWho = "";
+                new Thread(() -> saveAvatarFromUri(who, uri), "littlephone-avatar").start();
+            } else {
+                avatarPickWho = "";
+            }
+        }
+    }
+
+    private void saveAvatarFromUri(String who, Uri uri) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream probe = getContentResolver().openInputStream(uri)) { BitmapFactory.decodeStream(probe, null, bounds); }
+            int sample = 1;
+            int maxDim = Math.max(bounds.outWidth, bounds.outHeight);
+            while (maxDim / sample > 1600) sample *= 2;
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = Math.max(1, sample);
+            Bitmap src;
+            try (InputStream in = getContentResolver().openInputStream(uri)) { src = BitmapFactory.decodeStream(in, null, opts); }
+            if (src == null) throw new IllegalStateException("image_decode_failed");
+            int side = Math.min(src.getWidth(), src.getHeight());
+            int left = Math.max(0, (src.getWidth() - side) / 2);
+            int top = Math.max(0, (src.getHeight() - side) / 2);
+            Bitmap out = Bitmap.createBitmap(320, 320, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(out);
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            canvas.drawBitmap(src, new Rect(left, top, left + side, top + side), new Rect(0, 0, 320, 320), paint);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            out.compress(Bitmap.CompressFormat.JPEG, 82, bytes);
+            String dataUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP);
+            String keyAvatar = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_AVATAR : AppPrefs.KEY_USER_AVATAR;
+            AppPrefs.get(this).edit().putString(keyAvatar, dataUrl).apply();
+            src.recycle();
+            out.recycle();
+            runOnUiThread(() -> {
+                emit("littlephone-profile-changed", new NativeBridge().getProfile());
+                Toast.makeText(this, "头像已经换好", Toast.LENGTH_SHORT).show();
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> Toast.makeText(this, "头像没有换成功，请换一张照片再试", Toast.LENGTH_SHORT).show());
         }
     }
 
@@ -352,6 +408,34 @@ public class LittlePhoneActivity extends Activity {
                 emit("littlephone-profile-changed", getProfile());
                 return true;
             } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public void pickAvatar(String who) {
+            avatarPickWho = "daddy".equalsIgnoreCase(who) ? "daddy" : "ryan";
+            runOnUiThread(() -> {
+                try {
+                    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    i.addCategory(Intent.CATEGORY_OPENABLE);
+                    i.setType("image/*");
+                    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivityForResult(i, AVATAR_PICK_REQUEST);
+                } catch (Exception e) {
+                    Toast.makeText(LittlePhoneActivity.this, "没有可用的相册选择器", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getLocalData(String key) {
+            if (key == null || key.trim().isEmpty()) return "";
+            return LittlePhoneLocalStore.get(LittlePhoneActivity.this).getJson("web_" + key.trim());
+        }
+
+        @JavascriptInterface
+        public boolean setLocalData(String key, String raw) {
+            if (key == null || key.trim().isEmpty() || raw == null || raw.length() > 3000000) return false;
+            return LittlePhoneLocalStore.get(LittlePhoneActivity.this).putJson("web_" + key.trim(), raw);
         }
 
         @JavascriptInterface

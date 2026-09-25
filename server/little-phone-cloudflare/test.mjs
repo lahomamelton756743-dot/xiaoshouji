@@ -137,50 +137,7 @@ r = await req('/api/mail/delete',{method:'POST',body:{id:mailId}}); assert.equal
 r = await req('/api/littlephone/dailybook/delete',{method:'POST',body:{id:dailyId}}); assert.equal(r.data.ok,true);
 r = await req('/api/littlephone/diaries/delete',{method:'POST',body:{id:diaryId}}); assert.equal(r.data.ok,true);
 
-
-// OAuth 2.1: discovery -> dynamic client registration -> PKCE authorization -> token -> MCP -> refresh.
-let ox = await worker.fetch(new Request(base+'/.well-known/oauth-protected-resource/mcp'),env);
-assert.equal(ox.status,200); let oj=await ox.json(); assert.equal(oj.resource,base+'/mcp'); assert.ok(oj.authorization_servers.includes(base));
-ox = await worker.fetch(new Request(base+'/.well-known/oauth-authorization-server'),env);
-oj=await ox.json(); assert.equal(oj.authorization_endpoint,base+'/authorize'); assert.equal(oj.token_endpoint,base+'/token'); assert.equal(oj.registration_endpoint,base+'/register'); assert.ok(oj.scopes_supported.includes('offline_access'));
-
-// Unauthenticated MCP must challenge with RFC 9728 resource metadata.
-ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:91,method:'initialize',params:{}})}),env);
-assert.equal(ox.status,401); assert.match(ox.headers.get('WWW-Authenticate')||'',/oauth-protected-resource\/mcp/);
-
-// Static ChatGPT public OAuth client used by the current ChatGPT MCP creation UI.
-const staticVerifier='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~abc';
-const staticDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(staticVerifier)));
-const staticChallenge=Buffer.from(staticDigest).toString('base64url');
-const staticRedirect='https://chatgpt.com/connector/oauth/test-callback-id';
-const staticQuery=new URLSearchParams({client_id:'chatgpt-little-phone',redirect_uri:staticRedirect,response_type:'code',scope:'little-phone offline_access',state:'static-state',code_challenge:staticChallenge,code_challenge_method:'S256',resource:base+'/mcp'});
-ox = await worker.fetch(new Request(base+'/authorize?'+staticQuery.toString()),env);
-assert.equal(ox.status,200); assert.match(await ox.text(),/ChatGPT · 小手机/);
-
-ox = await worker.fetch(new Request(base+'/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_name:'ChatGPT Test',redirect_uris:['https://chatgpt.example/callback'],token_endpoint_auth_method:'none'})}),env);
-assert.equal(ox.status,201); oj=await ox.json(); const oauthClient=oj.client_id; assert.ok(oauthClient.startsWith('lp_'));
-
-const verifier='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~abc';
-const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier)));
-let b=''; for(const n of digest)b+=String.fromCharCode(n); const challenge=btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
-const authQuery=new URLSearchParams({client_id:oauthClient,redirect_uri:'https://chatgpt.example/callback',response_type:'code',scope:'little-phone offline_access',state:'state-123',code_challenge:challenge,code_challenge_method:'S256',resource:base+'/mcp'});
-ox = await worker.fetch(new Request(base+'/authorize?'+authQuery.toString()),env); assert.equal(ox.status,200); assert.match(await ox.text(),/小手机连接授权/);
-const authForm=new URLSearchParams(authQuery); authForm.set('access_key','test-token');
-ox = await worker.fetch(new Request(base+'/authorize',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:authForm.toString(),redirect:'manual'}),env);
-assert.equal(ox.status,303); const loc=new URL(ox.headers.get('Location')); assert.equal(loc.searchParams.get('state'),'state-123'); const oauthCode=loc.searchParams.get('code'); assert.ok(oauthCode);
-
-const tokenForm=new URLSearchParams({grant_type:'authorization_code',client_id:oauthClient,code:oauthCode,redirect_uri:'https://chatgpt.example/callback',code_verifier:verifier});
-ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:tokenForm.toString()}),env);
-assert.equal(ox.status,200); oj=await ox.json(); const accessToken=oj.access_token, refreshToken=oj.refresh_token; assert.ok(accessToken); assert.ok(refreshToken); assert.equal(oj.token_type,'Bearer');
-
-ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:92,method:'tools/list',params:{}})}),env);
-assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.result.tools.some(t=>t.name==='list_little_phone_papers'));
-
-const refreshForm=new URLSearchParams({grant_type:'refresh_token',client_id:oauthClient,refresh_token:refreshToken});
-ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:refreshForm.toString()}),env);
-assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); assert.ok(oj.refresh_token); assert.notEqual(oj.refresh_token,refreshToken);
-
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
 console.log('PASS little-phone backend v0.5.2');
-console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));
+console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

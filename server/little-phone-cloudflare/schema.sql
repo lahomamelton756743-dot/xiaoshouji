@@ -164,35 +164,3 @@ CREATE TABLE IF NOT EXISTS lp_health_summary (
   updated_at TEXT NOT NULL DEFAULT '',
   error TEXT NOT NULL DEFAULT ''
 );
-
-
--- MCP OAuth 2.1 support (ChatGPT custom MCP app)
-CREATE TABLE IF NOT EXISTS lp_oauth_clients (
-  client_id TEXT PRIMARY KEY,
-  client_name TEXT NOT NULL DEFAULT '',
-  redirect_uris_json TEXT NOT NULL,
-  created_at_epoch INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS lp_oauth_codes (
-  code_hash TEXT PRIMARY KEY,
-  client_id TEXT NOT NULL,
-  redirect_uri TEXT NOT NULL,
-  code_challenge TEXT NOT NULL,
-  scope TEXT NOT NULL,
-  resource TEXT NOT NULL,
-  expires_at_epoch INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_lp_oauth_codes_expiry ON lp_oauth_codes(expires_at_epoch);
-
-CREATE TABLE IF NOT EXISTS lp_oauth_tokens (
-  access_hash TEXT PRIMARY KEY,
-  refresh_hash TEXT NOT NULL UNIQUE,
-  client_id TEXT NOT NULL,
-  scope TEXT NOT NULL,
-  resource TEXT NOT NULL,
-  access_expires_epoch INTEGER NOT NULL,
-  refresh_expires_epoch INTEGER NOT NULL,
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_lp_oauth_tokens_refresh ON lp_oauth_tokens(refresh_hash);

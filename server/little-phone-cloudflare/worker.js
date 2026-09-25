@@ -36,6 +36,13 @@ async function handle(request, env) {
     });
   }
 
+  // OAuth 2.1 / MCP authorization discovery and endpoints.
+  if (path === "/.well-known/oauth-protected-resource" || path === "/.well-known/oauth-protected-resource/mcp") return oauthProtectedResourceMetadata(url);
+  if (path === "/.well-known/oauth-authorization-server") return oauthAuthorizationServerMetadata(url);
+  if (path === "/register") return oauthRegister(request, env, url);
+  if (path === "/authorize") return oauthAuthorize(request, env, url);
+  if (path === "/token") return oauthToken(request, env, url);
+
   if (path === "/mcp") return handleMcp(request, env, url);
 
   // 日常册照片如果使用 R2，返回的是随机不可猜 key。此读取路由不附带 Token，
@@ -114,7 +121,7 @@ function corsHeaders(extra = {}) {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Auth-Token, X-Linjian-Token, MCP-Protocol-Version",
-    "Access-Control-Expose-Headers": "MCP-Protocol-Version",
+    "Access-Control-Expose-Headers": "MCP-Protocol-Version, WWW-Authenticate",
     ...extra
   };
 }
@@ -133,6 +140,218 @@ function tokenOk(request, env, url) {
   const bearer = auth.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || "";
   const supplied = request.headers.get("X-Auth-Token") || request.headers.get("X-Linjian-Token") || bearer || url.searchParams.get("token") || "";
   return supplied === expected;
+}
+
+
+const OAUTH_SCOPE = "little-phone";
+const OAUTH_OFFLINE_SCOPE = "offline_access";
+const OAUTH_ACCESS_TTL_SECONDS = 60 * 60;
+const OAUTH_REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
+const OAUTH_CODE_TTL_SECONDS = 5 * 60;
+const CHATGPT_OAUTH_CLIENT_ID = "chatgpt-little-phone";
+
+function originOf(url) { return `${url.protocol}//${url.host}`; }
+function resourceUri(url) { return `${originOf(url)}/mcp`; }
+function oauthScopes() { return [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE]; }
+function normalizedScope(value) {
+  const allowed = new Set(oauthScopes());
+  const parts = String(value || "").split(/\s+/).filter(Boolean).filter(x => allowed.has(x));
+  if (!parts.includes(OAUTH_SCOPE)) parts.unshift(OAUTH_SCOPE);
+  if (!parts.includes(OAUTH_OFFLINE_SCOPE)) parts.push(OAUTH_OFFLINE_SCOPE);
+  return [...new Set(parts)].join(" ");
+}
+function randomToken(bytes = 32) {
+  const raw = new Uint8Array(bytes); crypto.getRandomValues(raw);
+  return Array.from(raw, b => b.toString(16).padStart(2,"0")).join("");
+}
+async function sha256Hex(value) {
+  const data = new TextEncoder().encode(String(value || ""));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+  return Array.from(digest, b => b.toString(16).padStart(2,"0")).join("");
+}
+function base64Url(bytes) {
+  let bin=""; for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
+}
+async function pkceChallenge(verifier) {
+  const data = new TextEncoder().encode(String(verifier || ""));
+  return base64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", data)));
+}
+function htmlEscape(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function oauthError(error, description, status=400) {
+  return json({error, error_description:description}, status);
+}
+function oauth401(url, description="Authentication required") {
+  const metadata = `${originOf(url)}/.well-known/oauth-protected-resource/mcp`;
+  return new Response(JSON.stringify({error:"invalid_token", error_description:description}), {
+    status:401,
+    headers:corsHeaders({
+      "Content-Type":"application/json; charset=utf-8",
+      "Cache-Control":"no-store",
+      "WWW-Authenticate":`Bearer error="invalid_token", error_description="${description.replace(/"/g,"")}", resource_metadata="${metadata}", scope="${OAUTH_SCOPE} ${OAUTH_OFFLINE_SCOPE}"`
+    })
+  });
+}
+
+async function oauthAccessTokenOk(request, env, url) {
+  // Preserve the existing LINJIAN_TOKEN bearer path for the Android app / legacy private plugin.
+  if (tokenOk(request, env, url)) return true;
+  const auth = request.headers.get("Authorization") || "";
+  const bearer = auth.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || "";
+  if (!bearer) return false;
+  const hash = await sha256Hex(bearer);
+  const row = await env.DB.prepare("SELECT access_expires_epoch FROM lp_oauth_tokens WHERE access_hash=?").bind(hash).first();
+  return Boolean(row && Number(row.access_expires_epoch || 0) > epochSeconds());
+}
+
+function oauthProtectedResourceMetadata(url) {
+  return json({
+    resource: resourceUri(url),
+    authorization_servers:[originOf(url)],
+    scopes_supported:oauthScopes(),
+    bearer_methods_supported:["header"],
+    resource_name:"小手机 MCP"
+  });
+}
+function oauthAuthorizationServerMetadata(url) {
+  const origin=originOf(url);
+  return json({
+    issuer:origin,
+    authorization_endpoint:`${origin}/authorize`,
+    token_endpoint:`${origin}/token`,
+    registration_endpoint:`${origin}/register`,
+    response_types_supported:["code"],
+    grant_types_supported:["authorization_code","refresh_token"],
+    code_challenge_methods_supported:["S256"],
+    token_endpoint_auth_methods_supported:["none"],
+    scopes_supported:oauthScopes()
+  });
+}
+
+async function oauthRegister(request, env, url) {
+  if (request.method !== "POST") return oauthError("invalid_request","Use POST /register",405);
+  const body = await readJson(request);
+  const redirects = Array.isArray(body.redirect_uris) ? body.redirect_uris.map(x=>String(x||"")).filter(Boolean).slice(0,12) : [];
+  if (!redirects.length) return oauthError("invalid_client_metadata","redirect_uris is required");
+  for (const raw of redirects) {
+    let u; try { u=new URL(raw); } catch { return oauthError("invalid_redirect_uri","Invalid redirect URI"); }
+    if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return oauthError("invalid_redirect_uri","Redirect URI must use HTTPS");
+  }
+  const method = String(body.token_endpoint_auth_method || "none");
+  if (method !== "none") return oauthError("invalid_client_metadata","Only public PKCE clients are supported");
+  const client_id=`lp_${randomToken(18)}`;
+  const client_name=clip(body.client_name || "ChatGPT MCP Client",160);
+  const created=epochSeconds();
+  await env.DB.prepare("INSERT INTO lp_oauth_clients(client_id,client_name,redirect_uris_json,created_at_epoch) VALUES(?,?,?,?)")
+    .bind(client_id,client_name,JSON.stringify(redirects),created).run();
+  return json({
+    client_id,
+    client_id_issued_at:created,
+    client_name,
+    redirect_uris:redirects,
+    token_endpoint_auth_method:"none",
+    grant_types:["authorization_code","refresh_token"],
+    response_types:["code"]
+  },201);
+}
+
+function isChatGptOauthRedirect(redirectUri) {
+  try {
+    const u = new URL(String(redirectUri || ""));
+    return u.protocol === "https:" && u.hostname === "chatgpt.com" && u.pathname.startsWith("/connector/oauth/");
+  } catch { return false; }
+}
+async function getOauthClient(env, clientId) {
+  if (!clientId) return null;
+  if (String(clientId) === CHATGPT_OAUTH_CLIENT_ID) {
+    return {
+      client_id: CHATGPT_OAUTH_CLIENT_ID,
+      client_name: "ChatGPT · 小手机",
+      redirect_uris_json: "[]",
+      static_chatgpt_client: 1
+    };
+  }
+  return env.DB.prepare("SELECT * FROM lp_oauth_clients WHERE client_id=?").bind(String(clientId)).first();
+}
+function clientAllowsRedirect(row, redirectUri) {
+  if (!row) return false;
+  if (Number(row.static_chatgpt_client || 0) === 1) return isChatGptOauthRedirect(redirectUri);
+  return safeJson(row.redirect_uris_json,[]).includes(String(redirectUri || ""));
+}
+function authorizeParams(source) {
+  const get = k => source instanceof URLSearchParams ? source.get(k) : source.get(k);
+  return {
+    client_id:clip(get("client_id")||"",200), redirect_uri:clip(get("redirect_uri")||"",2000),
+    response_type:clip(get("response_type")||"",30), scope:clip(get("scope")||"",500), state:clip(get("state")||"",3000),
+    code_challenge:clip(get("code_challenge")||"",300), code_challenge_method:clip(get("code_challenge_method")||"",30),
+    resource:clip(get("resource")||"",2000)
+  };
+}
+async function validateAuthorize(env,url,p) {
+  if (p.response_type !== "code") return {error:"unsupported_response_type",description:"Only authorization code flow is supported"};
+  const client=await getOauthClient(env,p.client_id);
+  if (!client) return {error:"invalid_request",description:"Unknown OAuth client"};
+  if (!clientAllowsRedirect(client,p.redirect_uri)) return {error:"invalid_request",description:"redirect_uri is not registered"};
+  if (!p.code_challenge || p.code_challenge_method !== "S256") return {error:"invalid_request",description:"PKCE S256 is required"};
+  if (p.resource && p.resource !== resourceUri(url)) return {error:"invalid_target",description:"Invalid OAuth resource"};
+  return {client};
+}
+function authorizeHtml(url,p,clientName,error="") {
+  const hidden = Object.entries(p).map(([k,v])=>`<input type="hidden" name="${htmlEscape(k)}" value="${htmlEscape(v)}">`).join("\n");
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小手机连接授权</title><style>
+  :root{color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;background:radial-gradient(circle at 20% 10%,#eef8ff 0,#eaf2ff 35%,#f6efff 100%);color:#202839}.card{width:min(92vw,480px);padding:28px;border-radius:34px;background:rgba(255,255,255,.68);backdrop-filter:blur(24px);box-shadow:0 22px 80px rgba(92,108,156,.18),inset 0 1px 0 rgba(255,255,255,.9)}h1{font-size:28px;margin:0 0 10px}p{line-height:1.65;color:#677186}.scope{margin:18px 0;padding:16px 18px;border-radius:22px;background:rgba(244,248,255,.75)}label{display:block;font-size:14px;color:#68748a;margin:18px 0 8px}input[type=password]{width:100%;border:1px solid rgba(123,139,174,.25);border-radius:18px;padding:14px 16px;font-size:16px;background:rgba(255,255,255,.78);outline:none}button{width:100%;margin-top:16px;border:0;border-radius:20px;padding:15px 18px;font-size:17px;font-weight:650;background:linear-gradient(110deg,#8eb6ff,#b9a4ec);color:white}.error{color:#a64e5b;background:#fff0f3;padding:10px 12px;border-radius:14px}.note{font-size:12px;margin-top:14px;color:#8992a5}</style></head><body><main class="card"><h1>连接「小手机」</h1><p><b>${htmlEscape(clientName||"ChatGPT")}</b> 请求连接你的私人小手机 MCP。</p><div class="scope">授权后可按你在 ChatGPT 中确认的操作读取或修改小手机数据。设备状态仍只会在一次“来访”事件中读取，不会持续监控。</div>${error?`<div class="error">${htmlEscape(error)}</div>`:""}<form method="post" action="${htmlEscape(originOf(url)+"/authorize")}">${hidden}<label>小手机连接口令</label><input type="password" name="access_key" autocomplete="current-password" required placeholder="粘贴小手机里的 Token"><button type="submit">允许连接</button></form><div class="note">口令只用于这次授权验证，不会写入 OAuth Token 数据表。</div></main></body></html>`;
+}
+async function oauthAuthorize(request,env,url) {
+  if (request.method === "GET") {
+    const p=authorizeParams(url.searchParams); const valid=await validateAuthorize(env,url,p);
+    if (valid.error) return oauthError(valid.error,valid.description,400);
+    return new Response(authorizeHtml(url,p,valid.client.client_name),{status:200,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}});
+  }
+  if (request.method !== "POST") return oauthError("invalid_request","Use GET or POST /authorize",405);
+  const form=await request.formData(); const p=authorizeParams(form); const valid=await validateAuthorize(env,url,p);
+  if (valid.error) return oauthError(valid.error,valid.description,400);
+  const expected=String(env.LINJIAN_TOKEN||""); const supplied=String(form.get("access_key")||"");
+  if (!expected || supplied !== expected) return new Response(authorizeHtml(url,p,valid.client.client_name,"连接口令不正确"),{status:401,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}});
+  const code=randomToken(32), codeHash=await sha256Hex(code), exp=epochSeconds()+OAUTH_CODE_TTL_SECONDS;
+  await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE expires_at_epoch<=?").bind(epochSeconds()).run();
+  await env.DB.prepare("INSERT INTO lp_oauth_codes(code_hash,client_id,redirect_uri,code_challenge,scope,resource,expires_at_epoch) VALUES(?,?,?,?,?,?,?)")
+    .bind(codeHash,p.client_id,p.redirect_uri,p.code_challenge,normalizedScope(p.scope),p.resource||resourceUri(url),exp).run();
+  const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); if(p.state)redirect.searchParams.set("state",p.state);
+  return new Response(null,{status:303,headers:{Location:redirect.toString(),"Cache-Control":"no-store"}});
+}
+
+async function issueOauthTokens(env,{client_id,scope,resource}) {
+  const access_token=randomToken(32), refresh_token=randomToken(40), now=epochSeconds();
+  const access_hash=await sha256Hex(access_token), refresh_hash=await sha256Hex(refresh_token);
+  const access_exp=now+OAUTH_ACCESS_TTL_SECONDS, refresh_exp=now+OAUTH_REFRESH_TTL_SECONDS;
+  await env.DB.prepare("INSERT INTO lp_oauth_tokens(access_hash,refresh_hash,client_id,scope,resource,access_expires_epoch,refresh_expires_epoch,created_at) VALUES(?,?,?,?,?,?,?,?)")
+    .bind(access_hash,refresh_hash,client_id,scope,resource,access_exp,refresh_exp,nowIso()).run();
+  return {access_token,token_type:"Bearer",expires_in:OAUTH_ACCESS_TTL_SECONDS,refresh_token,scope};
+}
+async function oauthToken(request,env,url) {
+  if (request.method !== "POST") return oauthError("invalid_request","Use POST /token",405);
+  let form; try { form=await request.formData(); } catch { return oauthError("invalid_request","Form encoded token request required"); }
+  const grant=String(form.get("grant_type")||""), client_id=String(form.get("client_id")||"");
+  const client=await getOauthClient(env,client_id); if(!client)return oauthError("invalid_client","Unknown client",401);
+  if(grant==="authorization_code"){
+    const code=String(form.get("code")||""), redirect_uri=String(form.get("redirect_uri")||""), verifier=String(form.get("code_verifier")||"");
+    if(!code||!redirect_uri||!verifier)return oauthError("invalid_request","code, redirect_uri and code_verifier are required");
+    const row=await env.DB.prepare("SELECT * FROM lp_oauth_codes WHERE code_hash=?").bind(await sha256Hex(code)).first();
+    if(!row||row.client_id!==client_id||row.redirect_uri!==redirect_uri||Number(row.expires_at_epoch||0)<=epochSeconds())return oauthError("invalid_grant","Authorization code is invalid or expired");
+    if(await pkceChallenge(verifier)!==row.code_challenge)return oauthError("invalid_grant","PKCE verification failed");
+    await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE code_hash=?").bind(await sha256Hex(code)).run();
+    return json(await issueOauthTokens(env,{client_id,scope:row.scope,resource:row.resource}));
+  }
+  if(grant==="refresh_token"){
+    const refresh=String(form.get("refresh_token")||""); if(!refresh)return oauthError("invalid_request","refresh_token is required");
+    const hash=await sha256Hex(refresh), row=await env.DB.prepare("SELECT * FROM lp_oauth_tokens WHERE refresh_hash=?").bind(hash).first();
+    if(!row||row.client_id!==client_id||Number(row.refresh_expires_epoch||0)<=epochSeconds())return oauthError("invalid_grant","Refresh token is invalid or expired");
+    await env.DB.prepare("DELETE FROM lp_oauth_tokens WHERE refresh_hash=?").bind(hash).run();
+    return json(await issueOauthTokens(env,{client_id,scope:row.scope,resource:row.resource}));
+  }
+  return oauthError("unsupported_grant_type","Supported grants: authorization_code, refresh_token");
 }
 
 function nowIso() { return new Date().toISOString().replace(/\.\d{3}Z$/, "Z"); }
@@ -235,6 +454,20 @@ async function ensureSchema(env) {
         heart_rate_json TEXT NOT NULL DEFAULT 'null', cycle_json TEXT NOT NULL DEFAULT 'null',
         updated_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT ''
       )`
+,
+      `CREATE TABLE IF NOT EXISTS lp_oauth_clients (
+        client_id TEXT PRIMARY KEY, client_name TEXT NOT NULL DEFAULT '', redirect_uris_json TEXT NOT NULL, created_at_epoch INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS lp_oauth_codes (
+        code_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL, redirect_uri TEXT NOT NULL, code_challenge TEXT NOT NULL,
+        scope TEXT NOT NULL, resource TEXT NOT NULL, expires_at_epoch INTEGER NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_oauth_codes_expiry ON lp_oauth_codes(expires_at_epoch)`,
+      `CREATE TABLE IF NOT EXISTS lp_oauth_tokens (
+        access_hash TEXT PRIMARY KEY, refresh_hash TEXT NOT NULL UNIQUE, client_id TEXT NOT NULL, scope TEXT NOT NULL, resource TEXT NOT NULL,
+        access_expires_epoch INTEGER NOT NULL, refresh_expires_epoch INTEGER NOT NULL, created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_oauth_tokens_refresh ON lp_oauth_tokens(refresh_hash)`
     ];
     schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).catch(err => { schemaReady = null; throw err; });
   }
@@ -579,9 +812,9 @@ function mcpText(data,isError=false){return{isError,content:[{type:"text",text:J
 function rpcResult(id,result){return{jsonrpc:"2.0",id,result};}
 function rpcError(id,code,message){return{jsonrpc:"2.0",id,error:{code,message}};}
 async function handleMcp(request,env,url){
+  if(!(await oauthAccessTokenOk(request,env,url))) return oauth401(url);
   if(request.method==="GET")return json({ok:true,service:"little-phone-mcp",version:VERSION,protocol:MCP_PROTOCOL_VERSION,tools:MCP_TOOLS.map(t=>t.name)});
   if(request.method!=="POST")return json(rpcError(null,-32000,"Use POST /mcp"),405);
-  if(!tokenOk(request,env,url))return json(rpcError(null,-32001,"LINJIAN_ERR_BAD_TOKEN"),401);
   const msg=await readJson(request); const id=msg.id??null; const method=msg.method||"";
   if(msg.jsonrpc!=="2.0")return json(rpcError(id,-32600,"Invalid JSON-RPC request"),400);
   if(method==="initialize")return json(rpcResult(id,{protocolVersion:MCP_PROTOCOL_VERSION,capabilities:{tools:{}},serverInfo:{name:"little-phone",version:VERSION}}));

@@ -54,6 +54,8 @@ async function handle(request, env) {
     if (path === "/api/littlephone/papers") return listPapersApi(env, url);
     if (path === "/api/littlephone/dailybook") return listDailybookApi(env, url);
     if (path === "/api/littlephone/todos") return listTodosApi(env, url);
+    if (path === "/api/littlephone/dates") return listDatesApi(env, url);
+    if (path === "/api/littlephone/cycle") return getCycleApi(env);
     if (path === "/api/mail") return listMailApi(env, url);
     if (path === "/api/capsules") return listCapsulesApi(env, url);
   }
@@ -68,6 +70,20 @@ async function handle(request, env) {
     if (path === "/api/littlephone/todos") return addTodoApi(env, await readJson(request));
     if (path === "/api/littlephone/todos/toggle") return toggleTodoApi(env, await readJson(request));
     if (path === "/api/littlephone/todos/update") return updateTodoApi(env, await readJson(request));
+    if (path === "/api/littlephone/events/delete") return deleteRowApi(env, "lp_events", await readJson(request));
+    if (path === "/api/littlephone/papers/delete") return deleteRowApi(env, "lp_papers", await readJson(request));
+    if (path === "/api/mail/delete") return deleteRowApi(env, "lp_mail", await readJson(request));
+    if (path === "/api/capsules/delete") return deleteRowApi(env, "lp_capsules", await readJson(request));
+    if (path === "/api/littlephone/dailybook/delete") return deleteDailybookApi(env, await readJson(request));
+    if (path === "/api/littlephone/todos/delete") return deleteRowApi(env, "lp_todos", await readJson(request));
+    if (path === "/api/littlephone/dates") return addDateApi(env, await readJson(request));
+    if (path === "/api/littlephone/dates/update") return updateDateApi(env, await readJson(request));
+    if (path === "/api/littlephone/dates/delete") return deleteRowApi(env, "lp_dates", await readJson(request));
+    if (path === "/api/littlephone/cycle/settings") return setCycleSettingsApi(env, await readJson(request));
+    if (path === "/api/littlephone/cycle/records") return addCycleRecordApi(env, await readJson(request));
+    if (path === "/api/littlephone/cycle/records/update") return updateCycleRecordApi(env, await readJson(request));
+    if (path === "/api/littlephone/cycle/records/delete") return deleteRowApi(env, "lp_cycle_records", await readJson(request));
+    if (path === "/api/littlephone/command") return queueGenericCommandApi(env, await readJson(request));
     if (path === "/api/mail") return addMailApi(env, await readJson(request));
     if (path === "/api/mail/seen") return markMailSeenApi(env, await readJson(request));
     if (path === "/api/capsules") return addCapsuleApi(env, await readJson(request));
@@ -166,7 +182,22 @@ async function ensureSchema(env) {
         due_at TEXT NOT NULL DEFAULT '', remind_at TEXT NOT NULL DEFAULT '',
         done INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
       )`,
-      `CREATE INDEX IF NOT EXISTS idx_lp_todos_created ON lp_todos(created_at DESC)`
+      `CREATE INDEX IF NOT EXISTS idx_lp_todos_created ON lp_todos(created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS lp_dates (
+        id TEXT PRIMARY KEY, title TEXT NOT NULL, event_date TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'important',
+        remind_days INTEGER NOT NULL DEFAULT 3, note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_dates_date ON lp_dates(event_date ASC)`,
+      `CREATE TABLE IF NOT EXISTS lp_cycle_settings (
+        id TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 0, last_start TEXT NOT NULL DEFAULT '',
+        cycle_length INTEGER NOT NULL DEFAULT 30, period_length INTEGER NOT NULL DEFAULT 6,
+        remind_before INTEGER NOT NULL DEFAULT 3, updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS lp_cycle_records (
+        id TEXT PRIMARY KEY, start_date TEXT NOT NULL, end_date TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_cycle_records_start ON lp_cycle_records(start_date DESC)`
     ];
     schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).catch(err => { schemaReady = null; throw err; });
   }
@@ -272,9 +303,15 @@ async function normalizeDailyImages(env, entryId, images){
     if(remote){out.push({url:remote,kind:"remote"});continue;}
     const parts=dataUrlParts(raw.data||raw.base64||"");
     if(!parts){warnings.push(`image_${i+1}_invalid`);continue;}
-    if(!env.LITTLEPHONE_MEDIA){warnings.push(`image_${i+1}_skipped_no_r2`);continue;}
     const bytes=base64ToBytes(parts.base64);
     if(bytes.byteLength>6*1024*1024){warnings.push(`image_${i+1}_too_large`);continue;}
+    if(!env.LITTLEPHONE_MEDIA){
+      // 私人小手机没有配置 R2 时，回退到 D1 行内保存。前端已压缩图片；
+      // 单张超过 1.5MB 则拒绝，避免把 D1 行做得过大。
+      if(bytes.byteLength>1536*1024){warnings.push(`image_${i+1}_too_large_for_inline`);continue;}
+      out.push({url:`data:${parts.mime};base64,${parts.base64}`,kind:"inline",mime:parts.mime});
+      continue;
+    }
     const key=`${entryId}/${uuid()}.${extForMime(parts.mime)}`;
     await env.LITTLEPHONE_MEDIA.put(key,bytes,{httpMetadata:{contentType:parts.mime}});
     out.push({url:`/media/littlephone/${key}`,kind:"r2",mime:parts.mime});
@@ -321,6 +358,54 @@ async function updateTodo(env,body){
 }
 async function updateTodoApi(env,body){const item=await updateTodo(env,body);return item?json({ok:true,todo:item}):json({ok:false,error:"todo_not_found"},404);}
 
+
+async function deleteRowApi(env, table, body){
+  const allowed=new Set(["lp_events","lp_papers","lp_mail","lp_capsules","lp_todos","lp_dates","lp_cycle_records"]);
+  if(!allowed.has(table))return json({ok:false,error:"delete_not_allowed"},400);
+  const id=clip(body.id||"",100);if(!id)return json({ok:false,error:"id_required"},400);
+  const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
+  const changes=Number(r.meta?.changes??r.changes??0);return changes?json({ok:true,deleted:id}):json({ok:false,error:"not_found"},404);
+}
+async function deleteDailybookApi(env,body){
+  const id=clip(body.id||"",100);if(!id)return json({ok:false,error:"id_required"},400);
+  const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(id).first();
+  if(!row)return json({ok:false,error:"not_found"},404);
+  if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");const prefix="/media/littlephone/";if(u.startsWith(prefix)){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(prefix.length));}catch{}}}}
+  await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(id).run();return json({ok:true,deleted:id});
+}
+function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||""));}
+function rowDate(r){return {id:r.id,title:r.title,date:r.event_date,kind:r.kind,remind_days:Number(r.remind_days||0),note:r.note||"",created_at:r.created_at,updated_at:r.updated_at};}
+async function listDates(env,limit=300){const rows=await env.DB.prepare("SELECT * FROM lp_dates ORDER BY event_date ASC, created_at ASC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDate);}
+async function listDatesApi(env,url){return json({ok:true,dates:await listDates(env,asLimit(url,300,500))});}
+async function addDateApi(env,body){
+  const title=clip(body.title||"",120).trim(),date=clip(body.date||body.event_date||"",20);if(!title||!validDate(date))return json({ok:false,error:"title_and_date_required"},400);
+  const now=nowIso(),item={id:uuid(),title,date,kind:clip(body.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(body.remind_days??3)||0)),note:clip(body.note||"",500),created_at:now,updated_at:now};
+  if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();
+  await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.created_at,item.updated_at).run();
+  return json({ok:true,date:item});
+}
+async function updateDateApi(env,body){
+  const id=clip(body.id||"",100);const old=await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);
+  const title=body.title!==undefined?(clip(body.title||"",120).trim()||old.title):old.title,date=body.date!==undefined?clip(body.date||"",20):old.event_date;if(!validDate(date))return json({ok:false,error:"invalid_date"},400);
+  const kind=body.kind!==undefined?clip(body.kind||"important",40):old.kind,remind=Math.max(0,Math.min(60,Number(body.remind_days??old.remind_days)||0)),note=body.note!==undefined?clip(body.note||"",500):old.note,now=nowIso();
+  if(kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start' AND id<>?").bind(now,id).run();
+  await env.DB.prepare("UPDATE lp_dates SET title=?,event_date=?,kind=?,remind_days=?,note=?,updated_at=? WHERE id=?").bind(title,date,kind,remind,note,now,id).run();return json({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});
+}
+function cycleProjection(settings,records){
+  const out={settings,records};if(!settings?.enabled||!validDate(settings.last_start))return out;
+  const start=Date.parse(settings.last_start+"T00:00:00Z"),today=Date.parse(new Date().toISOString().slice(0,10)+"T00:00:00Z"),day=86400000,len=Math.max(15,Math.min(60,Number(settings.cycle_length||30)));let next=start;
+  if(today>start){const cycles=Math.floor((today-start)/(len*day));next=start+cycles*len*day;while(next<today)next+=len*day;}
+  out.next_period_start=new Date(next).toISOString().slice(0,10);out.days_until_next=Math.round((next-today)/day);out.is_period_now=today>=start&&Math.floor((today-start)/day)%len<Math.max(1,Number(settings.period_length||6));return out;
+}
+async function cycleSettings(env){let r=await env.DB.prepare("SELECT * FROM lp_cycle_settings WHERE id='default'").first();if(!r){const now=nowIso();await env.DB.prepare("INSERT INTO lp_cycle_settings(id,enabled,last_start,cycle_length,period_length,remind_before,updated_at) VALUES('default',0,'',30,6,3,?)").bind(now).run();r=await env.DB.prepare("SELECT * FROM lp_cycle_settings WHERE id='default'").first();}return {enabled:Boolean(r.enabled),last_start:r.last_start||"",cycle_length:Number(r.cycle_length||30),period_length:Number(r.period_length||6),remind_before:Number(r.remind_before||3),updated_at:r.updated_at};}
+async function listCycleRecords(env,limit=100){const r=await env.DB.prepare("SELECT * FROM lp_cycle_records ORDER BY start_date DESC LIMIT ?").bind(limit).all();return r.results||[];}
+async function getCycleApi(env){return json({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});}
+async function setCycleSettingsApi(env,body){const old=await cycleSettings(env),enabled=body.enabled!==undefined?Boolean(body.enabled):old.enabled,last=body.last_start!==undefined?clip(body.last_start||"",20):old.last_start,cl=Math.max(15,Math.min(60,Number(body.cycle_length??old.cycle_length)||30)),pl=Math.max(1,Math.min(14,Number(body.period_length??old.period_length)||6)),rb=Math.max(0,Math.min(14,Number(body.remind_before??old.remind_before)||3)),now=nowIso();if(last&&!validDate(last))return json({ok:false,error:"invalid_last_start"},400);await env.DB.prepare("UPDATE lp_cycle_settings SET enabled=?,last_start=?,cycle_length=?,period_length=?,remind_before=?,updated_at=? WHERE id='default'").bind(boolInt(enabled),last,cl,pl,rb,now).run();return getCycleApi(env);}
+async function addCycleRecordApi(env,body){const start=clip(body.start_date||"",20),end=clip(body.end_date||"",20);if(!validDate(start)||end&&!validDate(end))return json({ok:false,error:"invalid_date"},400);const item={id:uuid(),start_date:start,end_date:end,note:clip(body.note||"",500),created_at:nowIso()};await env.DB.prepare("INSERT INTO lp_cycle_records(id,start_date,end_date,note,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.start_date,item.end_date,item.note,item.created_at).run();return json({ok:true,record:item});}
+async function updateCycleRecordApi(env,body){const id=clip(body.id||"",100);const old=await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const start=clip(body.start_date!==undefined?body.start_date:old.start_date,20),end=clip(body.end_date!==undefined?body.end_date:old.end_date,20),note=clip(body.note!==undefined?body.note:old.note,500);if(!validDate(start)||end&&!validDate(end))return json({ok:false,error:"invalid_date"},400);await env.DB.prepare("UPDATE lp_cycle_records SET start_date=?,end_date=?,note=? WHERE id=?").bind(start,end,note,id).run();return json({ok:true,record:{...old,start_date:start,end_date:end,note}});}
+async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","trigger_guidian","lock_app","unlock_app","add_locked_app","remove_locked_app"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),created=nowIso(),device=clip(body.device_id||DEFAULT_DEVICE,120);const cmd={id,device_id:device,action,status:"pending",created_at:created,requested_by:clip(body.requested_by||"daddy",40),...body};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,action,JSON.stringify(cmd),"pending",created).run();return cmd;}
+async function queueGenericCommandApi(env,body){const c=await queueGenericCommand(env,body);return c.error?json({ok:false,error:c.error},400):json({ok:true,command:c});}
+
 async function queueVisit(env,deviceId=DEFAULT_DEVICE){
   const id=uuid(); const created=nowIso(); const cmd={id,device_id:deviceId||DEFAULT_DEVICE,action:"little_phone_visit",status:"pending",created_at:created,requested_by:"daddy"};
   await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,cmd.device_id,cmd.action,JSON.stringify(cmd),"pending",created).run(); return cmd;
@@ -349,7 +434,16 @@ async function getLatestVisitApi(env,url){return json({ok:true,visit:await lates
 async function deviceReportApi(env,report){
   const id=clip(report.command_id||report.id||"",100);let cmd=null;
   if(id){const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE id=?").bind(id).first();if(row){cmd=safeJson(row.command_json,{});cmd.status=report.ok?"completed":"failed";cmd.completed_at=nowIso();cmd.result=report.result||"";cmd.report=report;await env.DB.prepare("UPDATE lp_commands SET command_json=?,status=?,completed_at=?,result=? WHERE id=?").bind(JSON.stringify(cmd),cmd.status,cmd.completed_at,String(report.result||""),id).run();}}
-  let visit=null;if(cmd)visit=await persistVisitFromReport(env,cmd,report);return json({ok:true,report,command:cmd,visit});
+  let visit=null;if(cmd)visit=await persistVisitFromReport(env,cmd,report);
+  if(cmd&&report.ok&&cmd.action!=="little_phone_visit"){
+    const a=cmd.action||""; let title="",content="";
+    if(a==="send_notification"){title="daddy 发来一条提醒";content=clip(cmd.message||"",240);}
+    else if(a==="trigger_guidian"){title="daddy 呼叫了你";content=clip(cmd.message||"",240);}
+    else if(a==="lock_app"){title="daddy 设置了应用门禁";content=clip((cmd.app||cmd.package||"")+" · "+Number(cmd.duration_minutes||30)+" 分钟",240);}
+    else if(a==="unlock_app"){title="daddy 解除了应用门禁";content=clip(cmd.app||cmd.package||"",240);}
+    if(title)await insertEvent(env,{actor:"daddy",type:"device_action",title,content,metadata:{command_id:cmd.id,action:a}});
+  }
+  return json({ok:true,report,command:cmd,visit});
 }
 
 // ---------- MCP ----------
@@ -370,7 +464,18 @@ const MCP_TOOLS = [
   tool("add_little_phone_todo","添加一个待办。",{title:{type:"string"},due_at:{type:"string",default:""},remind_at:{type:"string",default:""},author:{type:"string",default:"daddy"}},["title"]),
   tool("list_little_phone_todos","读取待办。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_little_phone_todo","修改待办标题、到期时间或提醒时间。",{id:{type:"string"},title:{type:"string"},due_at:{type:"string"},remind_at:{type:"string"}},["id"]),
-  tool("set_little_phone_todo_done","设置待办完成/未完成。",{id:{type:"string"},done:{type:"boolean",default:true}},["id"])
+  tool("set_little_phone_todo_done","设置待办完成/未完成。",{id:{type:"string"},done:{type:"boolean",default:true}},["id"]),
+  tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","todo","date","cycle_record"]},id:{type:"string"}},["kind","id"]),
+  tool("list_important_dates","读取纪念日/重要日期。",{limit:{type:"integer",minimum:1,maximum:500,default:300}}),
+  tool("add_important_date","添加纪念日或重要日期。",{title:{type:"string"},date:{type:"string",description:"YYYY-MM-DD"},kind:{type:"string",default:"important"},remind_days:{type:"integer",default:3},note:{type:"string",default:""}},["title","date"]),
+  tool("update_important_date","修改纪念日或重要日期。",{id:{type:"string"},title:{type:"string"},date:{type:"string"},kind:{type:"string"},remind_days:{type:"integer"},note:{type:"string"}},["id"]),
+  tool("get_cycle_record","读取生理周期设置和记录。",{}),
+  tool("set_cycle_record","设置周期参数。",{enabled:{type:"boolean"},last_start:{type:"string"},cycle_length:{type:"integer"},period_length:{type:"integer"},remind_before:{type:"integer"}}),
+  tool("add_cycle_period","添加一次生理期记录。",{start_date:{type:"string"},end_date:{type:"string",default:""},note:{type:"string",default:""}},["start_date"]),
+  tool("update_cycle_period","修改一次生理期记录。",{id:{type:"string"},start_date:{type:"string"},end_date:{type:"string"},note:{type:"string"}},["id"]),
+  tool("send_little_phone_reminder","向小手机发送一次本地提醒/弹窗命令。",{message:{type:"string"},title:{type:"string",default:"小手机提醒"},mode:{type:"string",enum:["notification","popup"],default:"notification"},device_id:{type:"string",default:DEFAULT_DEVICE}},["message"]),
+  tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
+  tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"])
 ];
 function tool(name,description,properties={},required=[]){return{name,description,inputSchema:{type:"object",properties,required,additionalProperties:false}};}
 function mcpText(data,isError=false){return{isError,content:[{type:"text",text:JSON.stringify(data,null,2)}],structuredContent:data};}
@@ -410,6 +515,17 @@ async function callTool(name,args,env){
     case "list_little_phone_todos": return mcpText({ok:true,todos:await listTodos(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_little_phone_todo": {const t=await updateTodo(env,args);return mcpText(t?{ok:true,todo:t}:{ok:false,error:"todo_not_found"},!t);}
     case "set_little_phone_todo_done": {const old=await getTodo(env,args.id||"");if(!old)return mcpText({ok:false,error:"todo_not_found"},true);await env.DB.prepare("UPDATE lp_todos SET done=?,updated_at=? WHERE id=?").bind(boolInt(args.done!==false),nowIso(),args.id).run();return mcpText({ok:true,todo:await getTodo(env,args.id)});}
+    case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
+    case "list_important_dates": return mcpText({ok:true,dates:await listDates(env,Math.max(1,Math.min(500,Number(args.limit||300))))});
+    case "add_important_date": {const title=clip(args.title||"",120),date=clip(args.date||"",20);if(!title||!validDate(date))return mcpText({ok:false,error:"title_and_date_required"},true);const now=nowIso(),item={id:uuid(),title,date,kind:clip(args.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(args.remind_days??3)||0)),note:clip(args.note||"",500),created_at:now,updated_at:now};if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.created_at,item.updated_at).run();return mcpText({ok:true,date:item});}
+    case "get_cycle_record": return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});
+    case "update_important_date": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const title=clip(args.title!==undefined?args.title:old.title,120),date=clip(args.date!==undefined?args.date:old.event_date,20),kind=clip(args.kind!==undefined?args.kind:old.kind,40),remind=Math.max(0,Math.min(60,Number(args.remind_days??old.remind_days)||0)),note=clip(args.note!==undefined?args.note:old.note,500),now=nowIso();if(!title||!validDate(date))return mcpText({ok:false,error:"invalid_date_or_title"},true);if(kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start' AND id<>?").bind(now,id).run();await env.DB.prepare("UPDATE lp_dates SET title=?,event_date=?,kind=?,remind_days=?,note=?,updated_at=? WHERE id=?").bind(title,date,kind,remind,note,now,id).run();return mcpText({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});}
+    case "add_cycle_period": {const start=clip(args.start_date||"",20),end=clip(args.end_date||"",20);if(!validDate(start)||end&&!validDate(end))return mcpText({ok:false,error:"invalid_date"},true);const item={id:uuid(),start_date:start,end_date:end,note:clip(args.note||"",500),created_at:nowIso()};await env.DB.prepare("INSERT INTO lp_cycle_records(id,start_date,end_date,note,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.start_date,item.end_date,item.note,item.created_at).run();return mcpText({ok:true,record:item});}
+    case "update_cycle_period": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const start=clip(args.start_date!==undefined?args.start_date:old.start_date,20),end=clip(args.end_date!==undefined?args.end_date:old.end_date,20),note=clip(args.note!==undefined?args.note:old.note,500);if(!validDate(start)||end&&!validDate(end))return mcpText({ok:false,error:"invalid_date"},true);await env.DB.prepare("UPDATE lp_cycle_records SET start_date=?,end_date=?,note=? WHERE id=?").bind(start,end,note,id).run();return mcpText({ok:true,record:{...old,start_date:start,end_date:end,note}});}
+    case "set_cycle_record": {const old=await cycleSettings(env),enabled=args.enabled!==undefined?Boolean(args.enabled):old.enabled,last=args.last_start!==undefined?clip(args.last_start||"",20):old.last_start,cl=Math.max(15,Math.min(60,Number(args.cycle_length??old.cycle_length)||30)),pl=Math.max(1,Math.min(14,Number(args.period_length??old.period_length)||6)),rb=Math.max(0,Math.min(14,Number(args.remind_before??old.remind_before)||3));if(last&&!validDate(last))return mcpText({ok:false,error:"invalid_last_start"},true);await env.DB.prepare("UPDATE lp_cycle_settings SET enabled=?,last_start=?,cycle_length=?,period_length=?,remind_before=?,updated_at=? WHERE id='default'").bind(boolInt(enabled),last,cl,pl,rb,nowIso()).run();return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});}
+    case "send_little_phone_reminder": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:args.mode==="popup"?"trigger_guidian":"send_notification",title:args.title||"小手机提醒",message:args.message||"",requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "lock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"lock_app",package:args.package,app:args.app||"",duration_minutes:Number(args.duration_minutes||30),message:args.message||"",requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "unlock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"unlock_app",package:args.package,requested_by:"daddy"});return mcpText({ok:true,command:c});}
     default:return mcpText({ok:false,error:"unknown_tool",name,available:MCP_TOOLS.map(t=>t.name)},true);
   }
 }

@@ -1,66 +1,59 @@
-# 小手机 v0.5.1 后端（全新部署版）
+# 小手机 v0.5.1
 
-这一包用于完全从零部署，不依赖旧掌心窗 Worker、旧 D1 或旧 Token。
+瑞安与 ChatGPT 私人使用的小手机。当前版本以 v0.4.1 的液态玻璃视觉为母版，保留并继续完善 v0.5 的功能结构。
 
-## 新建资源
+## 当前架构
 
-推荐固定使用：
+- Android 原生：设备状态、位置/天气、使用情况统计、通知、主动提醒、应用门禁等。
+- WebView 前端：`android/app/src/main/assets/littlephone/index.html`。
+- 云端：Cloudflare Worker + D1，代码在 `server/little-phone-cloudflare/`。
+- MCP：由同一个 Cloudflare Worker 暴露 `/mcp`。正式 ChatGPT 插件等本轮功能稳定后再创建。
+- 不使用模型 API，不使用 Claude channel，不提供截图能力。
 
-- Worker：`little-phone-backend`
-- D1：`little-phone-v051`
-- Token：新建一串，只给小手机 App、Worker 和之后的新 MCP 插件使用
+## v0.5.1 当前功能
 
-GitHub Actions 工作流会：
+- 首页：可编辑双头像/名字、弯曲耳机线、时间天气、手机状态/使用时间、随机纸条、最近 3–4 条留痕、今天待办。
+- 留痕：7 天逐条独立过期，固定高度滚动区；下半部分为横向可滑动的弯曲日常册“时间河”。
+- 纸条箱：独立于信箱，双方可写，洗牌袋轮播，支持删除。
+- 信箱：普通信 + 未来信/时间胶囊，支持删除。
+- 日常册：文字、心情、日期、照片、展开详情与删除；未配置 R2 时，小尺寸压缩照片可直接存 D1。
+- 待办：新增、修改、完成、删除、到期时间、提醒时间。
+- 纪念日/重要日期：月历、新增、修改、删除、提前提醒；“第 N 天”从关系起始日读取。
+- 生理周期：设置、历史记录、修改/删除、预计日期与提醒。
+- 设备权限：UI 开关与 Android 实际权限入口联动；位置授权后可主动刷新天气。
+- 主动提醒：低电、充好电、喝水、休息、屏幕时间、本地通知与明显弹窗。
+- 应用门禁：从已安装 App 中选择并锁定/解除；需要相应 Android 系统权限。
+- 来访：一次触发只读取一次授权快照，30 分钟过期；失败不留痕。
+- 离线缓存：最近一次成功同步内容保存在本机 SQLite，网络失败时不再伪装成“数据被清空”。
 
-1. 检查三个 Repository secrets；
-2. 查找 `little-phone-v051`；
-3. 如果不存在，自动创建全新 D1；
-4. 部署 `little-phone-backend` Worker；
-5. 把 GitHub 的 `LINJIAN_TOKEN` 写进 Worker secret。
+## 后端部署
 
-## GitHub Repository secrets
+GitHub Actions 工作流：`.github/workflows/deploy-little-phone-backend.yml`
 
-Settings → Secrets and variables → Actions → New repository secret，建立：
+Repository Secrets：
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `LINJIAN_TOKEN`
 
-不要把真实 Token 写进仓库文件。
+默认 Worker：`little-phone-backend`
+默认 D1：`little-phone-v051`
 
-## Cloudflare API Token 权限
-
-因为第一次部署需要新建 Worker 和新建 D1，API Token 需要允许创建/部署 Workers，并允许 D1 写入/创建。建议只限制到你自己的 Cloudflare account。
-
-## 部署
-
-Actions → `部署小手机后端 v0.5.1（全新）` → Run workflow。
-
-默认保持：
-
-- Worker 名：`little-phone-backend`
-- D1 名：`little-phone-v051`
-
-## 部署后
-
-Worker 根地址类似：
-
-`https://little-phone-backend.<你的 workers.dev 子域>.workers.dev`
-
-小手机连接设置：
-
-- Server：上面的根地址，不加 `/mcp`
-- Token：GitHub Secret `LINJIAN_TOKEN` 的同一串值
-- Device ID：`android-phone`
-
-以后新 MCP 插件地址：
-
-`https://little-phone-backend.<你的 workers.dev 子域>.workers.dev/mcp`
+当前生产地址由用户自己的 Cloudflare 账户决定。App 的连接设置填写 Worker 根地址，不加 `/mcp`；ChatGPT 插件以后连接同一地址的 `/mcp`。
 
 ## 测试
 
-先访问：
+```bash
+cd server/little-phone-cloudflare
+npm test
+```
 
-`https://你的 Worker/health`
+测试覆盖信、纸条、未来信、日常册、待办、重要日期、周期记录、删除、一次性来访、失败不留痕、快照过期、MCP、设备动作白名单、D1 行内照片回退与截图禁用。
 
-再测试：写信 → 纸条 → 待办 → 日常册 → daddy 来访。
+Android 构建需要 Android SDK Platform 34 / Build Tools 34.0.0：
+
+```bash
+bash android/build.sh
+```
+
+输出：`android/LittlePhone-v0.5.1.apk`

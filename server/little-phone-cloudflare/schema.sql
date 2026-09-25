@@ -91,3 +91,34 @@ CREATE TABLE IF NOT EXISTS lp_todos (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_lp_todos_created ON lp_todos(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS lp_dates (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  event_date TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'important',
+  remind_days INTEGER NOT NULL DEFAULT 3,
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lp_dates_date ON lp_dates(event_date ASC);
+
+CREATE TABLE IF NOT EXISTS lp_cycle_settings (
+  id TEXT PRIMARY KEY,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  last_start TEXT NOT NULL DEFAULT '',
+  cycle_length INTEGER NOT NULL DEFAULT 30,
+  period_length INTEGER NOT NULL DEFAULT 6,
+  remind_before INTEGER NOT NULL DEFAULT 3,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS lp_cycle_records (
+  id TEXT PRIMARY KEY,
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lp_cycle_records_start ON lp_cycle_records(start_date DESC);

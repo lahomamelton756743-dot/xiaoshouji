@@ -1177,6 +1177,35 @@ function makeServer() {
     return textResult(await res.json());
   });
 
+  server.tool("remember_about_user", "给“{display_name} 记得”写入一条真正的理解/记忆；不要用于简单复制事件。", {
+    content: z.string(), category: z.string().default("noticed"), confidence: z.enum(["remembered","tentative"]).default("remembered"), confirmed: z.boolean().default(false)
+  }, async ({ content, category="noticed", confidence="remembered", confirmed=false }) => {
+    const res = await littlePhoneFetch("/api/littlephone/memories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({content,category,confidence,confirmed}) });
+    return textResult(await res.json());
+  });
+
+  server.tool("list_daddy_memories", "读取“{display_name} 记得”里的条目。", { limit: z.number().int().min(1).max(300).default(80) }, async ({limit=80}) => {
+    const res = await littlePhoneFetch(`/api/littlephone/memories?limit=${encodeURIComponent(limit)}`);
+    return textResult(await res.json());
+  });
+
+  server.tool("update_daddy_memory", "修改一条已有理解，保持原 ID。", {
+    id:z.string(), content:z.string().optional(), category:z.string().optional(), confidence:z.enum(["remembered","tentative"]).optional(), confirmed:z.boolean().optional()
+  }, async (args) => {
+    const res = await littlePhoneFetch("/api/littlephone/memories/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(args) });
+    return textResult(await res.json());
+  });
+
+  server.tool("confirm_daddy_memory", "用户确认一条“记得”是准确的。", { id:z.string() }, async ({id}) => {
+    const res = await littlePhoneFetch("/api/littlephone/memories/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,confirmed:true,confidence:"remembered"}) });
+    return textResult(await res.json());
+  });
+
+  server.tool("correct_daddy_memory", "纠正一条“记得”的内容并标记为已确认。", { id:z.string(), content:z.string() }, async ({id,content}) => {
+    const res = await littlePhoneFetch("/api/littlephone/memories/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,content,confirmed:true,confidence:"remembered"}) });
+    return textResult(await res.json());
+  });
+
   server.tool("add_little_phone_todo", "给小手机今日区添加一条待办，并写入一条对应留痕。", {
     title: z.string().min(1).max(240), due_at: z.string().max(40).default(""), author: z.string().max(40).default("daddy")
   }, async ({ title, due_at="", author="daddy" }) => {
@@ -2053,7 +2082,7 @@ function makeServer() {
   const openLittlePhoneApp = async ({ app = "", package: pkg = "", device_id = DEFAULT_DEVICE }, toolName = "open_little_phone_app") => {
     const target = normalizeAppTarget(app, pkg);
     if (!target.app && !target.package) return missingAppTargetResult(toolName);
-    // v0.6.3: this path is Cloudflare-only. Never fall back to the legacy Render phone controller.
+    // v0.7.1: this path is Cloudflare-only. Never fall back to the legacy Render phone controller.
     const result = await postCommand({ action: "open_app", app: target.app, package: target.package, device_id, payload: { app: target.app, package: target.package, requested_via: toolName } });
     const id = result?.command?.id;
     if (!id) return textResult(result);

@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.6.3-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.7.1-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -157,7 +157,7 @@ r = await req('/api/littlephone/visit/latest'); assert.equal(r.data.visit.expire
 
 // MCP 初始化 + 工具列表 + 写纸条。
 let m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{}})}),env); let mj=await m.json(); assert.equal(mj.result.serverInfo.name,'little-phone');
-m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})}),env); mj=await m.json(); assert.ok(mj.result.tools.some(t=>t.name==='visit_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='update_important_date')); assert.ok(mj.result.tools.some(t=>t.name==='add_cycle_period')); assert.ok(mj.result.tools.some(t=>t.name==='lock_little_phone_app')); assert.ok(mj.result.tools.some(t=>t.name==='open_little_phone_app')); assert.ok(mj.result.tools.some(t=>t.name==='set_little_phone_status')); assert.ok(mj.result.tools.some(t=>t.name==='call_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='get_health_summary')); assert.ok(mj.result.tools.some(t=>t.name==='get_sleep_summary'));
+m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})}),env); mj=await m.json(); assert.ok(mj.result.tools.some(t=>t.name==='visit_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='update_important_date')); assert.ok(mj.result.tools.some(t=>t.name==='add_cycle_period')); assert.ok(mj.result.tools.some(t=>t.name==='lock_little_phone_app')); assert.ok(mj.result.tools.some(t=>t.name==='open_little_phone_app')); assert.ok(mj.result.tools.some(t=>t.name==='set_little_phone_status')); assert.ok(mj.result.tools.some(t=>t.name==='call_little_phone')); assert.ok(mj.result.tools.some(t=>t.name==='get_health_summary')); assert.ok(mj.result.tools.some(t=>t.name==='get_sleep_summary')); assert.ok(mj.result.tools.some(t=>t.name==='remember_about_user')); assert.ok(mj.result.tools.some(t=>t.name==='list_daddy_memories')); assert.ok(mj.result.tools.some(t=>t.name==='confirm_daddy_memory')); assert.ok(mj.result.tools.some(t=>t.name==='correct_daddy_memory'));
 m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'leave_little_phone_paper',arguments:{content:'MCP 测试纸条',author:'daddy'}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.ok,true);
 m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'set_little_phone_status',arguments:{actor:'daddy',text:'等你回来',presence:'away'}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.status.text,'等你回来');
 m = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:auth,body:JSON.stringify({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'get_health_summary',arguments:{}}})}),env); mj=await m.json(); assert.equal(mj.result.structuredContent.sleep.total_minutes,438);
@@ -266,5 +266,5 @@ assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); ass
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.6.3');
+console.log('PASS little-phone backend v0.7.1');
 console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,memories:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

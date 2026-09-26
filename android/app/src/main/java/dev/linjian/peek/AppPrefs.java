@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
-    public static final String APP_VERSION_NAME = "0.6.3";
-    public static final int APP_VERSION_CODE = 60300;
+    public static final String APP_VERSION_NAME = "0.7.1";
+    public static final int APP_VERSION_CODE = 70100;
     public static final String KEY_SERVER = "server_url";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";
@@ -172,7 +172,7 @@ public class AppPrefs {
     }
     private static String safeIdentityFont(String raw, String fallback) {
         String v = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        return ("clean".equals(v) || "rounded".equals(v) || "cheese".equals(v) || "serif".equals(v) || "kai".equals(v) || "mono".equals(v)) ? v : fallback;
+        return ("clean".equals(v) || "rounded".equals(v) || "cheese".equals(v) || "italic".equals(v) || "serif".equals(v) || "kai".equals(v) || "mono".equals(v)) ? v : fallback;
     }
     private static String safeColor(String raw, String fallback) {
         String v = raw == null ? "" : raw.trim();

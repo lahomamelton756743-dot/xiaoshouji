@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.6.3 Web/PWA 外壳。
+ * 小手机 v0.7.1 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -443,7 +443,7 @@ public class LittlePhoneActivity extends Activity {
             if (!saveProfileV2(who, name, avatarDataUrl, identityColor)) return false;
             try {
                 String font = identityFont == null ? "" : identityFont.trim().toLowerCase(java.util.Locale.ROOT);
-                if (!("clean".equals(font) || "rounded".equals(font) || "cheese".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
+                if (!("clean".equals(font) || "rounded".equals(font) || "cheese".equals(font) || "italic".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
                 String key = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_IDENTITY_FONT : AppPrefs.KEY_USER_IDENTITY_FONT;
                 AppPrefs.get(LittlePhoneActivity.this).edit().putString(key, font).apply();
                 emit("littlephone-profile-changed", getProfile());

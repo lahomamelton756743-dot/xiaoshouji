@@ -1,4 +1,4 @@
-const VERSION = "0.6.3-little-phone";
+const VERSION = "0.7.1-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -845,7 +845,7 @@ async function setHealthSummaryApi(env,body){
   return json({ok:true,...await healthSummary(env)});
 }
 function validIdentityColor(v){return /^#[0-9A-Fa-f]{6}$/.test(String(v||""));}
-function validIdentityFont(v){return ["clean","rounded","cheese","serif","kai","mono"].includes(String(v||""));}
+function validIdentityFont(v){return ["clean","rounded","cheese","italic","serif","kai","mono"].includes(String(v||""));}
 async function getProfiles(env){
   const defaults={user:{actor:"user",display_name:"瑞安",avatar:"",identity_color:"#6E83C1",identity_font:"clean",updated_at:""},daddy:{actor:"daddy",display_name:"daddy",avatar:"",identity_color:"#C78EAD",identity_font:"serif",updated_at:""}};
   const rows=await env.DB.prepare("SELECT * FROM lp_profiles").all();
@@ -1008,10 +1008,12 @@ const MCP_TOOLS = [
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("get_little_phone_profiles","读取双方当前显示名、头像、身份色和身份字体。",{}),
-  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","mono"]}},["actor"]),
+  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","italic","serif","kai","mono"]}},["actor"]),
   tool("remember_about_user","给“{display_name} 记得”写入一条真正的理解/记忆；不要用于简单复制事件。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("list_daddy_memories","读取“记得”里的条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("update_daddy_memory","修改一条已有理解，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
+  tool("confirm_daddy_memory","用户确认一条“记得”是准确的；保持原 ID。",{id:{type:"string"}},["id"]),
+  tool("correct_daddy_memory","纠正一条“记得”的内容并标记为已确认；保持原 ID。",{id:{type:"string"},content:{type:"string"}},["id","content"]),
   tool("list_little_phone_unlock_requests","读取应用门禁解锁申请。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("respond_little_phone_unlock_request","回复一条应用门禁解锁申请；approve 会实际下发解锁命令。",{id:{type:"string"},decision:{type:"string",enum:["approve","deny"]},response:{type:"string",default:""}},["id","decision"]),
   tool("phone_home","让手机回到桌面。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
@@ -1156,6 +1158,8 @@ async function callTool(name,args,env){
     case "remember_about_user": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
     case "list_daddy_memories": return mcpText({ok:true,memories:await listMemories(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "update_daddy_memory": {const x=await updateMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "confirm_daddy_memory": {const x=await updateMemory(env,{id:args.id,confirmed:true,confidence:"remembered"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "correct_daddy_memory": {const x=await updateMemory(env,{id:args.id,content:args.content,confirmed:true,confidence:"remembered"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
     case "list_little_phone_unlock_requests": return mcpText({ok:true,requests:await listUnlockRequests(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "respond_little_phone_unlock_request": {const x=await respondUnlockRequest(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,...x},Boolean(x.error));}
     case "phone_home": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_home",requested_by:"daddy"});return mcpText({ok:true,command:c});}

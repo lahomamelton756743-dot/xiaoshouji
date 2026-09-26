@@ -1,38 +1,33 @@
-# 小手机 v0.6.3
+# 小手机 v0.7.1
 
-瑞安与 ChatGPT 私人使用的小手机。v0.6.3 继续以 v0.5.2 为功能基线、v0.4.1 为视觉母版升级，不清空现有数据，不重写已经真机验证通过的来电与应用门禁核心链路。
+瑞安与 ChatGPT 私人使用的小手机。v0.7.1 继续以现有 v0.6.3 功能链路为基础升级，不清空真实数据，不重写已经真机验证通过的来电和应用门禁核心实现。
 
-## v0.6.3 重点
+## v0.7.1 重点
 
-- 「我们」页顶部重新排版：窄长一起听音乐条、两侧状态、靠在一起的双头像、柔软耳机线只汇合一次、动态“相伴 N 天”。
-- 纪念日卡改成实体月历式入口：首页显示当天日期，展开后可直接点日期，选择圆圈/星星/心形/下划线/虚线圈/小旗等手绘标记；标记者使用稳定 `user` / `daddy`，颜色动态跟随身份色。
-- 双人身份字体完全独立：每个人分别保存 `identity_font`；新增“奶酪体（圆润）”风格预设，身份色与字体用于本人写下的纸条、信、状态、日常册等内容，系统 UI 不被污染。
-- 普通信与未来信重新分区：普通信上方单独轮播和日期归档；未来信固定回到下方自己的轮播/归档，解锁后仍保持“未来信”身份。
-- 留痕保持“纸条 | {display_name} 记得”，来电记录下移为全宽一行一条。
-- 日记封面和内容页统一尺寸；长正文可完整滚到导航栏上方。
-- 权限页新增无障碍、悬浮窗、使用情况访问、通知/通知访问等 Android 系统能力状态和入口。
-- 主动提醒新增 `{display_name} 的文案`：喝水/休息文案可独立自定义，支持 `{user}` / `{daddy}` 占位符，规则与文案分开保存。
-- 应用门禁只保留统一 LockActivity；不再叠第二层旧门禁 UI；长按 5 秒紧急解锁不需要口令。修复门禁页过早退出兜底逻辑，不改 `lock_app` 核心实现。
-- 新增 Cloudflare MCP `open_little_phone_app(package/app/device_id)`；旧 `open_app` 仅作为兼容别名，也直接创建 Little Phone Android `open_app` command，不再转发旧 Render。
-- Android 通用 command dispatcher 明确消费 `open_app` / Home / Back / Recents / screen_off / 状态读取等命令；优先从无障碍服务上下文启动 App。
-- 旧本机多日记本命令、门禁别名等继续经当前 Cloudflare → Android command queue，不回退旧 Render。
-- Xiaomi Health Bridge 骨架保留，等待小米亲友授权/token 后接真实睡眠、心率、步数。
-
-## 数据迁移
-
-Cloudflare Worker 启动时继续使用幂等迁移补字段，不要求清空 D1。v0.6.3 额外为重要日期补充：
-
-- `mark_style`
-- `marked_by`
-
-`marked_by` 使用稳定身份键（`user` / `daddy`），不会把当前显示名或颜色写死到历史数据里。
+- 一级导航正式改为：**日记 / 留痕 / 首页 / 信箱 / 状态**。首页仍在正中间，并像原来的「＋」一样更大、更突出。
+- 「日记」从原页面抽出成为最左侧一级页面，进入时直接展示封面，页面名称只叫「日记」。
+- 首页顶部改成渐变花体关系标题，`13` 等相伴天数作为大数字视觉中心；天数从重要日期中的关系起始日动态计算。
+- 时间天气卡保留团雀 + 深靛蓝月亮徽记，徽记放大填满圆形区域；删除「无快照」，改成根据真实天气生成的 daddy 留言。
+- 双头像和一起听组件移到首页时间卡下面：头像靠左相碰；耳机线从头像耳朵附近引出、在中间缠绕并自然垂落到接近组件底部；右侧是窄长音乐胶囊，歌名/歌手左对齐，右侧为持续轻微波动的爱心音波。
+- 首页直接完整展示一个月的仿真实体月历；点击日期即可进入标记/备注；圆圈、星星、心形、下划线、虚线圈、小旗等标记跟随标记者身份色；删除旧的「实体日历……」说明。
+- 首页月历下面为待办；手机状态和双方足迹全部移出首页。
+- 原「我们」页正式改名为「状态」：最上方小米健康占整行，其次双方足迹，再下面手机状态与今日 App 使用前五名。
+- 状态页右上角新增系统式「设置」入口；来电与提醒、设备权限、应用门禁、连接设置、外观与背景不再平铺为组件。设置页按手机设置风格分层进入/返回。
+- 「外观与背景」支持全局背景，也支持日记 / 留痕 / 首页 / 信箱 / 状态五页分别设置背景；主卡整体进一步提高透明度和液态玻璃感。
+- 双方身份字体继续独立保存；奶酪体改成更软糯的圆润/手写方向，同时增加「轻斜体 / 花体感」预设。双方互不联动。
+- 普通信与未来信继续分开；普通信和未来信轮播都改成首尾循环，不再存在第一封/最后一封切不到的问题。
+- 已拆 / 未拆信封的视觉差异加强：未拆为完整封口 + 蜡封感，已拆显示信纸边缘；寄件人与日期使用更接近正式信件的 FROM / DATE 版式。
+- 留痕页保持「纸条 | {display_name} 记得」，来电记录为全宽一行一条。
+- `{display_name} 记得` 后端 D1/API 已存在，本版补齐 MCP `remember_about_user / list_daddy_memories / update_daddy_memory / confirm_daddy_memory / correct_daddy_memory`，确保 ChatGPT 能真正读、写、确认、纠错。
+- Cloudflare `open_little_phone_app(package/app/device_id)` 保持为正式打开 App 入口；旧 `open_app` 只做 Cloudflare → Android command 兼容映射，不回退旧 Render。
+- Xiaomi Health Bridge 骨架继续保留，等待小米亲友授权/token 后接真实睡眠、心率、步数。
 
 ## 部署顺序
 
-1. 覆盖仓库到 v0.6.3。
+1. 覆盖仓库到 v0.7.1。
 2. 先部署 `server/little-phone-cloudflare/`，继续使用现有 D1 与 Worker secret，不清库。
-3. 再构建并安装 Android APK；`open_app` dispatcher、统一门禁页、权限展示和自定义提醒文案都需要新 APK。
-4. 部署后检查 `/health` 应返回 `0.6.3-little-phone`。
+3. 再构建并安装 Android APK。页面结构、设置入口、身份字体、背景与通用 command dispatcher 都需要新 APK。
+4. 部署后检查 `/health` 应返回 `0.7.1-little-phone`。
 
 ## Android 构建
 
@@ -41,7 +36,7 @@ cd android
 ./build.sh
 ```
 
-预期输出：`android/LittlePhone-v0.6.3.apk`。
+预期输出：`android/LittlePhone-v0.7.1.apk`。
 
 ## 回归检查
 
@@ -52,17 +47,19 @@ node --check mcp/server.js
 python -m py_compile server/health-bridge/app.py
 ```
 
-同时应检查 `index.html` 内联 JavaScript 语法，并在真机上重点回归：
+真机优先回归：
 
-- `lock_app` / `unlock_app` 与全屏门禁页
+- 新导航顺序与中间放大的首页入口
+- 日记进入时默认展示封面
+- 首页耳机线、音乐胶囊、完整月历和天气留言
+- 状态页设置入口与背景切换
+- `remember_about_user / list_daddy_memories / confirm_daddy_memory / correct_daddy_memory`
 - `open_little_phone_app` 是否从 pending 被 Android 消费并回报 completed
-- 普通信/未来信分区和锁定正文不泄漏
-- user/daddy 独立字体与颜色
-- 日记到底部不被导航栏遮挡
-- 无障碍权限状态是否正确显示
+- 普通信 / 未来信分区、首尾循环与锁定正文不泄漏
+- user / daddy 独立身份字体与身份色
 
 ## 交付
 
-- ZIP：`little-phone-v0.6.3.zip`
+- ZIP：`little-phone-v0.7.1.zip`
 - Branch：`main`
-- Commit：`Upgrade little-phone to v0.6.3`
+- Commit：`Upgrade little-phone to v0.7.1`

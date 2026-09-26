@@ -1,0 +1,7 @@
+小手机 v0.7.1
+
+ZIP: little-phone-v0.7.1.zip
+Branch: main
+Commit: Upgrade little-phone to v0.7.1
+
+部署顺序：先 Cloudflare backend，再构建/安装 Android APK。

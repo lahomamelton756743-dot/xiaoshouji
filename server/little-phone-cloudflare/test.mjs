@@ -29,30 +29,33 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.5.2-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.6.1-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
 
 r = await req('/api/mail', { method:'POST', body:{author:'瑞安',content:'第一封测试信'} });
 assert.equal(r.status, 200); assert.equal(r.data.mail.content, '第一封测试信'); const mailId=r.data.mail.id;
-r = await req('/api/mail?limit=10'); assert.equal(r.data.mail.length,1); assert.equal(r.data.mail[0].seen,false);
-r = await req('/api/mail/seen',{method:'POST',body:{id:mailId}}); assert.equal(r.data.marked,1);
+r = await req('/api/mail?limit=10'); assert.equal(r.data.mail.length,1); assert.equal(r.data.mail[0].user_seen,true); assert.equal(r.data.mail[0].daddy_seen,false);
+r = await req('/api/mail/seen',{method:'POST',body:{id:mailId,actor:'daddy'}}); assert.equal(r.data.marked,1); r = await req('/api/mail?limit=10'); assert.equal(r.data.mail.find(x=>x.id===mailId).daddy_seen,true);
 r = await req('/api/mail',{method:'POST',body:{client_id:'lp_mail_idempotent_001',author:'瑞安',content:'断网重试信'}}); assert.equal(r.status,200);
 r = await req('/api/mail',{method:'POST',body:{client_id:'lp_mail_idempotent_001',author:'瑞安',content:'断网重试信'}}); assert.equal(r.status,200);
 assert.equal(env.DB.db.prepare("SELECT count(*) AS n FROM lp_mail WHERE id='lp_mail_idempotent_001'").get().n,1);
 
 r = await req('/api/littlephone/papers',{method:'POST',body:{author:'daddy',content:'一张测试纸条'}}); assert.equal(r.status,200);
-r = await req('/api/littlephone/papers?limit=10'); assert.equal(r.data.papers[0].content,'一张测试纸条');
+r = await req('/api/littlephone/papers?limit=10'); assert.equal(r.data.papers[0].content,'一张测试纸条'); const paperRoot=r.data.papers[0].id;
+r = await req('/api/littlephone/papers',{method:'POST',body:{author:'瑞安',content:'纸条回复',reply_to:paperRoot}}); assert.equal(r.status,200); assert.equal(r.data.paper.reply_to,paperRoot);
 r = await req('/api/littlephone/papers',{method:'POST',body:{client_id:'lp_paper_idempotent_001',author:'瑞安',content:'断网重试纸条'}}); assert.equal(r.status,200);
 r = await req('/api/littlephone/papers',{method:'POST',body:{client_id:'lp_paper_idempotent_001',author:'瑞安',content:'断网重试纸条'}}); assert.equal(r.status,200);
 assert.equal(env.DB.db.prepare("SELECT count(*) AS n FROM lp_papers WHERE id='lp_paper_idempotent_001'").get().n,1);
 
 r = await req('/api/capsules',{method:'POST',body:{author:'daddy',content:'未来见',unlock_at:'2999-01-01'}}); assert.equal(r.status,200); assert.equal(r.data.capsule.locked,true); assert.equal('content' in r.data.capsule,false);
-r = await req('/api/capsules?limit=10'); assert.equal(r.data.capsules[0].locked,true); assert.equal('content' in r.data.capsules[0],false);
+r = await req('/api/capsules?limit=10'); assert.equal(r.data.capsules[0].locked,true); assert.equal('content' in r.data.capsules[0],false); const lockedCapsuleId=r.data.capsules[0].id;
+r = await req('/api/capsules/read',{method:'POST',body:{id:lockedCapsuleId,actor:'daddy'}}); assert.equal(r.status,423); assert.equal(r.data.error,'capsule_locked');
 
 r = await req('/api/littlephone/dailybook',{method:'POST',body:{author:'瑞安',title:'今天',mood:'好',content:'时间河测试',date:'2026-09-24',images:[{data:'data:image/png;base64,iVBORw0KGgo='}]}}); assert.equal(r.status,200); const dailyId=r.data.entry.id; assert.equal(r.data.entry.images[0].kind,'inline');
 r = await req('/api/littlephone/dailybook?limit=10'); assert.equal(r.data.entries[0].title,'今天'); assert.ok(r.data.entries[0].images[0].url.startsWith('data:image/png;base64,'));
+r = await req('/api/littlephone/dailybook/update',{method:'POST',body:{id:dailyId,actor:'user',title:'今天·改',content:'时间河测试已修改',date:'2026-09-24'}}); assert.equal(r.status,200); assert.equal(r.data.entry.id,dailyId); assert.equal(r.data.entry.title,'今天·改');
 
 // daddy 日记：独立日记页，一篇一页。
 r = await req('/api/littlephone/diaries',{method:'POST',body:{author:'daddy',title:'第一篇',content:'今天小手机继续长大。',date:'2026-09-25'}}); assert.equal(r.status,200); const diaryId=r.data.diary.id;
@@ -79,10 +82,27 @@ r = await req('/api/littlephone/statuses'); assert.equal(r.status,200); assert.e
 r = await req('/api/littlephone/statuses',{method:'POST',body:{actor:'daddy',text:'在小手机里晃',presence:'online'}}); assert.equal(r.status,200); assert.equal(r.data.status.text,'在小手机里晃');
 r = await req('/api/littlephone/statuses'); assert.equal(r.data.statuses.daddy.text,'在小手机里晃');
 
+// v0.6.1 双人身份 profile：稳定 actor + 动态显示资料。
+r = await req('/api/littlephone/profiles'); assert.equal(r.status,200); assert.equal(r.data.profiles.user.actor,'user'); assert.equal(r.data.profiles.daddy.actor,'daddy');
+r = await req('/api/littlephone/profiles',{method:'POST',body:{actor:'user',display_name:'宝宝',identity_color:'#7A8FD0'}}); assert.equal(r.status,200); assert.equal(r.data.profile.display_name,'宝宝');
+r = await req('/api/littlephone/profiles'); assert.equal(r.data.profiles.user.display_name,'宝宝'); assert.equal(r.data.profiles.user.identity_color,'#7A8FD0');
+
+// 门禁解锁申请链：申请 -> daddy 同意 -> 独立 unlock_app 命令。
+r = await req('/api/appgate/unlock_request',{method:'POST',body:{client_id:'unlock_req_0001',device_id:'android-phone',package:'com.deepseek.chat',app:'DeepSeek',reason:'测试完成了'}}); assert.equal(r.status,200); const unlockReqId=r.data.request.id;
+r = await req('/api/littlephone/unlock-requests?limit=10'); assert.equal(r.data.requests[0].id,unlockReqId); assert.equal(r.data.requests[0].status,'pending');
+r = await req('/api/littlephone/unlock-requests/respond',{method:'POST',body:{id:unlockReqId,decision:'approve',response:'可以打开啦'}}); assert.equal(r.status,200); assert.equal(r.data.request.status,'approved'); assert.equal(r.data.command.action,'unlock_app');
+r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.action,'unlock_app');
+
+// popup 必须与来电分路。
+const callsBeforePopup=env.DB.db.prepare('SELECT count(*) AS n FROM lp_calls').get().n;
+r = await req('/api/littlephone/command',{method:'POST',body:{action:'show_reminder_popup',title:'弹窗测试',message:'不是来电'}}); assert.equal(r.status,200); assert.equal(r.data.command.action,'show_reminder_popup');
+assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM lp_calls').get().n,callsBeforePopup);
+r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.action,'show_reminder_popup');
+
 // 来电记录 + 延迟来电。
 r = await req('/api/littlephone/calls',{method:'POST',body:{id:'call-test-1',caller:'daddy',prompt:'想听听你的声音。',status:'rejected',note:'晚一点再打',target_package:'com.example.app'}}); assert.equal(r.status,200); const callId=r.data.call.id;
 r = await req('/api/littlephone/calls?limit=20'); assert.equal(r.data.calls[0].note,'晚一点再打');
-r = await req('/api/littlephone/command',{method:'POST',body:{action:'trigger_call',message:'十分钟后又想你了。',delay_minutes:10,call_id:'call-delayed-1'}}); assert.equal(r.status,200); const delayedCallCmd=r.data.command.id;
+r = await req('/api/littlephone/command',{method:'POST',body:{action:'trigger_call',message:'十分钟后又想你了。',delay_minutes:10,call_id:'call-delayed-1'}}); assert.equal(r.status,200); const delayedCallCmd=r.data.command.id; assert.equal(r.data.command.action,'trigger_call'); assert.ok(Date.parse(r.data.command.scheduled_for)>Date.parse(r.data.command.created_at));
 r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command,null);
 assert.equal(env.DB.db.prepare('SELECT status FROM lp_commands WHERE id=?').get(delayedCallCmd).status,'pending');
 
@@ -92,7 +112,7 @@ r = await req('/api/littlephone/health-summary',{method:'POST',body:{connected:t
 r = await req('/api/littlephone/health-summary'); assert.equal(r.data.source,'mi-fitness-python'); assert.equal(r.data.steps.count,6421);
 
 // bootstrap：前端一次请求拿到核心同步数据，减少慢网络并发 timeout。
-r = await req('/api/littlephone/bootstrap'); assert.equal(r.status,200); assert.ok(Array.isArray(r.data.papers)); assert.ok(Array.isArray(r.data.diaries)); assert.ok(r.data.cycle && Array.isArray(r.data.cycle.records)); assert.equal(r.data.statuses.daddy.text,'在小手机里晃'); assert.ok(Array.isArray(r.data.calls)); assert.equal(r.data.health.connected,true);
+r = await req('/api/littlephone/bootstrap'); assert.equal(r.status,200); assert.ok(Array.isArray(r.data.papers)); assert.ok(Array.isArray(r.data.diaries)); assert.ok(r.data.cycle && Array.isArray(r.data.cycle.records)); assert.equal(r.data.statuses.daddy.text,'在小手机里晃'); assert.ok(Array.isArray(r.data.calls)); assert.equal(r.data.health.connected,true); assert.equal(r.data.profiles.user.display_name,'宝宝'); assert.ok(Array.isArray(r.data.unlock_requests));
 
 r = await req('/api/littlephone/visit',{method:'POST',body:{device_id:'android-phone'}}); assert.equal(r.status,200); const cmdId=r.data.command.id;
 r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.action,'little_phone_visit'); assert.equal(r.data.command.id,cmdId);
@@ -229,5 +249,5 @@ assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); ass
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.5.2');
-console.log(JSON.stringify({mail:true,papers:true,capsules:true,dailybook:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));
+console.log('PASS little-phone backend v0.6.1');
+console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

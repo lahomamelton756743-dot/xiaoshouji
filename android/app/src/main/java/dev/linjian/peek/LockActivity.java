@@ -2,16 +2,18 @@ package com.littlephone.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
 import android.view.Gravity;
-import android.view.View;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -22,13 +24,17 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
+/** v0.6.1 小手机统一应用门禁页。 */
 public class LockActivity extends Activity {
     private String pkg;
-    private TextView titleView, remainView, reasonView, messageView;
+    private TextView titleView, ownerView, remainView, reasonView, messageView, ownerNameView;
+    private ImageView ownerAvatarView;
     private EditText requestReasonInput;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
-    private final Runnable tick = new Runnable() { @Override public void run() { refresh(); handler.postDelayed(this, 1000); } };
+    private final Runnable tick = new Runnable() {
+        @Override public void run() { refresh(); handler.postDelayed(this, 1000); }
+    };
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -38,7 +44,7 @@ public class LockActivity extends Activity {
         refresh();
     }
 
-    @Override protected void onNewIntent(Intent intent) {
+    @Override protected void onNewIntent(android.content.Intent intent) {
         super.onNewIntent(intent);
         if (intent != null && intent.getStringExtra("package") != null) pkg = intent.getStringExtra("package");
         AppGate.markLockActivityVisible(pkg, true);
@@ -70,73 +76,98 @@ public class LockActivity extends Activity {
     }
 
     private void buildUi() {
+        final int daddyColor = parseColor(AppPrefs.companionIdentityColor(this), 0xFF6E83C1);
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setBackgroundColor(0xFFFFF5F8);
+        scroll.setBackgroundColor(0xFFF1F7FF);
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(26), dp(28), dp(26), dp(24));
+        root.setPadding(dp(22), dp(36), dp(22), dp(28));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
 
-        TextView tag = text("应用门禁 App Gate", 10, 0xFFD36F91, true);
-        tag.setGravity(Gravity.CENTER_HORIZONTAL);
-        tag.setLetterSpacing(.12f);
-        root.addView(tag, lp(-1, -2, 0, 0, 0, 7));
+        LinearLayout owner = new LinearLayout(this);
+        owner.setOrientation(LinearLayout.HORIZONTAL);
+        owner.setGravity(Gravity.CENTER_VERTICAL);
+        owner.setPadding(dp(12), dp(8), dp(14), dp(8));
+        owner.setBackground(rounded(0x99FFFFFF, 26, withAlpha(daddyColor, 75), 1));
 
-        ImageView decor = new ImageView(this);
-        decor.setImageResource(R.drawable.decor_gate_cat_box);
-        decor.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        decor.setContentDescription(null);
-        root.addView(decor, lp(dp(96), dp(74), 0, 0, 0, 6));
+        ownerAvatarView = new ImageView(this);
+        ownerAvatarView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        ownerAvatarView.setBackground(oval(0xDFFFFFFF, withAlpha(daddyColor, 120), 1));
+        ownerAvatarView.setClipToOutline(true);
+        owner.addView(ownerAvatarView, new LinearLayout.LayoutParams(dp(38), dp(38)));
 
-        titleView = text("", 22, 0xFF3D2E34, true);
+        ownerNameView = text(AppPrefs.companionName(this), 12, daddyColor, true);
+        LinearLayout.LayoutParams ownerNameLp = new LinearLayout.LayoutParams(-2, -2);
+        ownerNameLp.leftMargin = dp(9);
+        owner.addView(ownerNameView, ownerNameLp);
+        root.addView(owner, lp(-2, -2, 0, 0, 0, 25));
+
+        titleView = text("", 25, 0xFF263044, true);
         titleView.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.addView(titleView, lp(-1, -2, 0, 0, 0, 10));
+        root.addView(titleView, lp(-1, -2, 0, 0, 0, 8));
 
-        remainView = text("", 12, 0xFFD36F91, true);
+        ownerView = text("", 12, 0xFF6F778C, false);
+        ownerView.setGravity(Gravity.CENTER_HORIZONTAL);
+        root.addView(ownerView, lp(-1, -2, 0, 0, 0, 12));
+
+        remainView = text("", 12, daddyColor, true);
         remainView.setGravity(Gravity.CENTER_HORIZONTAL);
-        remainView.setBackground(rounded(0xFFFFE7EF, 18, 0xFFF0C8D6, 1));
-        remainView.setPadding(dp(15), dp(7), dp(15), dp(7));
-        root.addView(remainView, lp(-2, -2, 0, 0, 0, 16));
+        remainView.setBackground(rounded(0xB8FFFFFF, 18, withAlpha(daddyColor, 70), 1));
+        remainView.setPadding(dp(15), dp(8), dp(15), dp(8));
+        root.addView(remainView, lp(-2, -2, 0, 0, 0, 20));
 
-        reasonView = card("锁定理由", "");
+        reasonView = glassInfo("");
         root.addView(reasonView, lp(-1, -2, 0, 0, 0, 9));
+        messageView = glassInfo("");
+        root.addView(messageView, lp(-1, -2, 0, 0, 0, 18));
 
-        messageView = card(AppPrefs.companionName(this) + "说", "");
-        root.addView(messageView, lp(-1, -2, 0, 0, 0, 13));
+        TextView prompt = text("想现在打开？写一句理由给 " + AppPrefs.companionName(this), 11, 0xFF7B8497, false);
+        root.addView(prompt, lp(-1, -2, 2, 0, 2, 8));
 
         requestReasonInput = new EditText(this);
         requestReasonInput.setHint("写下申请解锁的理由");
-        requestReasonInput.setHintTextColor(0xFFB89AA5);
-        requestReasonInput.setTextColor(0xFF3D2E34);
-        requestReasonInput.setTextSize(12);
+        requestReasonInput.setHintTextColor(0xFF9AA3B5);
+        requestReasonInput.setTextColor(0xFF263044);
+        requestReasonInput.setTextSize(13);
         requestReasonInput.setSingleLine(false);
         requestReasonInput.setMinLines(2);
-        requestReasonInput.setPadding(dp(15), dp(11), dp(15), dp(11));
-        requestReasonInput.setBackground(rounded(Color.WHITE, 20, 0xFFF0CBD8, 1));
-        root.addView(requestReasonInput, lp(-1, dp(70), 0, 0, 0, 12));
+        requestReasonInput.setPadding(dp(15), dp(12), dp(15), dp(12));
+        requestReasonInput.setBackground(rounded(0xBFFFFFFF, 20, 0xB8FFFFFF, 1));
+        root.addView(requestReasonInput, lp(-1, dp(78), 0, 0, 0, 13));
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER);
 
-        Button request = button("申请解锁", true);
+        Button request = button("申请解锁", true, daddyColor);
         request.setOnClickListener(v -> {
             String reason = requestReasonInput.getText().toString().trim();
-            if (reason.length() == 0) { Toast.makeText(this, "先写一句解锁理由", Toast.LENGTH_SHORT).show(); return; }
+            if (reason.length() == 0) {
+                Toast.makeText(this, "先写一句解锁理由", Toast.LENGTH_SHORT).show();
+                return;
+            }
             AppGate.submitUnlockRequest(this, pkg, reason);
-            Toast.makeText(this, "已把解锁申请交给" + AppPrefs.companionName(this), Toast.LENGTH_LONG).show();
+            requestReasonInput.setText("");
+            Toast.makeText(this, "已经交给 " + AppPrefs.companionName(this), Toast.LENGTH_LONG).show();
         });
-        actions.addView(request, lp(dp(116), dp(40), 0, 0, 5, 0));
+        actions.addView(request, new LinearLayout.LayoutParams(0, dp(44), 1f));
 
-        Button home = button("返回桌面", false);
-        home.setOnClickListener(v -> { ScreenshotService svc = ScreenshotService.getInstance(); if (svc != null) svc.doHome(); finish(); });
-        actions.addView(home, lp(dp(104), dp(40), 5, 0, 0, 0));
-        root.addView(actions, lp(-1, dp(40), 0, 0, 0, 11));
+        Button home = button("回到桌面", false, daddyColor);
+        LinearLayout.LayoutParams homeLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        homeLp.leftMargin = dp(9);
+        home.setOnClickListener(v -> {
+            ScreenshotService svc = ScreenshotService.getInstance();
+            if (svc != null) svc.doHome();
+            finish();
+        });
+        actions.addView(home, homeLp);
+        root.addView(actions, lp(-1, dp(44), 0, 0, 0, 14));
 
         Button emergency = textButton("长按 5 秒紧急解锁");
-        final Runnable emergencyRunnable = () -> showEmergencyDialog();
+        final Runnable emergencyRunnable = this::showEmergencyDialog;
         emergency.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 handler.postDelayed(emergencyRunnable, 5000);
@@ -149,31 +180,52 @@ public class LockActivity extends Activity {
             }
             return true;
         });
-        root.addView(emergency, lp(dp(168), dp(32), 0, 0, 0, 7));
+        root.addView(emergency, lp(dp(180), dp(34), 0, 0, 0, 6));
 
-        TextView foot = text("时间结束后会自动打开", 9, 0xFFB0929D, false);
+        TextView foot = text("时间结束后会自动解除 · 紧急解锁始终保留", 9, 0xFF9AA3B4, false);
         foot.setGravity(Gravity.CENTER_HORIZONTAL);
         root.addView(foot, lp(-1, -2, 0, 0, 0, 0));
         setContentView(scroll);
+        applyOwnerAvatar();
     }
 
     private void refresh() {
         JSONObject lock = AppGate.currentLock(this, pkg);
         if (lock == null) { finish(); return; }
-        long now = System.currentTimeMillis(); long until = lock.optLong("locked_until_ms", 0); long remain = Math.max(0, until - now);
-        titleView.setText(lock.optString("app_name", AppGate.labelOf(this, pkg)) + " 已被" + AppPrefs.companionName(this) + "锁定");
-        remainView.setText("剩余时间：" + remainText(remain));
+        long now = System.currentTimeMillis();
+        long until = lock.optLong("locked_until_ms", 0);
+        long remain = Math.max(0, until - now);
+        String appName = lock.optString("app_name", AppGate.labelOf(this, pkg));
+        String companion = AppPrefs.companionName(this);
+        titleView.setText(appName + " 暂时休息一下");
+        ownerView.setText(companion + " 给它关上了一会儿");
+        ownerNameView.setText(companion);
+        remainView.setText("剩余 " + remainText(remain));
         String reason = lock.optString("reason", "").trim();
         String message = lock.optString("message", "").trim();
-        reasonView.setText("锁定理由" + (reason.isEmpty() ? "" : "\n" + reason));
-        messageView.setText(AppPrefs.companionName(this) + "说" + (message.isEmpty() ? "" : "\n" + message));
+        reasonView.setText(reason.isEmpty() ? "" : "为什么暂时关上\n" + reason);
+        messageView.setText(message.isEmpty() ? "" : companion + " 留的话\n" + message);
         reasonView.setVisibility(reason.isEmpty() ? View.GONE : View.VISIBLE);
         messageView.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
+    private void applyOwnerAvatar() {
+        String raw = AppPrefs.get(this).getString(AppPrefs.KEY_COMPANION_AVATAR, "");
+        try {
+            int comma = raw == null ? -1 : raw.indexOf(',');
+            if (comma > 0 && raw.substring(0, comma).contains("base64")) raw = raw.substring(comma + 1);
+            if (raw != null && !raw.trim().isEmpty()) {
+                byte[] bytes = Base64.decode(raw, Base64.DEFAULT);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                if (bitmap != null) { ownerAvatarView.setImageBitmap(bitmap); return; }
+            }
+        } catch (Exception ignored) { }
+        ownerAvatarView.setImageDrawable(null);
+    }
+
     private void showEmergencyDialog() {
         final EditText input = new EditText(this);
-        input.setHint("输入" + AppPrefs.companionName(this) + "告诉你的紧急口令");
+        input.setHint("输入 " + AppPrefs.companionName(this) + " 告诉你的紧急口令");
         new AlertDialog.Builder(this)
                 .setTitle("紧急解锁")
                 .setMessage("确认是紧急情况再用。通过后会临时放行几分钟，并写入日志。")
@@ -188,18 +240,62 @@ public class LockActivity extends Activity {
     }
 
     private TextView text(String s, int sp, int color, boolean bold) {
-        TextView t = new TextView(this); t.setText(s); t.setTextSize(sp); t.setTextColor(color); t.setIncludeFontPadding(false); t.setLineSpacing(dp(3), 1f); t.setTypeface(Typeface.create(bold ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL)); return t;
+        TextView t = new TextView(this);
+        t.setText(s); t.setTextSize(sp); t.setTextColor(color); t.setIncludeFontPadding(false);
+        t.setLineSpacing(dp(3), 1f);
+        t.setTypeface(Typeface.create(bold ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+        return t;
     }
-    private TextView card(String title, String body) { TextView t = text(title + (body.isEmpty() ? "" : "\n" + body), 12, 0xFF59414A, false); t.setPadding(dp(16), dp(13), dp(16), dp(13)); t.setBackground(rounded(Color.WHITE, 22, 0xFFF2D5DF, 1)); return t; }
-    private Button button(String s, boolean primary) { Button b = new Button(this); b.setText(s); b.setAllCaps(false); b.setTextSize(11); b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); b.setTextColor(primary ? Color.WHITE : 0xFFD36F91); b.setMinHeight(0); b.setPadding(dp(10), 0, dp(10), 0); b.setBackground(rounded(primary ? 0xFFD96891 : Color.WHITE, 20, primary ? 0xFFD96891 : 0xFFE9B8C9, 1)); return b; }
-    private Button textButton(String s) { Button b = new Button(this); b.setText(s); b.setAllCaps(false); b.setTextSize(9); b.setTextColor(0xFFAD7F90); b.setMinHeight(0); b.setPadding(dp(8), 0, dp(8), 0); b.setBackground(rounded(0x00FFFFFF, 16, 0x00FFFFFF, 0)); return b; }
-    private GradientDrawable rounded(int color, int radius, int stroke, int strokeWidth) { GradientDrawable g = new GradientDrawable(); g.setColor(color); g.setCornerRadius(dp(radius)); if (strokeWidth > 0) g.setStroke(dp(strokeWidth), stroke); return g; }
-    private LinearLayout.LayoutParams lp(int w, int h, int l, int t, int r, int b) { LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(w, h); p.setMargins(l,t,r,b); return p; }
+
+    private TextView glassInfo(String body) {
+        TextView t = text(body, 12, 0xFF526078, false);
+        t.setPadding(dp(16), dp(13), dp(16), dp(13));
+        t.setBackground(rounded(0x8FFFFFFF, 20, 0xAFFFFFFF, 1));
+        return t;
+    }
+
+    private Button button(String s, boolean primary, int accent) {
+        Button b = new Button(this);
+        b.setText(s); b.setAllCaps(false); b.setTextSize(12);
+        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        b.setTextColor(primary ? Color.WHITE : accent);
+        b.setMinHeight(0); b.setPadding(dp(10), 0, dp(10), 0);
+        b.setBackground(rounded(primary ? accent : 0xBFFFFFFF, 22, primary ? accent : withAlpha(accent, 70), 1));
+        return b;
+    }
+
+    private Button textButton(String s) {
+        Button b = new Button(this);
+        b.setText(s); b.setAllCaps(false); b.setTextSize(10); b.setTextColor(0xFF7F889B);
+        b.setMinHeight(0); b.setPadding(dp(8), 0, dp(8), 0);
+        b.setBackground(rounded(0x00FFFFFF, 16, 0x00FFFFFF, 0));
+        return b;
+    }
+
+    private GradientDrawable rounded(int color, int radius, int stroke, int strokeWidth) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(color); g.setCornerRadius(dp(radius));
+        if (strokeWidth > 0) g.setStroke(dp(strokeWidth), stroke);
+        return g;
+    }
+
+    private GradientDrawable oval(int color, int stroke, int strokeWidth) {
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL); g.setColor(color);
+        if (strokeWidth > 0) g.setStroke(dp(strokeWidth), stroke);
+        return g;
+    }
+
+    private LinearLayout.LayoutParams lp(int w, int h, int l, int t, int r, int b) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(w, h); p.setMargins(l,t,r,b); return p;
+    }
     private int dp(int v) { return (int)(v * getResources().getDisplayMetrics().density + 0.5f); }
+    private int parseColor(String value, int fallback) { try { return Color.parseColor(value); } catch (Exception e) { return fallback; } }
+    private int withAlpha(int color, int alpha) { return (color & 0x00FFFFFF) | ((alpha & 0xFF) << 24); }
     private String remainText(long ms) {
         long sec = ms / 1000; long h = sec / 3600; long m = (sec % 3600) / 60; long s = sec % 60;
-        if (h > 0) return h + " 小时 " + m + " 分钟 " + s + " 秒";
-        if (m > 0) return m + " 分钟 " + s + " 秒";
+        if (h > 0) return h + " 小时 " + m + " 分 " + s + " 秒";
+        if (m > 0) return m + " 分 " + s + " 秒";
         return s + " 秒";
     }
 }

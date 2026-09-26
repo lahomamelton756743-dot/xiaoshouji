@@ -10,6 +10,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -17,10 +20,12 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.PowerManager;
 import android.os.Process;
+import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -259,6 +264,8 @@ public class LifeState {
                 AppUse u = apps.get(i);
                 JSONObject o = new JSONObject();
                 o.put("app", u.label); o.put("package", u.pkg); o.put("minutes", Math.round(u.ms / 60000.0));
+                String icon = appIconDataUrl(ctx, u.pkg);
+                if (!icon.isEmpty()) o.put("icon", icon);
                 arr.put(o);
             }
             summary.screenTimeMinutes = (int) Math.round(total / 60000.0);
@@ -280,6 +287,23 @@ public class LifeState {
     }
 
     public static String appLabelPublic(Context ctx, String pkg) { return appLabel(ctx, pkg); }
+
+
+    private static String appIconDataUrl(Context ctx, String pkg) {
+        if (pkg == null || pkg.trim().isEmpty()) return "";
+        try {
+            Drawable d = ctx.getPackageManager().getApplicationIcon(pkg.trim());
+            int size = 64;
+            Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            d.setBounds(0, 0, size, size);
+            d.draw(canvas);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
+            bitmap.recycle();
+            return "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception ignored) { return ""; }
+    }
 
     private static String appLabel(Context ctx, String pkg) {
         if (pkg == null || pkg.trim().isEmpty()) return "";

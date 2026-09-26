@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.5.2 Web/PWA 外壳。
+ * 小手机 v0.6.1 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -374,7 +374,7 @@ public class LittlePhoneActivity extends Activity {
 
         @JavascriptInterface
         public void openNativeSettings() {
-            // v0.5.2：权限入口留在“小手机”里，不再跳回旧掌心窗主页。
+            // v0.6.1：权限入口留在“小手机”里，不再跳回旧掌心窗主页。
             runOnUiThread(() -> {
                 try {
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
@@ -400,6 +400,8 @@ public class LittlePhoneActivity extends Activity {
                 o.put("daddy_name", AppPrefs.companionName(LittlePhoneActivity.this));
                 o.put("ryan_avatar", AppPrefs.get(LittlePhoneActivity.this).getString(AppPrefs.KEY_USER_AVATAR, ""));
                 o.put("daddy_avatar", AppPrefs.get(LittlePhoneActivity.this).getString(AppPrefs.KEY_COMPANION_AVATAR, ""));
+                o.put("ryan_color", AppPrefs.userIdentityColor(LittlePhoneActivity.this));
+                o.put("daddy_color", AppPrefs.companionIdentityColor(LittlePhoneActivity.this));
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
@@ -416,6 +418,31 @@ public class LittlePhoneActivity extends Activity {
                     else return false;
                 }
                 ed.apply();
+                emit("littlephone-profile-changed", getProfile());
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public boolean saveProfileV2(String who, String name, String avatarDataUrl, String identityColor) {
+            if (!saveProfile(who, name, avatarDataUrl)) return false;
+            try {
+                String keyColor = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_IDENTITY_COLOR : AppPrefs.KEY_USER_IDENTITY_COLOR;
+                String color = identityColor == null ? "" : identityColor.trim();
+                if (!color.matches("^#[0-9A-Fa-f]{6}$")) return false;
+                AppPrefs.get(LittlePhoneActivity.this).edit().putString(keyColor, color.toUpperCase(java.util.Locale.ROOT)).apply();
+                emit("littlephone-profile-changed", getProfile());
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public boolean saveIdentityColor(String who, String color) {
+            try {
+                String value = color == null ? "" : color.trim();
+                if (!value.matches("#[0-9A-Fa-f]{6}")) return false;
+                String key = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_IDENTITY_COLOR : AppPrefs.KEY_USER_IDENTITY_COLOR;
+                AppPrefs.get(LittlePhoneActivity.this).edit().putString(key, value.toUpperCase(java.util.Locale.ROOT)).apply();
                 emit("littlephone-profile-changed", getProfile());
                 return true;
             } catch (Exception e) { return false; }
@@ -575,10 +602,7 @@ public class LittlePhoneActivity extends Activity {
         public boolean testReminder(String mode, String message) {
             try {
                 if ("popup".equalsIgnoreCase(mode)) {
-                    JSONObject cmd = new JSONObject();
-                    cmd.put("action", "trigger_guidian");
-                    cmd.put("message", message == null ? "看我一下。" : message);
-                    return GuidianState.handleCommand(LittlePhoneActivity.this, cmd).optBoolean("ok", false);
+                    return CompanionService.showReminderPopup(LittlePhoneActivity.this, "小手机提醒", message == null ? "看我一下。" : message);
                 }
                 return CompanionService.showReminderNotification(LittlePhoneActivity.this, "小手机提醒", message == null ? "看我一下。" : message);
             } catch (Exception e) { return false; }

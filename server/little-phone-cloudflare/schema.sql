@@ -1,4 +1,4 @@
--- 小手机 v0.5.2 Cloudflare D1 schema
+-- 小手机 v0.6.1 Cloudflare D1 schema
 -- worker.js 会自动 CREATE TABLE IF NOT EXISTS；本文件用于人工检查/初始化。
 
 CREATE TABLE IF NOT EXISTS lp_commands (
@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS lp_papers (
   id TEXT PRIMARY KEY,
   author TEXT NOT NULL,
   content TEXT NOT NULL,
+  reply_to TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_lp_papers_created ON lp_papers(created_at DESC);
@@ -55,7 +56,9 @@ CREATE TABLE IF NOT EXISTS lp_mail (
   kind TEXT NOT NULL DEFAULT 'letter',
   reply_to TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
-  seen INTEGER NOT NULL DEFAULT 0
+  seen INTEGER NOT NULL DEFAULT 0,
+  user_seen INTEGER NOT NULL DEFAULT 0,
+  daddy_seen INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_lp_mail_created ON lp_mail(created_at DESC);
 
@@ -64,7 +67,9 @@ CREATE TABLE IF NOT EXISTS lp_capsules (
   author TEXT NOT NULL,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  unlock_at TEXT NOT NULL
+  unlock_at TEXT NOT NULL,
+  user_seen INTEGER NOT NULL DEFAULT 0,
+  daddy_seen INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_lp_capsules_created ON lp_capsules(created_at DESC);
 
@@ -164,6 +169,28 @@ CREATE TABLE IF NOT EXISTS lp_health_summary (
   updated_at TEXT NOT NULL DEFAULT '',
   error TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS lp_profiles (
+  actor TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL DEFAULT '',
+  avatar TEXT NOT NULL DEFAULT '',
+  identity_color TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS lp_unlock_requests (
+  id TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL DEFAULT 'android-phone',
+  package_name TEXT NOT NULL,
+  app_name TEXT NOT NULL DEFAULT '',
+  requester TEXT NOT NULL DEFAULT 'user',
+  reason TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  response TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lp_unlock_requests_created ON lp_unlock_requests(created_at DESC);
 
 
 -- MCP OAuth 2.1 support (ChatGPT custom MCP app)

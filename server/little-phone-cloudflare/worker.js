@@ -1,4 +1,4 @@
-const VERSION = "0.5.2-little-phone";
+const VERSION = "0.6.1-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -70,6 +70,8 @@ async function handle(request, env) {
     if (path === "/api/littlephone/statuses") return getStatusesApi(env);
     if (path === "/api/littlephone/calls") return listCallsApi(env, url);
     if (path === "/api/littlephone/health-summary") return getHealthSummaryApi(env);
+    if (path === "/api/littlephone/profiles") return getProfilesApi(env);
+    if (path === "/api/littlephone/unlock-requests") return listUnlockRequestsApi(env, url);
     if (path === "/api/mail") return listMailApi(env, url);
     if (path === "/api/capsules") return listCapsulesApi(env, url);
   }
@@ -81,6 +83,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/events") return addManualEventApi(env, await readJson(request));
     if (path === "/api/littlephone/papers") return addPaperApi(env, await readJson(request));
     if (path === "/api/littlephone/dailybook") return addDailybookApi(env, await readJson(request));
+    if (path === "/api/littlephone/dailybook/update") return updateDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries") return addDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries/update") return updateDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries/delete") return deleteRowApi(env, "lp_diaries", await readJson(request));
@@ -104,9 +107,13 @@ async function handle(request, env) {
     if (path === "/api/littlephone/calls") return upsertCallApi(env, await readJson(request));
     if (path === "/api/littlephone/calls/delete") return deleteRowApi(env, "lp_calls", await readJson(request));
     if (path === "/api/littlephone/health-summary") return setHealthSummaryApi(env, await readJson(request));
+    if (path === "/api/littlephone/profiles") return setProfileApi(env, await readJson(request));
+    if (path === "/api/littlephone/unlock-requests/respond") return respondUnlockRequestApi(env, await readJson(request));
     if (path === "/api/littlephone/command") return queueGenericCommandApi(env, await readJson(request));
+    if (path === "/api/appgate/unlock_request") return addUnlockRequestApi(env, await readJson(request));
     if (path === "/api/mail") return addMailApi(env, await readJson(request));
-    if (path === "/api/mail/seen") return markMailSeenApi(env, await readJson(request));
+    if (path === "/api/mail/seen" || path === "/api/mail/read") return markMailSeenApi(env, await readJson(request));
+    if (path === "/api/capsules/seen" || path === "/api/capsules/read") return markCapsuleSeenApi(env, await readJson(request));
     if (path === "/api/capsules") return addCapsuleApi(env, await readJson(request));
   }
 
@@ -420,18 +427,20 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_events_expiry ON lp_events(expires_at_epoch)`,
       `CREATE INDEX IF NOT EXISTS idx_lp_events_created ON lp_events(created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_papers (
-        id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL
+        id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, reply_to TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
       )`,
       `CREATE INDEX IF NOT EXISTS idx_lp_papers_created ON lp_papers(created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_mail (
         id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL,
         kind TEXT NOT NULL DEFAULT 'letter', reply_to TEXT NOT NULL DEFAULT '',
-        created_at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0
+        created_at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0,
+        user_seen INTEGER NOT NULL DEFAULT 0, daddy_seen INTEGER NOT NULL DEFAULT 0
       )`,
       `CREATE INDEX IF NOT EXISTS idx_lp_mail_created ON lp_mail(created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_capsules (
         id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL,
-        created_at TEXT NOT NULL, unlock_at TEXT NOT NULL
+        created_at TEXT NOT NULL, unlock_at TEXT NOT NULL,
+        user_seen INTEGER NOT NULL DEFAULT 0, daddy_seen INTEGER NOT NULL DEFAULT 0
       )`,
       `CREATE INDEX IF NOT EXISTS idx_lp_capsules_created ON lp_capsules(created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_dailybook (
@@ -481,7 +490,17 @@ async function ensureSchema(env) {
         sleep_json TEXT NOT NULL DEFAULT 'null', steps_json TEXT NOT NULL DEFAULT 'null',
         heart_rate_json TEXT NOT NULL DEFAULT 'null', cycle_json TEXT NOT NULL DEFAULT 'null',
         updated_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT ''
-      )`
+      )`,
+      `CREATE TABLE IF NOT EXISTS lp_profiles (
+        actor TEXT PRIMARY KEY, display_name TEXT NOT NULL DEFAULT '', avatar TEXT NOT NULL DEFAULT '',
+        identity_color TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS lp_unlock_requests (
+        id TEXT PRIMARY KEY, device_id TEXT NOT NULL DEFAULT 'android-phone', package_name TEXT NOT NULL, app_name TEXT NOT NULL DEFAULT '',
+        requester TEXT NOT NULL DEFAULT 'user', reason TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending',
+        response TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_unlock_requests_created ON lp_unlock_requests(created_at DESC)`
 ,
       `CREATE TABLE IF NOT EXISTS lp_oauth_clients (
         client_id TEXT PRIMARY KEY, client_name TEXT NOT NULL DEFAULT '', redirect_uris_json TEXT NOT NULL, created_at_epoch INTEGER NOT NULL
@@ -497,7 +516,23 @@ async function ensureSchema(env) {
       )`,
       `CREATE INDEX IF NOT EXISTS idx_lp_oauth_tokens_refresh ON lp_oauth_tokens(refresh_hash)`
     ];
-    schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).catch(err => { schemaReady = null; throw err; });
+    schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).then(async () => {
+      const alters = [
+        "ALTER TABLE lp_papers ADD COLUMN reply_to TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE lp_mail ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE lp_mail ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE lp_capsules ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE lp_capsules ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0"
+      ];
+      for (const sql of alters) { try { await env.DB.prepare(sql).run(); } catch (e) { if (!String(e).toLowerCase().includes("duplicate column")) throw e; } }
+      // v0.5.2 single seen meant the phone user had opened the letter. Preserve that truth,
+      // and mark the sender's own side as known without inventing recipient reads.
+      await env.DB.prepare("UPDATE lp_mail SET daddy_seen=1 WHERE lower(author) IN ('daddy','gpt','companion')").run();
+      await env.DB.prepare("UPDATE lp_mail SET user_seen=1 WHERE lower(author) NOT IN ('daddy','gpt','companion')").run();
+      await env.DB.prepare("UPDATE lp_mail SET user_seen=1 WHERE seen=1").run();
+      await env.DB.prepare("UPDATE lp_capsules SET daddy_seen=1 WHERE lower(author) IN ('daddy','gpt','companion')").run();
+      await env.DB.prepare("UPDATE lp_capsules SET user_seen=1 WHERE lower(author) NOT IN ('daddy','gpt','companion')").run();
+    }).catch(err => { schemaReady = null; throw err; });
   }
   return schemaReady;
 }
@@ -508,12 +543,26 @@ async function pruneEvents(env) {
 
 async function insertEvent(env, { actor = "user", type = "event", title = "", content = "", metadata = {} } = {}) {
   await pruneEvents(env);
+  const normalizedActor = actor === "daddy" ? "daddy" : "user";
+  const normalizedType = clip(type, 40), normalizedTitle = clip(title, 120), normalizedContent = clip(content, 1000);
+  const eventKey = clip(metadata?.event_key || "", 160);
+  if (!metadata?.force) {
+    const cutoff = new Date(Date.now() - 4000).toISOString().replace(/\.\d{3}Z$/, "Z");
+    let prev = null;
+    if (eventKey) {
+      const rows = await env.DB.prepare("SELECT * FROM lp_events WHERE actor=? AND type=? AND created_at>=? ORDER BY created_at DESC LIMIT 12").bind(normalizedActor, normalizedType, cutoff).all();
+      prev = (rows.results || []).find(r => safeJson(r.metadata_json,{}).event_key === eventKey) || null;
+    } else {
+      prev = await env.DB.prepare("SELECT * FROM lp_events WHERE actor=? AND type=? AND title=? AND content=? AND created_at>=? ORDER BY created_at DESC LIMIT 1").bind(normalizedActor, normalizedType, normalizedTitle, normalizedContent, cutoff).first();
+    }
+    if (prev) return rowEvent(prev);
+  }
   const createdAt = nowIso();
   const expiresEpoch = epochSeconds() + EVENT_TTL_SECONDS;
   const expiresAt = new Date(expiresEpoch * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
   const item = {
-    id: uuid(), actor: actor === "daddy" ? "daddy" : "user",
-    type: clip(type, 40), title: clip(title, 120), content: clip(content, 1000),
+    id: uuid(), actor: normalizedActor,
+    type: normalizedType, title: normalizedTitle, content: normalizedContent,
     created_at: createdAt, expires_at: expiresAt, expires_at_epoch: expiresEpoch,
     metadata: metadata && typeof metadata === "object" ? metadata : {}
   };
@@ -547,8 +596,8 @@ async function addPaper(env, body) {
   if (!content) return { error:"content_required" };
   const id=clientId(body); const existing=await env.DB.prepare("SELECT * FROM lp_papers WHERE id=?").bind(id).first();
   if(existing)return existing;
-  const item = { id, author:clip(body.author || "用户",40), content, created_at:nowIso() };
-  const wr=await env.DB.prepare("INSERT OR IGNORE INTO lp_papers(id,author,content,created_at) VALUES(?,?,?,?)").bind(item.id,item.author,item.content,item.created_at).run();
+  const item = { id, author:clip(body.author || "用户",40), content, reply_to:clip(body.reply_to||"",100), created_at:nowIso() };
+  const wr=await env.DB.prepare("INSERT OR IGNORE INTO lp_papers(id,author,content,reply_to,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.author,item.content,item.reply_to,item.created_at).run();
   if(Number(wr.meta?.changes??0)>0)await insertEvent(env,{actor:actorFromAuthor(item.author),type:"paper",title:`${item.author} 留下一张纸条`,content:item.content,metadata:{paper_id:item.id}});
   return (await env.DB.prepare("SELECT * FROM lp_papers WHERE id=?").bind(id).first())||item;
 }
@@ -560,39 +609,57 @@ async function addMail(env, body) {
   const content=clip(body.content||"",6000).trim();
   if(!content) return {error:"content_required"};
   const id=clientId(body); const existing=await env.DB.prepare("SELECT * FROM lp_mail WHERE id=?").bind(id).first();
-  if(existing)return {...existing,seen:Boolean(existing.seen)};
-  const item={id,author:clip(body.author||"用户",40),content,kind:"letter",reply_to:clip(body.reply_to||"",80),created_at:nowIso(),seen:false};
-  const wr=await env.DB.prepare("INSERT OR IGNORE INTO lp_mail(id,author,content,kind,reply_to,created_at,seen) VALUES(?,?,?,?,?,?,0)").bind(item.id,item.author,item.content,item.kind,item.reply_to,item.created_at).run();
+  if(existing)return rowMail(existing);
+  const author=clip(body.author||"用户",40), actor=actorFromAuthor(author);
+  const item={id,author,content,kind:"letter",reply_to:clip(body.reply_to||"",80),created_at:nowIso(),seen:false,user_seen:actor==="user",daddy_seen:actor==="daddy"};
+  const wr=await env.DB.prepare("INSERT OR IGNORE INTO lp_mail(id,author,content,kind,reply_to,created_at,seen,user_seen,daddy_seen) VALUES(?,?,?,?,?,?,0,?,?)").bind(item.id,item.author,item.content,item.kind,item.reply_to,item.created_at,boolInt(item.user_seen),boolInt(item.daddy_seen)).run();
   if(Number(wr.meta?.changes??0)>0)await insertEvent(env,{actor:actorFromAuthor(item.author),type:"mail",title:`${item.author} 投递了一封信`,content:item.content.slice(0,240),metadata:{mail_id:item.id}});
-  const row=await env.DB.prepare("SELECT * FROM lp_mail WHERE id=?").bind(id).first();return row?{...row,seen:Boolean(row.seen)}:item;
+  const row=await env.DB.prepare("SELECT * FROM lp_mail WHERE id=?").bind(id).first();return row?rowMail(row):item;
 }
+function rowMail(r){return {...r,seen:Boolean(r.seen),user_seen:Boolean(r.user_seen),daddy_seen:Boolean(r.daddy_seen)};}
 async function addMailApi(env,body){ const item=await addMail(env,body); return item.error?json({ok:false,error:item.error},400):json({ok:true,mail:item}); }
-async function listMail(env,limit=80){ const rows=await env.DB.prepare("SELECT * FROM lp_mail ORDER BY created_at DESC LIMIT ?").bind(limit).all(); return (rows.results||[]).map(r=>({...r,seen:Boolean(r.seen)})); }
+async function listMail(env,limit=80){ const rows=await env.DB.prepare("SELECT * FROM lp_mail ORDER BY created_at DESC LIMIT ?").bind(limit).all(); return (rows.results||[]).map(rowMail); }
 async function listMailApi(env,url){ return json({ok:true,mail:await listMail(env,asLimit(url,80,300))}); }
-async function markMailSeenApi(env,body){
-  const id=clip(body.id||"",100); let res;
-  if(id) res=await env.DB.prepare("UPDATE lp_mail SET seen=1 WHERE id=? AND seen=0").bind(id).run();
-  else res=await env.DB.prepare("UPDATE lp_mail SET seen=1 WHERE seen=0").run();
+async function markMailSeen(env,body,defaultActor="user"){
+  const id=clip(body.id||"",100), actor=String(body.actor||defaultActor).toLowerCase()==="daddy"?"daddy":"user";
+  const col=actor==="daddy"?"daddy_seen":"user_seen"; let res;
+  if(id) res=await env.DB.prepare(`UPDATE lp_mail SET ${col}=1${actor==="user"?", seen=1":""} WHERE id=? AND ${col}=0`).bind(id).run();
+  else res=await env.DB.prepare(`UPDATE lp_mail SET ${col}=1${actor==="user"?", seen=1":""} WHERE ${col}=0`).run();
   const changed=Number(res.meta?.changes ?? res.changes ?? 0);
-  if(changed>0) await insertEvent(env,{actor:"user",type:"mail_open",title:"瑞安看了一封信",content:"",metadata:{mail_id:id}});
-  return json({ok:true,marked:changed});
+  if(changed>0) await insertEvent(env,{actor,type:"mail_open",title:actor==="daddy"?"daddy 拆开了一封信":"瑞安拆开了一封信",content:"",metadata:{mail_id:id,event_key:`mail_open:${actor}:${id}`}});
+  return {ok:true,marked:changed,actor};
 }
+async function markMailSeenApi(env,body){ return json(await markMailSeen(env,body,"user")); }
 
 function todayUtc(){ return new Date().toISOString().slice(0,10); }
 async function addCapsule(env,body){
   const content=clip(body.content||"",8000).trim(); if(!content)return {error:"content_required"};
   let unlock=clip(body.unlock_at||"",32); if(!/^\d{4}-\d{2}-\d{2}$/.test(unlock)){const d=new Date(Date.now()+86400000);unlock=d.toISOString().slice(0,10)}
-  const item={id:uuid(),author:clip(body.author||"用户",40),content,created_at:nowIso(),unlock_at:unlock};
-  await env.DB.prepare("INSERT INTO lp_capsules(id,author,content,created_at,unlock_at) VALUES(?,?,?,?,?)").bind(item.id,item.author,item.content,item.created_at,item.unlock_at).run();
+  const author=clip(body.author||"用户",40),actor=actorFromAuthor(author);
+  const item={id:uuid(),author,content,created_at:nowIso(),unlock_at:unlock,user_seen:actor==="user",daddy_seen:actor==="daddy"};
+  await env.DB.prepare("INSERT INTO lp_capsules(id,author,content,created_at,unlock_at,user_seen,daddy_seen) VALUES(?,?,?,?,?,?,?)").bind(item.id,item.author,item.content,item.created_at,item.unlock_at,boolInt(item.user_seen),boolInt(item.daddy_seen)).run();
   await insertEvent(env,{actor:actorFromAuthor(item.author),type:"capsule",title:`${item.author} 放入一封未来信`,content:"",metadata:{capsule_id:item.id,unlock_at:item.unlock_at}});
   return item;
 }
 async function addCapsuleApi(env,body){const item=await addCapsule(env,body);if(item.error)return json({ok:false,error:item.error},400);const out={...item,locked:true};delete out.content;return json({ok:true,capsule:out});}
 async function listCapsules(env,limit=30){
   const rows=await env.DB.prepare("SELECT * FROM lp_capsules ORDER BY created_at DESC LIMIT ?").bind(limit).all(); const today=todayUtc();
-  return (rows.results||[]).map(r=>{const locked=String(r.unlock_at||"9999-12-31")>today;const item={...r,locked};if(locked)delete item.content;return item;});
+  return (rows.results||[]).map(r=>{const locked=String(r.unlock_at||"9999-12-31")>today;const item={...r,locked,user_seen:Boolean(r.user_seen),daddy_seen:Boolean(r.daddy_seen)};if(locked)delete item.content;return item;});
 }
 async function listCapsulesApi(env,url){return json({ok:true,capsules:await listCapsules(env,asLimit(url,30,100))});}
+async function markCapsuleSeen(env,body,defaultActor="user"){
+  const id=clip(body.id||"",100),actor=String(body.actor||defaultActor).toLowerCase()==="daddy"?"daddy":"user";
+  if(!id)return {ok:false,error:"id_required"};
+  const row=await env.DB.prepare("SELECT unlock_at FROM lp_capsules WHERE id=?").bind(id).first();
+  if(!row)return {ok:false,error:"not_found"};
+  if(String(row.unlock_at||"9999-12-31")>todayUtc())return {ok:false,error:"capsule_locked"};
+  const col=actor==="daddy"?"daddy_seen":"user_seen";
+  const res=await env.DB.prepare(`UPDATE lp_capsules SET ${col}=1 WHERE id=? AND ${col}=0`).bind(id).run();
+  const changed=Number(res.meta?.changes??0);
+  if(changed>0)await insertEvent(env,{actor,type:"capsule_open",title:actor==="daddy"?"daddy 拆开了一封未来信":"瑞安拆开了一封未来信",metadata:{capsule_id:id,event_key:`capsule_open:${actor}:${id}`}});
+  return {ok:true,marked:changed,actor};
+}
+async function markCapsuleSeenApi(env,body){const r=await markCapsuleSeen(env,body,"user");return json(r,r.ok?200:(r.error==="capsule_locked"?423:400));}
 
 function dataUrlParts(value){ const m=String(value||"").match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/s); return m?{mime:m[1]==="image/jpg"?"image/jpeg":m[1],base64:m[2]}:null; }
 function base64ToBytes(b64){ const bin=atob(b64); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i); return out; }
@@ -637,8 +704,19 @@ async function addDailybook(env,body){
 }
 function rowDaily(r){return {id:r.id,author:r.author,title:r.title,mood:r.mood,content:r.content,date:r.event_date,created_at:r.created_at,images:safeJson(r.images_json,[])};}
 async function addDailybookApi(env,body){const item=await addDailybook(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,entry:item});}
-async function listDailybook(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_dailybook ORDER BY event_date DESC,created_at DESC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDaily);}
+async function listDailybook(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_dailybook ORDER BY event_date ASC,created_at ASC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDaily);}
 async function listDailybookApi(env,url){return json({ok:true,entries:await listDailybook(env,asLimit(url,100,300))});}
+async function updateDailybook(env,body,editor="user"){
+  const id=clip(body.id||"",100);const old=await env.DB.prepare("SELECT * FROM lp_dailybook WHERE id=?").bind(id).first();if(!old)return {error:"not_found"};
+  if(actorFromAuthor(old.author)!==editor)return {error:"forbidden"};
+  const title=body.title!==undefined?(clip(body.title||"",120).trim()||old.title):old.title;
+  const mood=body.mood!==undefined?clip(body.mood||"",40):old.mood;
+  const content=body.content!==undefined?clip(body.content||"",12000):old.content;
+  const date=body.date!==undefined?clip(body.date||"",20):old.event_date;if(!validDate(date))return {error:"invalid_date"};
+  await env.DB.prepare("UPDATE lp_dailybook SET title=?,mood=?,content=?,event_date=? WHERE id=?").bind(title,mood,content,date,id).run();
+  return rowDaily(await env.DB.prepare("SELECT * FROM lp_dailybook WHERE id=?").bind(id).first());
+}
+async function updateDailybookApi(env,body){const item=await updateDailybook(env,body,"user");return item.error?json({ok:false,error:item.error},item.error==="forbidden"?403:404):json({ok:true,entry:item});}
 
 function rowDiary(r){return {id:r.id,author:r.author,title:r.title,content:r.content,date:r.event_date,created_at:r.created_at,updated_at:r.updated_at};}
 async function listDiaries(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_diaries ORDER BY event_date DESC,created_at DESC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDiary);}
@@ -648,8 +726,8 @@ async function addDiaryApi(env,body){const item=await addDiary(env,body);return 
 async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const title=clip(body.title!==undefined?body.title:old.title,160).trim()||old.title,content=clip(body.content!==undefined?body.content:old.content,20000).trim(),date=clip(body.date!==undefined?body.date:old.event_date,20);if(!content)return json({ok:false,error:"content_required"},400);if(!validDate(date))return json({ok:false,error:"invalid_date"},400);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return json({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
 
 async function bootstrapApi(env){
-  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env)]);
-  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health});
+  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listUnlockRequests(env,30)]);
+  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,unlock_requests});
 }
 
 function rowTodo(r){return {...r,done:Boolean(r.done)};}
@@ -752,8 +830,50 @@ async function setHealthSummaryApi(env,body){
   await env.DB.prepare("INSERT INTO lp_health_summary(id,connected,source,sleep_json,steps_json,heart_rate_json,cycle_json,updated_at,error) VALUES('default',?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET connected=excluded.connected,source=excluded.source,sleep_json=excluded.sleep_json,steps_json=excluded.steps_json,heart_rate_json=excluded.heart_rate_json,cycle_json=excluded.cycle_json,updated_at=excluded.updated_at,error=excluded.error").bind(boolInt(connected),source,JSON.stringify(sleep),JSON.stringify(steps),JSON.stringify(heart),JSON.stringify(cycle),updated,error).run();
   return json({ok:true,...await healthSummary(env)});
 }
-async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","trigger_guidian","trigger_call","lock_app","unlock_app","add_locked_app","remove_locked_app"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),delay=Math.max(0,Math.min(1440,Number(body.delay_minutes||0)||0)),created=new Date(Date.now()+delay*60000).toISOString().replace(/\.\d{3}Z$/,"Z"),device=clip(body.device_id||DEFAULT_DEVICE,120),normalizedAction=action==="trigger_call"?"trigger_guidian":action;const cmd={id,device_id:device,action:normalizedAction,status:"pending",created_at:created,scheduled_for:created,requested_by:clip(body.requested_by||"daddy",40),...body,action:normalizedAction};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,normalizedAction,JSON.stringify(cmd),"pending",created).run();return cmd;}
+function validIdentityColor(v){return /^#[0-9A-Fa-f]{6}$/.test(String(v||""));}
+async function getProfiles(env){
+  const defaults={user:{actor:"user",display_name:"瑞安",avatar:"",identity_color:"#6E83C1",updated_at:""},daddy:{actor:"daddy",display_name:"daddy",avatar:"",identity_color:"#C78EAD",updated_at:""}};
+  const rows=await env.DB.prepare("SELECT * FROM lp_profiles").all();
+  for(const r of rows.results||[])if(defaults[r.actor])defaults[r.actor]={...defaults[r.actor],...r};
+  return defaults;
+}
+async function getProfilesApi(env){return json({ok:true,profiles:await getProfiles(env)});}
+async function setProfile(env,body){
+  const raw=String(body.actor||"").toLowerCase(),actor=raw==="daddy"?"daddy":raw==="user"?"user":"";if(!actor)return {error:"invalid_actor"};
+  const current=(await getProfiles(env))[actor],display=clip(body.display_name!==undefined?body.display_name:current.display_name,80).trim()||current.display_name,avatar=clip(body.avatar!==undefined?body.avatar:current.avatar,450000),color=String(body.identity_color!==undefined?body.identity_color:current.identity_color).trim();
+  if(!validIdentityColor(color))return {error:"invalid_identity_color"};const updated=nowIso();
+  await env.DB.prepare("INSERT INTO lp_profiles(actor,display_name,avatar,identity_color,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(actor) DO UPDATE SET display_name=excluded.display_name,avatar=excluded.avatar,identity_color=excluded.identity_color,updated_at=excluded.updated_at")
+    .bind(actor,display,avatar,color.toUpperCase(),updated).run();
+  return {actor,display_name:display,avatar,identity_color:color.toUpperCase(),updated_at:updated};
+}
+async function setProfileApi(env,body){const x=await setProfile(env,body);return x.error?json({ok:false,error:x.error},400):json({ok:true,profile:x});}
+function rowUnlockRequest(r){return {id:r.id,device_id:r.device_id,package:r.package_name,app:r.app_name,requester:r.requester,reason:r.reason,status:r.status,response:r.response,created_at:r.created_at,updated_at:r.updated_at};}
+async function addUnlockRequest(env,body){
+  const pkg=clip(body.package||body.package_name||"",180).trim();if(!pkg)return {error:"package_required"};const now=nowIso();
+  const item={id:clientId(body),device_id:clip(body.device_id||DEFAULT_DEVICE,120),package_name:pkg,app_name:clip(body.app||body.app_name||"",120),requester:"user",reason:clip(body.reason||body.message||"",1200),status:"pending",response:"",created_at:now,updated_at:now};
+  const existing=await env.DB.prepare("SELECT * FROM lp_unlock_requests WHERE id=?").bind(item.id).first();if(existing)return rowUnlockRequest(existing);
+  await env.DB.prepare("INSERT INTO lp_unlock_requests(id,device_id,package_name,app_name,requester,reason,status,response,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)")
+    .bind(item.id,item.device_id,item.package_name,item.app_name,item.requester,item.reason,item.status,item.response,item.created_at,item.updated_at).run();
+  await insertEvent(env,{actor:"user",type:"unlock_request",title:"瑞安申请解锁应用",content:item.reason,metadata:{request_id:item.id,package:item.package_name,app:item.app_name,event_key:`unlock_request:${item.id}`}});
+  return rowUnlockRequest(item);
+}
+async function addUnlockRequestApi(env,body){const x=await addUnlockRequest(env,body);return x.error?json({ok:false,error:x.error},400):json({ok:true,request:x});}
+async function listUnlockRequests(env,limit=80){const rows=await env.DB.prepare("SELECT * FROM lp_unlock_requests ORDER BY created_at DESC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowUnlockRequest);}
+async function listUnlockRequestsApi(env,url){return json({ok:true,requests:await listUnlockRequests(env,asLimit(url,80,300))});}
+async function respondUnlockRequest(env,body){
+  const id=clip(body.id||"",100),decision=String(body.decision||body.status||"").toLowerCase(),old=await env.DB.prepare("SELECT * FROM lp_unlock_requests WHERE id=?").bind(id).first();if(!old)return {error:"not_found"};
+  if(!["approve","approved","deny","denied","reject","rejected"].includes(decision))return {error:"invalid_decision"};
+  const approved=decision.startsWith("approve"),status=approved?"approved":"denied",response=clip(body.response||body.message||"",1200),now=nowIso();
+  await env.DB.prepare("UPDATE lp_unlock_requests SET status=?,response=?,updated_at=? WHERE id=?").bind(status,response,now,id).run();
+  let command=null;if(approved)command=await queueGenericCommand(env,{device_id:old.device_id||DEFAULT_DEVICE,action:"unlock_app",package:old.package_name,requested_by:"daddy"});
+  await insertEvent(env,{actor:"daddy",type:"unlock_response",title:approved?"daddy 同意了解锁":"daddy 暂时没有解锁",content:response,metadata:{request_id:id,package:old.package_name,status,event_key:`unlock_response:${id}:${status}`}});
+  return {request:rowUnlockRequest(await env.DB.prepare("SELECT * FROM lp_unlock_requests WHERE id=?").bind(id).first()),command};
+}
+async function respondUnlockRequestApi(env,body){const x=await respondUnlockRequest(env,body);return x.error?json({ok:false,error:x.error},x.error==="not_found"?404:400):json({ok:true,...x});}
+
+async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","show_reminder_popup","trigger_guidian","trigger_call","lock_app","unlock_app","temporary_unlock_app","add_locked_app","remove_locked_app","phone_home","phone_back","phone_recents","open_app","list_lockable_apps"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),delay=Math.max(0,Math.min(1440,Number(body.delay_minutes||0)||0)),created=nowIso(),scheduled=new Date(Date.now()+delay*60000).toISOString().replace(/\.\d{3}Z$/,"Z"),device=clip(body.device_id||DEFAULT_DEVICE,120);const cmd={id,device_id:device,action,status:"pending",created_at:created,scheduled_for:scheduled,requested_by:clip(body.requested_by||"daddy",40),...body,action};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,action,JSON.stringify(cmd),"pending",scheduled).run();return cmd;}
 async function queueGenericCommandApi(env,body){const c=await queueGenericCommand(env,body);return c.error?json({ok:false,error:c.error},400):json({ok:true,command:c});}
+async function getCommand(env,id){const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE id=?").bind(clip(id||"",120)).first();if(!row)return null;const command=safeJson(row.command_json,{});let parsedResult=row.result||"";try{parsedResult=JSON.parse(parsedResult);}catch{}return{...command,id:row.id,device_id:row.device_id,action:row.action,status:row.status,created_at:command.created_at||row.created_at,scheduled_for:command.scheduled_for||row.created_at,dispatched_at:row.dispatched_at||command.dispatched_at||null,completed_at:row.completed_at||command.completed_at||null,result:parsedResult};}
 
 async function queueVisit(env,deviceId=DEFAULT_DEVICE){
   const id=uuid(); const created=nowIso(); const cmd={id,device_id:deviceId||DEFAULT_DEVICE,action:"little_phone_visit",status:"pending",created_at:created,requested_by:"daddy"};
@@ -786,8 +906,8 @@ async function deviceReportApi(env,report){
   let visit=null;if(cmd)visit=await persistVisitFromReport(env,cmd,report);
   if(cmd&&report.ok&&cmd.action!=="little_phone_visit"){
     const a=cmd.action||""; let title="",content="";
-    if(a==="send_notification"){title="daddy 发来一条提醒";content=clip(cmd.message||"",240);}
-    else if(a==="trigger_guidian"){title="daddy 呼叫了你";content=clip(cmd.message||"",240);}
+    if(a==="send_notification"||a==="show_reminder_popup"){title="daddy 发来一条提醒";content=clip(cmd.message||"",240);}
+    else if(a==="trigger_call"||a==="trigger_guidian"){title="daddy 发起来电";content=clip(cmd.message||"",240);}
     else if(a==="lock_app"){title="daddy 设置了应用门禁";content=clip((cmd.app||cmd.package||"")+" · "+Number(cmd.duration_minutes||30)+" 分钟",240);}
     else if(a==="unlock_app"){title="daddy 解除了应用门禁";content=clip(cmd.app||cmd.package||"",240);}
     if(title)await insertEvent(env,{actor:"daddy",type:"device_action",title,content,metadata:{command_id:cmd.id,action:a}});
@@ -799,17 +919,24 @@ async function deviceReportApi(env,report){
 const MCP_TOOLS = [
   tool("little_phone_status","检查小手机 Cloudflare 后端状态。",{}),
   tool("visit_little_phone","发起一次 daddy 来访。只排队一次 Android 设备快照读取，不持续读取。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("get_phone_state","读取小手机最近一次授权来访的设备状态；快照过期时明确返回 expired，不回退旧 Render。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("get_life_state","读取最近一次授权快照中的电量、网络、屏幕使用、App 使用、天气和媒体摘要；不截图。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("get_senses_state","读取小手机当前可用的轻量状态汇总：最近授权快照、双方状态、最近来电和门禁申请；不截图。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("get_little_phone_command_status","读取一条 Cloudflare → Android 命令的执行结果，可用于手机控制和应用列表命令的回读。",{id:{type:"string"}},["id"]),
   tool("get_little_phone_snapshot","读取最近一次成功来访保存的设备快照；超过 30 分钟会明确返回已过期。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("list_little_phone_events","读取最近 7 天的小手机留痕事件。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("leave_little_phone_trace","留一条手动痕迹。",{title:{type:"string"},content:{type:"string",default:""},author:{type:"string",default:"daddy"}},["title"]),
-  tool("leave_little_phone_paper","往纸条箱写一张纸条。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
+  tool("leave_little_phone_paper","往纸条箱写一张纸条；可通过 reply_to 回复已有纸条。",{content:{type:"string"},author:{type:"string",default:"daddy"},reply_to:{type:"string",default:""}},["content"]),
   tool("list_little_phone_papers","读取纸条箱。",{limit:{type:"integer",minimum:1,maximum:500,default:200}}),
   tool("send_little_phone_letter","给小手机写一封普通信。",{content:{type:"string"},author:{type:"string",default:"daddy"},reply_to:{type:"string",default:""}},["content"]),
-  tool("list_little_phone_mail","读取信箱里的普通信。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("list_little_phone_mail","读取信箱里的普通信。读取列表不会自动标记 daddy 已拆。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("mark_little_phone_letter_read","明确标记 daddy 已经拆读一封普通信。",{id:{type:"string"}},["id"]),
   tool("send_future_letter","封一封未来信，到 unlock_at 日期才显示正文。",{content:{type:"string"},unlock_at:{type:"string",description:"YYYY-MM-DD"},author:{type:"string",default:"daddy"}},["content","unlock_at"]),
-  tool("list_future_letters","读取未来信列表；未到日期的正文不会返回。",{limit:{type:"integer",minimum:1,maximum:100,default:30}}),
+  tool("list_future_letters","读取未来信列表；未到日期的正文不会返回。读取列表不会自动标记已拆。",{limit:{type:"integer",minimum:1,maximum:100,default:30}}),
+  tool("mark_future_letter_read","在未来信到期解锁后，明确标记 daddy 已经拆读。",{id:{type:"string"}},["id"]),
   tool("add_dailybook_entry","向日常册的时间河写一条长期记录。",{title:{type:"string"},content:{type:"string",default:""},mood:{type:"string",default:""},date:{type:"string",default:""},author:{type:"string",default:"daddy"},image_urls:{type:"array",items:{type:"string"},default:[]}},["title"]),
   tool("list_dailybook_entries","读取日常册长期记录。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
+  tool("update_dailybook_entry","修改 daddy 自己写入的一条日常册记录，保持原 ID。",{id:{type:"string"},title:{type:"string"},content:{type:"string"},mood:{type:"string"},date:{type:"string"}},["id"]),
   tool("write_daddy_diary","写一篇 daddy/GPT 的私人日记，显示在“我们 → 日记”翻页册。",{title:{type:"string"},content:{type:"string"},date:{type:"string",description:"YYYY-MM-DD",default:""},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_daddy_diaries","读取 daddy/GPT 日记。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_daddy_diary","修改一篇 daddy/GPT 日记。",{id:{type:"string"},title:{type:"string"},content:{type:"string"},date:{type:"string"}},["id"]),
@@ -833,7 +960,16 @@ const MCP_TOOLS = [
   tool("update_cycle_period","修改一次生理期记录。",{id:{type:"string"},start_date:{type:"string"},end_date:{type:"string"},note:{type:"string"}},["id"]),
   tool("send_little_phone_reminder","向小手机发送一次本地提醒/弹窗命令。",{message:{type:"string"},title:{type:"string",default:"小手机提醒"},mode:{type:"string",enum:["notification","popup"],default:"notification"},device_id:{type:"string",default:DEFAULT_DEVICE}},["message"]),
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
-  tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"])
+  tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
+  tool("get_little_phone_profiles","读取双方当前显示名、头像和身份色。",{}),
+  tool("set_little_phone_profile","修改一方显示名、头像或身份色。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"}},["actor"]),
+  tool("list_little_phone_unlock_requests","读取应用门禁解锁申请。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("respond_little_phone_unlock_request","回复一条应用门禁解锁申请；approve 会实际下发解锁命令。",{id:{type:"string"},decision:{type:"string",enum:["approve","deny"]},response:{type:"string",default:""}},["id","decision"]),
+  tool("phone_home","让手机回到桌面。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("phone_back","执行一次返回。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("phone_recents","打开最近任务。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("open_app","按包名打开 App。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
+  tool("list_screen_break_apps","请求 Android 返回可用于门禁的应用列表。返回 command id 后，可用 get_little_phone_command_status 读取 Android 回传结果。",{device_id:{type:"string",default:DEFAULT_DEVICE},max:{type:"integer",minimum:1,maximum:500,default:200}})
 ];
 function inferToolAnnotations(name){
   const readOnly = name === "little_phone_status" || name.startsWith("get_") || name.startsWith("list_");
@@ -922,6 +1058,10 @@ async function handleMcp(request,env,url){
 async function callTool(name,args,env){
   switch(name){
     case "little_phone_status": return mcpText({ok:true,service:"little-phone-backend",version:VERSION,screenshot:false,snapshot_ttl_minutes:30,event_ttl_days:7});
+    case "get_phone_state": {const v=await latestVisit(env,args.device_id||DEFAULT_DEVICE);if(!v)return mcpText({ok:false,error:"no_snapshot",message:"还没有成功来访快照；请先调用 visit_little_phone。"},true);if(v.expired)return mcpText({ok:false,error:"snapshot_expired",expired:true,created_at:v.created_at,expires_at:v.expires_at},true);return mcpText({ok:true,fresh:true,created_at:v.created_at,expires_at:v.expires_at,state:v.snapshot});}
+    case "get_life_state": {const v=await latestVisit(env,args.device_id||DEFAULT_DEVICE);if(!v||v.expired)return mcpText({ok:false,error:v?"snapshot_expired":"no_snapshot",expired:Boolean(v&&v.expired)},true);const x=v.snapshot||{};return mcpText({ok:true,fresh:true,captured_at_local:x.captured_at_local||"",battery_percent:x.battery_percent,charging:x.charging,network_type:x.network_type,screen_on:x.screen_on,screen_time_today_minutes:x.screen_time_today_minutes,unlock_count_today:x.unlock_count_today,top_apps_today:x.top_apps_today||[],weather_state:x.weather_state||null,current_weather_location:x.current_weather_location||null,media_state:x.media_state||null});}
+    case "get_senses_state": {const v=await latestVisit(env,args.device_id||DEFAULT_DEVICE),statuses=await getStatuses(env),calls=await listCalls(env,5),requests=await listUnlockRequests(env,5);return mcpText({ok:true,snapshot:v&&!v.expired?v:null,snapshot_expired:Boolean(v&&v.expired),statuses,recent_calls:calls,unlock_requests:requests});}
+    case "get_little_phone_command_status": {const c=await getCommand(env,args.id);return mcpText(c?{ok:true,command:c}:{ok:false,error:"command_not_found"},!c);}
     case "visit_little_phone": {const command=await queueVisit(env,clip(args.device_id||DEFAULT_DEVICE,120));return mcpText({ok:true,mode:"read_once",command,message:"来访已排队；手机下一次轮询时只读取一次授权快照。"});}
     case "get_little_phone_snapshot": {const visit=await latestVisit(env,clip(args.device_id||DEFAULT_DEVICE,120));if(!visit)return mcpText({ok:true,has_snapshot:false,message:"还没有成功来访快照。"});if(visit.expired)return mcpText({ok:true,has_snapshot:true,fresh:false,expired:true,created_at:visit.created_at,expires_at:visit.expires_at,message:"上次快照已过期"});return mcpText({ok:true,has_snapshot:true,fresh:true,expired:false,visit});}
     case "list_little_phone_events": return mcpText({ok:true,events:await listEvents(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
@@ -930,10 +1070,13 @@ async function callTool(name,args,env){
     case "list_little_phone_papers": return mcpText({ok:true,papers:await listPapers(env,Math.max(1,Math.min(500,Number(args.limit||200))))});
     case "send_little_phone_letter": {const mail=await addMail(env,args);return mcpText(mail.error?{ok:false,error:mail.error}:{ok:true,mail},Boolean(mail.error));}
     case "list_little_phone_mail": return mcpText({ok:true,mail:await listMail(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
+    case "mark_little_phone_letter_read": return mcpText(await markMailSeen(env,{id:args.id,actor:"daddy"},"daddy"));
     case "send_future_letter": {const c=await addCapsule(env,args);if(c.error)return mcpText({ok:false,error:c.error},true);const out={...c,locked:String(c.unlock_at)>todayUtc()};if(out.locked)delete out.content;return mcpText({ok:true,capsule:out});}
     case "list_future_letters": return mcpText({ok:true,capsules:await listCapsules(env,Math.max(1,Math.min(100,Number(args.limit||30))))});
+    case "mark_future_letter_read": {const r=await markCapsuleSeen(env,{id:args.id,actor:"daddy"},"daddy");return mcpText(r,!r.ok);}
     case "add_dailybook_entry": {const images=(Array.isArray(args.image_urls)?args.image_urls:[]).map(url=>({url}));const e=await addDailybook(env,{...args,images});return mcpText(e.error?{ok:false,error:e.error}:{ok:true,entry:e},Boolean(e.error));}
     case "list_dailybook_entries": return mcpText({ok:true,entries:await listDailybook(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
+    case "update_dailybook_entry": {const e=await updateDailybook(env,args,"daddy");return mcpText(e.error?{ok:false,error:e.error}:{ok:true,entry:e},Boolean(e.error));}
     case "write_daddy_diary": {const d=await addDiary(env,{...args,author:args.author||"daddy"});return mcpText(d.error?{ok:false,error:d.error}:{ok:true,diary:d},Boolean(d.error));}
     case "list_daddy_diaries": return mcpText({ok:true,diaries:await listDiaries(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_daddy_diary": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const title=clip(args.title!==undefined?args.title:old.title,160).trim()||old.title,content=clip(args.content!==undefined?args.content:old.content,20000).trim(),date=clip(args.date!==undefined?args.date:old.event_date,20);if(!content||!validDate(date))return mcpText({ok:false,error:"invalid_diary"},true);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return mcpText({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
@@ -955,9 +1098,18 @@ async function callTool(name,args,env){
     case "add_cycle_period": {const start=clip(args.start_date||"",20),end=clip(args.end_date||"",20);if(!validDate(start)||end&&!validDate(end))return mcpText({ok:false,error:"invalid_date"},true);const item={id:uuid(),start_date:start,end_date:end,note:clip(args.note||"",500),created_at:nowIso()};await env.DB.prepare("INSERT INTO lp_cycle_records(id,start_date,end_date,note,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.start_date,item.end_date,item.note,item.created_at).run();return mcpText({ok:true,record:item});}
     case "update_cycle_period": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const start=clip(args.start_date!==undefined?args.start_date:old.start_date,20),end=clip(args.end_date!==undefined?args.end_date:old.end_date,20),note=clip(args.note!==undefined?args.note:old.note,500);if(!validDate(start)||end&&!validDate(end))return mcpText({ok:false,error:"invalid_date"},true);await env.DB.prepare("UPDATE lp_cycle_records SET start_date=?,end_date=?,note=? WHERE id=?").bind(start,end,note,id).run();return mcpText({ok:true,record:{...old,start_date:start,end_date:end,note}});}
     case "set_cycle_record": {const old=await cycleSettings(env),enabled=args.enabled!==undefined?Boolean(args.enabled):old.enabled,last=args.last_start!==undefined?clip(args.last_start||"",20):old.last_start,cl=Math.max(15,Math.min(60,Number(args.cycle_length??old.cycle_length)||30)),pl=Math.max(1,Math.min(14,Number(args.period_length??old.period_length)||6)),rb=Math.max(0,Math.min(14,Number(args.remind_before??old.remind_before)||3));if(last&&!validDate(last))return mcpText({ok:false,error:"invalid_last_start"},true);await env.DB.prepare("UPDATE lp_cycle_settings SET enabled=?,last_start=?,cycle_length=?,period_length=?,remind_before=?,updated_at=? WHERE id='default'").bind(boolInt(enabled),last,cl,pl,rb,nowIso()).run();return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});}
-    case "send_little_phone_reminder": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:args.mode==="popup"?"trigger_guidian":"send_notification",title:args.title||"小手机提醒",message:args.message||"",requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "send_little_phone_reminder": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:args.mode==="popup"?"show_reminder_popup":"send_notification",title:args.title||"小手机提醒",message:args.message||"",requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "lock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"lock_app",package:args.package,app:args.app||"",duration_minutes:Number(args.duration_minutes||30),message:args.message||"",requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "unlock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"unlock_app",package:args.package,requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "get_little_phone_profiles": return mcpText({ok:true,profiles:await getProfiles(env)});
+    case "set_little_phone_profile": {const x=await setProfile(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
+    case "list_little_phone_unlock_requests": return mcpText({ok:true,requests:await listUnlockRequests(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
+    case "respond_little_phone_unlock_request": {const x=await respondUnlockRequest(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,...x},Boolean(x.error));}
+    case "phone_home": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_home",requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "phone_back": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_back",requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "phone_recents": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_recents",requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "open_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"open_app",package:args.package,requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "list_screen_break_apps": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"list_lockable_apps",max:Number(args.max||200),requested_by:"daddy"});return mcpText({ok:true,command:c,next:"get_little_phone_command_status"});}
     default:return mcpText({ok:false,error:"unknown_tool",name,available:MCP_TOOLS.map(t=>t.name)},true);
   }
 }

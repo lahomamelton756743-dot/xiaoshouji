@@ -64,7 +64,7 @@ public class CompanionService extends Service {
             DebugState.append(this, "服务启动失败：服务器地址或 Token 为空");
             stopSelf(); return START_NOT_STICKY;
         }
-        DebugState.append(this, "小手机公开版 v0.3.8.9 服务已启动，目标：" + serverUrl);
+        DebugState.append(this, "小手机 v" + AppPrefs.APP_VERSION_NAME + " 服务已启动，目标：" + serverUrl);
         if (!running) { running = true; startPolling(); } else DebugState.append(this, "服务已在运行，继续轮询");
         return START_STICKY;
     }
@@ -182,11 +182,13 @@ public class CompanionService extends Service {
                 try { reportCommand(ctx, serverUrl, token, id, ok, result); } catch (Exception ignored) { }
                 return;
             }
-            if ("get_guidian_state".equals(action) || "set_guidian_config".equals(action) || "trigger_guidian".equals(action) || "mark_guidian_returned".equals(action)) {
-                JSONObject rr = GuidianState.handleCommand(ctx, cmd);
+            if ("get_guidian_state".equals(action) || "set_guidian_config".equals(action) || "trigger_guidian".equals(action) || "trigger_call".equals(action) || "mark_guidian_returned".equals(action)) {
+                JSONObject callCmd = new JSONObject(cmd.toString());
+                if ("trigger_call".equals(action)) callCmd.put("action", "trigger_guidian");
+                JSONObject rr = GuidianState.handleCommand(ctx, callCmd);
                 boolean ok = rr.optBoolean("ok", false);
                 String result = rr.optString("result", rr.toString());
-                DebugState.append(ctx, "执行归电命令 " + action + "：" + result);
+                DebugState.append(ctx, "执行来电命令 " + action + "：" + result);
                 try { reportCommand(ctx, serverUrl, token, id, ok, result); uploadStateThrottled(serverUrl, token, ctx, false); } catch (Exception ignored) { }
                 return;
             }
@@ -335,15 +337,16 @@ public class CompanionService extends Service {
                 if (pkg == null || pkg.length() == 0) pkg = AppPrefs.packageForApp(ctx, app);
                 result = openPackageResult(ctx, pkg);
                 ok = result.startsWith("opened_");
-            } else if ("home".equals(action)) { ok = svc != null && svc.doHome(); result = ok ? "home" : "home_failed_or_accessibility_missing";
-            } else if ("back".equals(action)) { ok = svc != null && svc.doBack(); result = ok ? "back" : "back_failed_or_accessibility_missing";
-            } else if ("recents".equals(action)) { ok = svc != null && svc.doRecents(); result = ok ? "recents" : "recents_failed_or_accessibility_missing";
+            } else if ("home".equals(action) || "phone_home".equals(action)) { ok = svc != null && svc.doHome(); result = ok ? "home" : "home_failed_or_accessibility_missing";
+            } else if ("back".equals(action) || "phone_back".equals(action)) { ok = svc != null && svc.doBack(); result = ok ? "back" : "back_failed_or_accessibility_missing";
+            } else if ("recents".equals(action) || "phone_recents".equals(action)) { ok = svc != null && svc.doRecents(); result = ok ? "recents" : "recents_failed_or_accessibility_missing";
             } else if ("screen_off".equals(action) || "turn_screen_off".equals(action) || "lock_screen".equals(action) || "phone_screen_off".equals(action)) { ok = svc != null && svc.doLockScreen(); result = ok ? "screen_off" : "screen_off_failed_or_accessibility_missing_or_android_too_old";
             } else if ("tap".equals(action)) { ok = svc != null && svc.doTap(x, y); result = ok ? ("tap:" + x + "," + y) : "tap_failed_or_accessibility_missing";
             } else if ("swipe".equals(action)) { ok = svc != null && svc.doSwipe(x1, y1, x2, y2, duration); result = ok ? "swipe" : "swipe_failed_or_accessibility_missing";
             } else if ("set_alarm".equals(action)) { ok = setAlarm(ctx, hour, minute, message, vibrate, skipUi); result = ok ? "alarm " + hour + ":" + minute : "cannot set alarm";
             } else if ("send_notification".equals(action)) { ok = showReminderNotification(ctx, title, message); result = ok ? "heads_up_notification_sent" : "notification permission missing";
-            } else if ("get_guidian_state".equals(action) || "set_guidian_config".equals(action) || "trigger_guidian".equals(action) || "mark_guidian_returned".equals(action)) { JSONObject rr = GuidianState.handleCommand(ctx, new JSONObject().put("action", action)); ok = rr.optBoolean("ok", false); result = rr.toString();
+            } else if ("show_reminder_popup".equals(action)) { ok = showReminderPopup(ctx, title, message); result = ok ? "reminder_popup_shown" : "reminder_popup_failed";
+            } else if ("get_guidian_state".equals(action) || "set_guidian_config".equals(action) || "trigger_guidian".equals(action) || "trigger_call".equals(action) || "mark_guidian_returned".equals(action)) { JSONObject c = new JSONObject().put("action", "trigger_call".equals(action) ? "trigger_guidian" : action).put("message", message); JSONObject rr = GuidianState.handleCommand(ctx, c); ok = rr.optBoolean("ok", false); result = rr.toString();
             } else { ok = true; result = "noop"; }
         } catch (Exception e) { result = ScreenshotService.shortMsg(e); }
         try { out.put("ok", ok); out.put("action", action); out.put("result", result); } catch (Exception ignored) { }
@@ -468,6 +471,21 @@ public class CompanionService extends Service {
 
     public static boolean showReminderNotification(Context ctx, String title, String message) {
         return showReminderNotification(ctx, title, message, (int)(System.currentTimeMillis() % Integer.MAX_VALUE));
+    }
+
+    public static boolean showReminderPopup(Context ctx, String title, String message) {
+        try {
+            Intent i = new Intent(ctx, ReminderActivity.class);
+            i.putExtra("title", (title == null || title.trim().isEmpty()) ? "小手机提醒" : title.trim());
+            i.putExtra("message", (message == null || message.trim().isEmpty()) ? AppPrefs.userName(ctx) + "，看一眼这里。" : message.trim());
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            ctx.startActivity(i);
+            DebugState.append(ctx, "提醒弹层已打开");
+            return true;
+        } catch (Exception e) {
+            DebugState.append(ctx, "提醒弹层异常：" + ScreenshotService.shortMsg(e));
+            return false;
+        }
     }
 
     public static boolean showHomeModeNotification(Context ctx, String title, String message) {

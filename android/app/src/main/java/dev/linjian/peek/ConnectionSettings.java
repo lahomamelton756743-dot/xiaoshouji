@@ -31,7 +31,7 @@ public final class ConnectionSettings {
         box.addView(hint, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         EditText server = new EditText(activity);
-        server.setHint("https://你的-server.onrender.com");
+        server.setHint("https://你的-worker.workers.dev");
         server.setSingleLine(true);
         server.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         server.setText(AppPrefs.server(activity));
@@ -66,7 +66,7 @@ public final class ConnectionSettings {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String url = AppPrefs.cleanServer(server.getText().toString());
             if (!url.isEmpty() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-                server.setError("需要完整地址，例如 https://xxx.onrender.com");
+                server.setError("需要完整地址，例如 https://xxx.workers.dev");
                 return;
             }
             String tokenValue = token.getText().toString().trim();

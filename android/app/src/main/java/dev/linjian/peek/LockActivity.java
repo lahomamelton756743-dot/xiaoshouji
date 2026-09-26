@@ -23,7 +23,7 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
-/** v0.6.2 小手机统一应用门禁页。 */
+/** v0.6.3 小手机统一应用门禁页。 */
 public class LockActivity extends Activity {
     private String pkg;
     private TextView titleView, ownerView, remainView, reasonView, messageView, ownerNameView;

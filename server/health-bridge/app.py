@@ -13,7 +13,7 @@ try:
 except Exception:  # pragma: no cover - service can still expose /health for diagnosis
     MiHealthClient = None
 
-APP_VERSION = "0.6.2"
+APP_VERSION = "0.6.3"
 TOKEN_FILE = Path(os.getenv("MI_FITNESS_TOKEN_FILE", "token.json"))
 TARGET_UID = os.getenv("MI_FITNESS_TARGET_UID", "").strip()
 LITTLE_PHONE_URL = os.getenv("LITTLE_PHONE_URL", "https://little-phone-backend.lahomamelton756743.workers.dev").rstrip("/")

@@ -28,10 +28,18 @@ public class ActiveReminder {
             o.put("screen_time_threshold_minutes", p.getInt(AppPrefs.KEY_SCREEN_THRESHOLD_MIN, 240));
             o.put("water_enabled", p.getBoolean(AppPrefs.KEY_RULE_WATER, false));
             o.put("water_interval_minutes", p.getInt(AppPrefs.KEY_WATER_INTERVAL_MIN, 120));
+            o.put("water_message", p.getString(AppPrefs.KEY_WATER_MESSAGE, AppPrefs.DEFAULT_WATER_MESSAGE));
             o.put("rest_enabled", p.getBoolean(AppPrefs.KEY_RULE_REST, true));
             o.put("rest_interval_minutes", p.getInt(AppPrefs.KEY_REST_INTERVAL_MIN, 90));
+            o.put("rest_message", p.getString(AppPrefs.KEY_REST_MESSAGE, AppPrefs.DEFAULT_REST_MESSAGE));
         } catch (Exception ignored) { }
         return o;
+    }
+
+    private static String reminderText(Context ctx, String raw, String fallback) {
+        String s = raw == null ? "" : raw.trim();
+        if (s.isEmpty()) s = fallback;
+        return s.replace("{user}", AppPrefs.userName(ctx)).replace("{daddy}", AppPrefs.companionName(ctx));
     }
 
     public static String pretty(Context ctx) {
@@ -84,14 +92,14 @@ public class ActiveReminder {
             if (p.getBoolean(AppPrefs.KEY_RULE_WATER, false)) {
                 int interval = clamp(p.getInt(AppPrefs.KEY_WATER_INTERVAL_MIN, 120), 30, 720);
                 if (cooldownDue(p, "water", now, interval * MIN, true)) {
-                    notify(ctx, "小手机喝水提醒", AppPrefs.userName(ctx) + "，喝两口水。不是一大杯，就两口。", "water");
+                    notify(ctx, AppPrefs.companionName(ctx) + " · 喝水提醒", reminderText(ctx, p.getString(AppPrefs.KEY_WATER_MESSAGE, AppPrefs.DEFAULT_WATER_MESSAGE), AppPrefs.DEFAULT_WATER_MESSAGE), "water");
                 }
             }
 
             if (p.getBoolean(AppPrefs.KEY_RULE_REST, true) && state.optBoolean("screen_on", false)) {
                 int interval = clamp(p.getInt(AppPrefs.KEY_REST_INTERVAL_MIN, 90), 30, 720);
                 if (cooldownDue(p, "rest", now, interval * MIN, true)) {
-                    notify(ctx, "小手机休息提醒", "小猫，眼睛离开屏幕半分钟，动一下肩颈，再回来玩。", "rest");
+                    notify(ctx, AppPrefs.companionName(ctx) + " · 休息提醒", reminderText(ctx, p.getString(AppPrefs.KEY_REST_MESSAGE, AppPrefs.DEFAULT_REST_MESSAGE), AppPrefs.DEFAULT_REST_MESSAGE), "rest");
                 }
             }
 

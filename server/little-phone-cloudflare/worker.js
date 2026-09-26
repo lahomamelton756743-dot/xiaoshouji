@@ -1,4 +1,4 @@
-const VERSION = "0.6.2-little-phone";
+const VERSION = "0.6.3-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -466,7 +466,7 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_todos_created ON lp_todos(created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_dates (
         id TEXT PRIMARY KEY, title TEXT NOT NULL, event_date TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'important',
-        remind_days INTEGER NOT NULL DEFAULT 3, note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        remind_days INTEGER NOT NULL DEFAULT 3, note TEXT NOT NULL DEFAULT '', mark_style TEXT NOT NULL DEFAULT 'circle', marked_by TEXT NOT NULL DEFAULT 'user', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
       )`,
       `CREATE INDEX IF NOT EXISTS idx_lp_dates_date ON lp_dates(event_date ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_cycle_settings (
@@ -533,7 +533,9 @@ async function ensureSchema(env) {
         "ALTER TABLE lp_mail ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE lp_capsules ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE lp_capsules ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE lp_profiles ADD COLUMN identity_font TEXT NOT NULL DEFAULT 'clean'"
+        "ALTER TABLE lp_profiles ADD COLUMN identity_font TEXT NOT NULL DEFAULT 'clean'",
+        "ALTER TABLE lp_dates ADD COLUMN mark_style TEXT NOT NULL DEFAULT 'circle'",
+        "ALTER TABLE lp_dates ADD COLUMN marked_by TEXT NOT NULL DEFAULT 'user'"
       ];
       for (const sql of alters) { try { await env.DB.prepare(sql).run(); } catch (e) { if (!String(e).toLowerCase().includes("duplicate column")) throw e; } }
       // v0.5.2 single seen meant the phone user had opened the letter. Preserve that truth,
@@ -777,23 +779,24 @@ async function deleteDailybookApi(env,body){
   await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(id).run();return json({ok:true,deleted:id});
 }
 function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||""));}
-function rowDate(r){return {id:r.id,title:r.title,date:r.event_date,kind:r.kind,remind_days:Number(r.remind_days||0),note:r.note||"",created_at:r.created_at,updated_at:r.updated_at};}
+function rowDate(r){return {id:r.id,title:r.title,date:r.event_date,kind:r.kind,remind_days:Number(r.remind_days||0),note:r.note||"",mark_style:r.mark_style||"circle",marked_by:r.marked_by==="daddy"?"daddy":"user",created_at:r.created_at,updated_at:r.updated_at};}
 async function listDates(env,limit=300){const rows=await env.DB.prepare("SELECT * FROM lp_dates ORDER BY event_date ASC, created_at ASC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDate);}
 async function listDatesApi(env,url){return json({ok:true,dates:await listDates(env,asLimit(url,300,500))});}
 async function addDateApi(env,body){
   const title=clip(body.title||"",120).trim(),date=clip(body.date||body.event_date||"",20);if(!title||!validDate(date))return json({ok:false,error:"title_and_date_required"},400);
   const id=clientId(body),existing=await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first();if(existing)return json({ok:true,date:rowDate(existing),deduped:true});
-  const now=nowIso(),item={id,title,date,kind:clip(body.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(body.remind_days??3)||0)),note:clip(body.note||"",500),created_at:now,updated_at:now};
+  const markStyle=["circle","star","heart","underline","dashed","flag"].includes(String(body.mark_style||""))?String(body.mark_style):"circle",markedBy=body.marked_by==="daddy"?"daddy":"user";
+  const now=nowIso(),item={id,title,date,kind:clip(body.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(body.remind_days??3)||0)),note:clip(body.note||"",500),mark_style:markStyle,marked_by:markedBy,created_at:now,updated_at:now};
   if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();
-  await env.DB.prepare("INSERT OR IGNORE INTO lp_dates(id,title,event_date,kind,remind_days,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.created_at,item.updated_at).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO lp_dates(id,title,event_date,kind,remind_days,note,mark_style,marked_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.mark_style,item.marked_by,item.created_at,item.updated_at).run();
   return json({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});
 }
 async function updateDateApi(env,body){
   const id=clip(body.id||"",100);const old=await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);
   const title=body.title!==undefined?(clip(body.title||"",120).trim()||old.title):old.title,date=body.date!==undefined?clip(body.date||"",20):old.event_date;if(!validDate(date))return json({ok:false,error:"invalid_date"},400);
-  const kind=body.kind!==undefined?clip(body.kind||"important",40):old.kind,remind=Math.max(0,Math.min(60,Number(body.remind_days??old.remind_days)||0)),note=body.note!==undefined?clip(body.note||"",500):old.note,now=nowIso();
+  const kind=body.kind!==undefined?clip(body.kind||"important",40):old.kind,remind=Math.max(0,Math.min(60,Number(body.remind_days??old.remind_days)||0)),note=body.note!==undefined?clip(body.note||"",500):old.note,markStyle=body.mark_style!==undefined&&["circle","star","heart","underline","dashed","flag"].includes(String(body.mark_style))?String(body.mark_style):(old.mark_style||"circle"),markedBy=body.marked_by!==undefined?(body.marked_by==="daddy"?"daddy":"user"):(old.marked_by||"user"),now=nowIso();
   if(kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start' AND id<>?").bind(now,id).run();
-  await env.DB.prepare("UPDATE lp_dates SET title=?,event_date=?,kind=?,remind_days=?,note=?,updated_at=? WHERE id=?").bind(title,date,kind,remind,note,now,id).run();return json({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});
+  await env.DB.prepare("UPDATE lp_dates SET title=?,event_date=?,kind=?,remind_days=?,note=?,mark_style=?,marked_by=?,updated_at=? WHERE id=?").bind(title,date,kind,remind,note,markStyle,markedBy,now,id).run();return json({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});
 }
 function cycleProjection(settings,records){
   const out={settings,records};if(!settings?.enabled||!validDate(settings.last_start))return out;
@@ -842,7 +845,7 @@ async function setHealthSummaryApi(env,body){
   return json({ok:true,...await healthSummary(env)});
 }
 function validIdentityColor(v){return /^#[0-9A-Fa-f]{6}$/.test(String(v||""));}
-function validIdentityFont(v){return ["clean","rounded","serif","kai","mono"].includes(String(v||""));}
+function validIdentityFont(v){return ["clean","rounded","cheese","serif","kai","mono"].includes(String(v||""));}
 async function getProfiles(env){
   const defaults={user:{actor:"user",display_name:"瑞安",avatar:"",identity_color:"#6E83C1",identity_font:"clean",updated_at:""},daddy:{actor:"daddy",display_name:"daddy",avatar:"",identity_color:"#C78EAD",identity_font:"serif",updated_at:""}};
   const rows=await env.DB.prepare("SELECT * FROM lp_profiles").all();
@@ -917,7 +920,7 @@ async function queueVisit(env,deviceId=DEFAULT_DEVICE){
 async function queueVisitApi(env,body){const cmd=await queueVisit(env,clip(body.device_id||DEFAULT_DEVICE,120));return json({ok:true,command:cmd,mode:"read_once"});}
 async function pollCommand(env,url){
   const deviceId=clip(url.searchParams.get("device_id")||DEFAULT_DEVICE,120);
-  // v0.6.2：Accessibility fallback 可能在前台服务轮询线程失活时接管。
+  // v0.6.3：Accessibility fallback 可能在前台服务轮询线程失活时接管。
   // 因此 poll 必须用 compare-and-set 方式 claim，避免两个 poller 同时拿到同一条命令。
   for(let attempt=0;attempt<3;attempt++){
     const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE device_id=? AND status='pending' AND created_at<=? ORDER BY created_at ASC LIMIT 1").bind(deviceId,nowIso()).first();
@@ -995,8 +998,8 @@ const MCP_TOOLS = [
   tool("get_sleep_summary","只读取最新睡眠摘要；未接入时明确返回 health_source_not_connected。",{}),
   tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","cycle_record","call","memory"]},id:{type:"string"}},["kind","id"]),
   tool("list_important_dates","读取纪念日/重要日期。",{limit:{type:"integer",minimum:1,maximum:500,default:300}}),
-  tool("add_important_date","添加纪念日或重要日期。",{title:{type:"string"},date:{type:"string",description:"YYYY-MM-DD"},kind:{type:"string",default:"important"},remind_days:{type:"integer",default:3},note:{type:"string",default:""}},["title","date"]),
-  tool("update_important_date","修改纪念日或重要日期。",{id:{type:"string"},title:{type:"string"},date:{type:"string"},kind:{type:"string"},remind_days:{type:"integer"},note:{type:"string"}},["id"]),
+  tool("add_important_date","添加纪念日或重要日期，可指定实体日历的手绘标记与标记者。",{title:{type:"string"},date:{type:"string",description:"YYYY-MM-DD"},kind:{type:"string",default:"important"},remind_days:{type:"integer",default:3},note:{type:"string",default:""},mark_style:{type:"string",enum:["circle","star","heart","underline","dashed","flag"],default:"circle"},marked_by:{type:"string",enum:["user","daddy"],default:"daddy"}},["title","date"]),
+  tool("update_important_date","修改纪念日、重要日期或其日历标记。",{id:{type:"string"},title:{type:"string"},date:{type:"string"},kind:{type:"string"},remind_days:{type:"integer"},note:{type:"string"},mark_style:{type:"string",enum:["circle","star","heart","underline","dashed","flag"]},marked_by:{type:"string",enum:["user","daddy"]}},["id"]),
   tool("get_cycle_record","读取生理周期设置和记录。",{}),
   tool("set_cycle_record","设置周期参数。",{enabled:{type:"boolean"},last_start:{type:"string"},cycle_length:{type:"integer"},period_length:{type:"integer"},remind_before:{type:"integer"}}),
   tool("add_cycle_period","添加一次生理期记录。",{start_date:{type:"string"},end_date:{type:"string",default:""},note:{type:"string",default:""}},["start_date"]),
@@ -1005,7 +1008,7 @@ const MCP_TOOLS = [
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("get_little_phone_profiles","读取双方当前显示名、头像、身份色和身份字体。",{}),
-  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","serif","kai","mono"]}},["actor"]),
+  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","mono"]}},["actor"]),
   tool("remember_about_user","给“{display_name} 记得”写入一条真正的理解/记忆；不要用于简单复制事件。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("list_daddy_memories","读取“记得”里的条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("update_daddy_memory","修改一条已有理解，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1014,7 +1017,8 @@ const MCP_TOOLS = [
   tool("phone_home","让手机回到桌面。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("phone_back","执行一次返回。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("phone_recents","打开最近任务。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
-  tool("open_app","按包名打开 App。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
+  tool("open_little_phone_app","通过当前 Cloudflare command queue 打开 App；不转发旧 Render。package / app 至少提供一个。",{package:{type:"string",default:""},app:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}}),
+  tool("open_app","兼容入口：同样通过当前 Cloudflare command queue 打开 App，不转发旧 Render。",{package:{type:"string",default:""},app:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("list_screen_break_apps","请求 Android 返回可用于门禁的应用列表。返回 command id 后，可用 get_little_phone_command_status 读取 Android 回传结果。",{device_id:{type:"string",default:DEFAULT_DEVICE},max:{type:"integer",minimum:1,maximum:500,default:200}})
 ];
 function inferToolAnnotations(name){
@@ -1138,9 +1142,9 @@ async function callTool(name,args,env){
     case "get_sleep_summary": {const h=await healthSummary(env);return mcpText(h.connected&&h.sleep?{ok:true,source:h.source,sleep:h.sleep,updated_at:h.updated_at}:{ok:false,error:"health_source_not_connected",source:h.source,updated_at:h.updated_at},!(h.connected&&h.sleep));}
     case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",diary:"lp_diaries",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records",call:"lp_calls",memory:"lp_memories"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
     case "list_important_dates": return mcpText({ok:true,dates:await listDates(env,Math.max(1,Math.min(500,Number(args.limit||300))))});
-    case "add_important_date": {const title=clip(args.title||"",120),date=clip(args.date||"",20);if(!title||!validDate(date))return mcpText({ok:false,error:"title_and_date_required"},true);const now=nowIso(),item={id:uuid(),title,date,kind:clip(args.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(args.remind_days??3)||0)),note:clip(args.note||"",500),created_at:now,updated_at:now};if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.created_at,item.updated_at).run();return mcpText({ok:true,date:item});}
+    case "add_important_date": {const title=clip(args.title||"",120),date=clip(args.date||"",20);if(!title||!validDate(date))return mcpText({ok:false,error:"title_and_date_required"},true);const markStyle=["circle","star","heart","underline","dashed","flag"].includes(String(args.mark_style||""))?String(args.mark_style):"circle",markedBy=args.marked_by==="user"?"user":"daddy",now=nowIso(),item={id:uuid(),title,date,kind:clip(args.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(args.remind_days??3)||0)),note:clip(args.note||"",500),mark_style:markStyle,marked_by:markedBy,created_at:now,updated_at:now};if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,mark_style,marked_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.mark_style,item.marked_by,item.created_at,item.updated_at).run();return mcpText({ok:true,date:item});}
     case "get_cycle_record": return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});
-    case "update_important_date": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const title=clip(args.title!==undefined?args.title:old.title,120),date=clip(args.date!==undefined?args.date:old.event_date,20),kind=clip(args.kind!==undefined?args.kind:old.kind,40),remind=Math.max(0,Math.min(60,Number(args.remind_days??old.remind_days)||0)),note=clip(args.note!==undefined?args.note:old.note,500),now=nowIso();if(!title||!validDate(date))return mcpText({ok:false,error:"invalid_date_or_title"},true);if(kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start' AND id<>?").bind(now,id).run();await env.DB.prepare("UPDATE lp_dates SET title=?,event_date=?,kind=?,remind_days=?,note=?,updated_at=? WHERE id=?").bind(title,date,kind,remind,note,now,id).run();return mcpText({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});}
+    case "update_important_date": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const title=clip(args.title!==undefined?args.title:old.title,120),date=clip(args.date!==undefined?args.date:old.event_date,20),kind=clip(args.kind!==undefined?args.kind:old.kind,40),remind=Math.max(0,Math.min(60,Number(args.remind_days??old.remind_days)||0)),note=clip(args.note!==undefined?args.note:old.note,500),markStyle=args.mark_style!==undefined&&["circle","star","heart","underline","dashed","flag"].includes(String(args.mark_style))?String(args.mark_style):(old.mark_style||"circle"),markedBy=args.marked_by!==undefined?(args.marked_by==="daddy"?"daddy":"user"):(old.marked_by||"user"),now=nowIso();if(!title||!validDate(date))return mcpText({ok:false,error:"invalid_date_or_title"},true);if(kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start' AND id<>?").bind(now,id).run();await env.DB.prepare("UPDATE lp_dates SET title=?,event_date=?,kind=?,remind_days=?,note=?,mark_style=?,marked_by=?,updated_at=? WHERE id=?").bind(title,date,kind,remind,note,markStyle,markedBy,now,id).run();return mcpText({ok:true,date:rowDate(await env.DB.prepare("SELECT * FROM lp_dates WHERE id=?").bind(id).first())});}
     case "add_cycle_period": {const start=clip(args.start_date||"",20),end=clip(args.end_date||"",20);if(!validDate(start)||end&&!validDate(end))return mcpText({ok:false,error:"invalid_date"},true);const item={id:uuid(),start_date:start,end_date:end,note:clip(args.note||"",500),created_at:nowIso()};await env.DB.prepare("INSERT INTO lp_cycle_records(id,start_date,end_date,note,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.start_date,item.end_date,item.note,item.created_at).run();return mcpText({ok:true,record:item});}
     case "update_cycle_period": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_cycle_records WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const start=clip(args.start_date!==undefined?args.start_date:old.start_date,20),end=clip(args.end_date!==undefined?args.end_date:old.end_date,20),note=clip(args.note!==undefined?args.note:old.note,500);if(!validDate(start)||end&&!validDate(end))return mcpText({ok:false,error:"invalid_date"},true);await env.DB.prepare("UPDATE lp_cycle_records SET start_date=?,end_date=?,note=? WHERE id=?").bind(start,end,note,id).run();return mcpText({ok:true,record:{...old,start_date:start,end_date:end,note}});}
     case "set_cycle_record": {const old=await cycleSettings(env),enabled=args.enabled!==undefined?Boolean(args.enabled):old.enabled,last=args.last_start!==undefined?clip(args.last_start||"",20):old.last_start,cl=Math.max(15,Math.min(60,Number(args.cycle_length??old.cycle_length)||30)),pl=Math.max(1,Math.min(14,Number(args.period_length??old.period_length)||6)),rb=Math.max(0,Math.min(14,Number(args.remind_before??old.remind_before)||3));if(last&&!validDate(last))return mcpText({ok:false,error:"invalid_last_start"},true);await env.DB.prepare("UPDATE lp_cycle_settings SET enabled=?,last_start=?,cycle_length=?,period_length=?,remind_before=?,updated_at=? WHERE id='default'").bind(boolInt(enabled),last,cl,pl,rb,nowIso()).run();return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});}
@@ -1157,7 +1161,8 @@ async function callTool(name,args,env){
     case "phone_home": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_home",requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "phone_back": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_back",requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "phone_recents": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_recents",requested_by:"daddy"});return mcpText({ok:true,command:c});}
-    case "open_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"open_app",package:args.package,requested_by:"daddy"});return mcpText({ok:true,command:c});}
+    case "open_little_phone_app":
+    case "open_app": {const pkg=clip(args.package||"",200),app=clip(args.app||"",120);if(!pkg&&!app)return mcpText({ok:false,error:"app_or_package_required"},true);const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"open_app",package:pkg,app,requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "list_screen_break_apps": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"list_lockable_apps",max:Number(args.max||200),requested_by:"daddy"});return mcpText({ok:true,command:c,next:"get_little_phone_command_status"});}
     default:return mcpText({ok:false,error:"unknown_tool",name,available:MCP_TOOLS.map(t=>t.name)},true);
   }

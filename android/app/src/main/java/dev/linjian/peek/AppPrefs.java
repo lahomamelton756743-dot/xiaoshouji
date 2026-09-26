@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
-    public static final String APP_VERSION_NAME = "0.6.2";
-    public static final int APP_VERSION_CODE = 60200;
+    public static final String APP_VERSION_NAME = "0.6.3";
+    public static final int APP_VERSION_CODE = 60300;
     public static final String KEY_SERVER = "server_url";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";
@@ -35,8 +35,10 @@ public class AppPrefs {
     public static final String KEY_SCREEN_THRESHOLD_MIN = "rule_screen_threshold_min";
     public static final String KEY_RULE_WATER = "rule_water_enabled";
     public static final String KEY_WATER_INTERVAL_MIN = "rule_water_interval_min";
+    public static final String KEY_WATER_MESSAGE = "rule_water_message";
     public static final String KEY_RULE_REST = "rule_rest_enabled";
     public static final String KEY_REST_INTERVAL_MIN = "rule_rest_interval_min";
+    public static final String KEY_REST_MESSAGE = "rule_rest_message";
     public static final String KEY_CYCLE_ENABLED = "cycle_enabled";
     public static final String KEY_LAST_PERIOD_START = "cycle_last_period_start";
     public static final String KEY_CYCLE_LENGTH = "cycle_length_days";
@@ -60,6 +62,8 @@ public class AppPrefs {
     public static final String DEFAULT_COMPANION_IDENTITY_COLOR = "#C78EAD";
     public static final String DEFAULT_USER_IDENTITY_FONT = "clean";
     public static final String DEFAULT_COMPANION_IDENTITY_FONT = "serif";
+    public static final String DEFAULT_WATER_MESSAGE = "{user}，喝两口水再继续。";
+    public static final String DEFAULT_REST_MESSAGE = "{user}，眼睛离开屏幕半分钟，动一下肩颈，再回来。";
     // 仅用于从旧公开版平滑迁移，新的 UI 和业务逻辑不再写入这两个键。
     public static final String KEY_USER_NICKNAME = "user_nickname";
     public static final String KEY_PARTNER_NICKNAME = "partner_nickname";
@@ -168,7 +172,7 @@ public class AppPrefs {
     }
     private static String safeIdentityFont(String raw, String fallback) {
         String v = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        return ("clean".equals(v) || "rounded".equals(v) || "serif".equals(v) || "kai".equals(v) || "mono".equals(v)) ? v : fallback;
+        return ("clean".equals(v) || "rounded".equals(v) || "cheese".equals(v) || "serif".equals(v) || "kai".equals(v) || "mono".equals(v)) ? v : fallback;
     }
     private static String safeColor(String raw, String fallback) {
         String v = raw == null ? "" : raw.trim();

@@ -264,7 +264,7 @@ public class AppGate {
             if (pkg.equals(lastGatePackage) && now - lastGateAt < 1800) return;
             lastGatePackage = pkg; lastGateAt = now;
             showGateByPriority(ctx, pkg, lock);
-            log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（全屏页优先，遮罩兜底，Home 最后兜底）");
+            log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（仅统一全屏门禁页）");
             ActivityEventStore.recordPhone(ctx, "screen_break_trigger", "应用门禁触发", lock.optString("app_name", pkg));
         } catch (Exception e) { DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e)); }
     }
@@ -289,16 +289,24 @@ public class AppGate {
         final Context app = ctx.getApplicationContext();
         final Handler main = new Handler(Looper.getMainLooper());
 
-        // v0.6.2：门禁只保留一层 LockActivity。
+        // v0.6.3：门禁只保留一层 LockActivity。
         // 旧版 Activity + 悬浮遮罩双层兜底会造成同一次拦截出现两套 UI，
         // 用户确认只保留统一的小手机门禁页。Activity 若确实没显示，直接回桌面兜底，
         // 不再叠第二个悬浮页面。
         showLockActivity(app, pkg);
 
+        // Android 10+ 对后台 Activity 启动限制较严格。无障碍服务存在时再用它的
+        // Context 补发一次统一 LockActivity；不要因为 1.5 秒内没回报 visible 就立刻 Home，
+        // 否则会出现“点进被锁 App 后马上退出、门禁页没来得及显示”的体验。
         main.postDelayed(() -> {
             if (isLockActivityVisibleFor(pkg)) return;
-            goHome(app, "统一门禁页未确认显示");
-        }, 1500);
+            ScreenshotService svc = ScreenshotService.getInstance();
+            if (svc != null) showLockActivity(svc, pkg);
+        }, 650);
+        main.postDelayed(() -> {
+            if (!isLockActivityVisibleFor(pkg))
+                DebugState.append(app, "统一门禁页尚未确认显示，保留目标状态等待下一次前台事件重试：" + pkg);
+        }, 3200);
     }
 
     private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
@@ -399,7 +407,7 @@ public class AppGate {
     }
 
     /**
-     * v0.6.2 紧急解锁改为“本机长按 5 秒”安全兜底，不再要求一条用户从未设置/不知道的口令。
+     * v0.6.3 紧急解锁改为“本机长按 5 秒”安全兜底，不再要求一条用户从未设置/不知道的口令。
      * 这只临时放行 emergency_unlock_minutes（默认 5 分钟），并保留日志；远程正常解锁逻辑不变。
      */
     public static boolean tryEmergencyUnlock(Context ctx, String pkg) {
@@ -412,7 +420,7 @@ public class AppGate {
         } catch (Exception e) { return false; }
     }
 
-    /** 旧调用兼容：口令参数自 v0.6.2 起不再参与本机紧急解锁。 */
+    /** 旧调用兼容：口令参数自 v0.6.3 起不再参与本机紧急解锁。 */
     public static boolean tryEmergencyUnlock(Context ctx, String pkg, String ignoredPassphrase) {
         return tryEmergencyUnlock(ctx, pkg);
     }

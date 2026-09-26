@@ -48,7 +48,7 @@ public class CompanionService extends Service {
 
     public static boolean isRunning() { return running; }
     /**
-     * 前台服务进程还在不等于轮询线程一定健康。v0.6.2 用最近一次成功 poll
+     * 前台服务进程还在不等于轮询线程一定健康。v0.6.3 用最近一次成功 poll
      * 作为健康信号，让无障碍服务在轮询线程卡死时接管 command queue。
      */
     public static boolean isPollingHealthy() {

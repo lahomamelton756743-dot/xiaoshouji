@@ -1,4 +1,4 @@
--- 小手机 v0.6.2 Cloudflare D1 schema
+-- 小手机 v0.6.3 Cloudflare D1 schema
 -- worker.js 会自动 CREATE TABLE IF NOT EXISTS；本文件用于人工检查/初始化。
 
 CREATE TABLE IF NOT EXISTS lp_commands (
@@ -115,6 +115,8 @@ CREATE TABLE IF NOT EXISTS lp_dates (
   kind TEXT NOT NULL DEFAULT 'important',
   remind_days INTEGER NOT NULL DEFAULT 3,
   note TEXT NOT NULL DEFAULT '',
+  mark_style TEXT NOT NULL DEFAULT 'circle',
+  marked_by TEXT NOT NULL DEFAULT 'user',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

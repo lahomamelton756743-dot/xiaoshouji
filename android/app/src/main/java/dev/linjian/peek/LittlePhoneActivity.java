@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.6.2 Web/PWA 外壳。
+ * 小手机 v0.6.3 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -443,7 +443,7 @@ public class LittlePhoneActivity extends Activity {
             if (!saveProfileV2(who, name, avatarDataUrl, identityColor)) return false;
             try {
                 String font = identityFont == null ? "" : identityFont.trim().toLowerCase(java.util.Locale.ROOT);
-                if (!("clean".equals(font) || "rounded".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
+                if (!("clean".equals(font) || "rounded".equals(font) || "cheese".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
                 String key = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_IDENTITY_FONT : AppPrefs.KEY_USER_IDENTITY_FONT;
                 AppPrefs.get(LittlePhoneActivity.this).edit().putString(key, font).apply();
                 emit("littlephone-profile-changed", getProfile());
@@ -557,8 +557,10 @@ public class LittlePhoneActivity extends Activity {
                 if (o.has("screen_time_threshold_minutes")) e.putInt(AppPrefs.KEY_SCREEN_THRESHOLD_MIN, Math.max(30, Math.min(1440, o.optInt("screen_time_threshold_minutes",240))));
                 if (o.has("water_enabled")) e.putBoolean(AppPrefs.KEY_RULE_WATER, o.optBoolean("water_enabled"));
                 if (o.has("water_interval_minutes")) e.putInt(AppPrefs.KEY_WATER_INTERVAL_MIN, Math.max(30, Math.min(720, o.optInt("water_interval_minutes",120))));
+                if (o.has("water_message")) e.putString(AppPrefs.KEY_WATER_MESSAGE, o.optString("water_message", AppPrefs.DEFAULT_WATER_MESSAGE));
                 if (o.has("rest_enabled")) e.putBoolean(AppPrefs.KEY_RULE_REST, o.optBoolean("rest_enabled"));
                 if (o.has("rest_interval_minutes")) e.putInt(AppPrefs.KEY_REST_INTERVAL_MIN, Math.max(30, Math.min(720, o.optInt("rest_interval_minutes",90))));
+                if (o.has("rest_message")) e.putString(AppPrefs.KEY_REST_MESSAGE, o.optString("rest_message", AppPrefs.DEFAULT_REST_MESSAGE));
                 e.apply(); return true;
             } catch (Exception ex) { return false; }
         }

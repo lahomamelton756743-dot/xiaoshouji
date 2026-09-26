@@ -1,80 +1,68 @@
-# 小手机 v0.6.2
+# 小手机 v0.6.3
 
-瑞安与 ChatGPT 私人使用的小手机。v0.6.2 在 v0.5.2 功能基线上继续升级，视觉保持 v0.4.1 的冰蓝 / 珍珠白 / 淡灰紫液态玻璃，不清空既有数据，也不重写已经验证通过的链路。
+瑞安与 ChatGPT 私人使用的小手机。v0.6.3 继续以 v0.5.2 为功能基线、v0.4.1 为视觉母版升级，不清空现有数据，不重写已经真机验证通过的来电与应用门禁核心链路。
 
-## 架构
+## v0.6.3 重点
 
-- Android 原生：设备状态、媒体状态、使用情况统计、通知、来电、应用门禁、一次性来访快照等。
-- WebView 前端：`android/app/src/main/assets/littlephone/index.html`。
-- 云端：Cloudflare Worker + D1，代码在 `server/little-phone-cloudflare/`。
-- MCP：同一个 Cloudflare Worker 暴露 `/mcp`。
-- 不使用模型 API，不使用 Claude channel，不提供截图能力。
-
-## v0.6.2 重点
-
-- 双人身份系统：稳定 actor 键 `user` / `daddy`，显示名、头像、身份色独立可编辑并全局同步；正文不随昵称变化。
-- “我们”页：状态缩为头像上方小胶囊；头像靠近；共享耳机线在下方汇合；显示动态相伴天数；右侧“一起听”读取真实 `media_state`。
-- 首页：手机状态卡增加当天 App 使用前五名（含图标、名称、时长）；双方足迹卡固定可视高度，不再因长文本一高一低。
-- 纸条：支持 `reply_to`，daddy 左 / user 右的液态玻璃回复气泡。
-- 信箱：信封式列表、月份分组、关键词搜索、拆信详情、左右滑动上一封/下一封、回信 thread；列表不直接展示正文。
-- 已拆状态：普通信和未来信升级为 `user_seen` / `daddy_seen`；MCP list/get 不会自动把 daddy 标成已拆。
-- 未来信：锁定期后端不返回正文；到期后才允许读取。
-- 日常册：按 `date ASC -> created_at ASC` 排序、修复时间河裁切、支持作者编辑同一 ID。
-- 待办：已完成且过期进入历史；未完成且过期保留并标为“已逾期”。
-- 来电：新命令使用 `trigger_call`；修正延迟来电 `scheduled_for`；历史 `trigger_guidian` 保持兼容。
-- 提醒：popup 使用独立 `show_reminder_popup`，不再复用来电，也不写入 call history。
-- 事件：前端节流配合后端短窗口去重，减少重复打开事件。
-- 应用门禁：保留现有 lock/unlock 底层，UI 改为小手机液态玻璃；动态读取锁定者头像、名字、身份色；保留“长按 5 秒紧急解锁”；支持申请解锁理由与后端响应。
-- 旧 Render 能力：新增 Cloudflare 原生 phone home/back/recents/open_app、App 列表命令，以及基于最新一次授权快照的 phone/life/senses 状态工具。
-
-- v0.6.2 门禁修复：只保留统一 LockActivity，不再叠悬浮门禁页；紧急解锁改为本机长按 5 秒直接临时放行，不再依赖未知口令，按钮宽度改为自适应。
-- v0.6.2 通用 command dispatcher：显式处理 `open_app` / home / back / recents / screen_off / 状态读取等通用动作；前台轮询线程失活时由无障碍服务兜底接管；Cloudflare poll 使用原子 claim 防止重复领取。
+- 「我们」页顶部重新排版：窄长一起听音乐条、两侧状态、靠在一起的双头像、柔软耳机线只汇合一次、动态“相伴 N 天”。
+- 纪念日卡改成实体月历式入口：首页显示当天日期，展开后可直接点日期，选择圆圈/星星/心形/下划线/虚线圈/小旗等手绘标记；标记者使用稳定 `user` / `daddy`，颜色动态跟随身份色。
+- 双人身份字体完全独立：每个人分别保存 `identity_font`；新增“奶酪体（圆润）”风格预设，身份色与字体用于本人写下的纸条、信、状态、日常册等内容，系统 UI 不被污染。
+- 普通信与未来信重新分区：普通信上方单独轮播和日期归档；未来信固定回到下方自己的轮播/归档，解锁后仍保持“未来信”身份。
+- 留痕保持“纸条 | {display_name} 记得”，来电记录下移为全宽一行一条。
+- 日记封面和内容页统一尺寸；长正文可完整滚到导航栏上方。
+- 权限页新增无障碍、悬浮窗、使用情况访问、通知/通知访问等 Android 系统能力状态和入口。
+- 主动提醒新增 `{display_name} 的文案`：喝水/休息文案可独立自定义，支持 `{user}` / `{daddy}` 占位符，规则与文案分开保存。
+- 应用门禁只保留统一 LockActivity；不再叠第二层旧门禁 UI；长按 5 秒紧急解锁不需要口令。修复门禁页过早退出兜底逻辑，不改 `lock_app` 核心实现。
+- 新增 Cloudflare MCP `open_little_phone_app(package/app/device_id)`；旧 `open_app` 仅作为兼容别名，也直接创建 Little Phone Android `open_app` command，不再转发旧 Render。
+- Android 通用 command dispatcher 明确消费 `open_app` / Home / Back / Recents / screen_off / 状态读取等命令；优先从无障碍服务上下文启动 App。
+- 旧本机多日记本命令、门禁别名等继续经当前 Cloudflare → Android command queue，不回退旧 Render。
+- Xiaomi Health Bridge 骨架保留，等待小米亲友授权/token 后接真实睡眠、心率、步数。
 
 ## 数据迁移
 
-Worker 启动时会使用幂等迁移补齐 v0.6.2 字段与表，包括：
+Cloudflare Worker 启动时继续使用幂等迁移补字段，不要求清空 D1。v0.6.3 额外为重要日期补充：
 
-- `lp_papers.reply_to`
-- `lp_mail.user_seen` / `lp_mail.daddy_seen`
-- `lp_capsules.user_seen` / `lp_capsules.daddy_seen`
-- `lp_profiles`
-- `lp_unlock_requests`
+- `mark_style`
+- `marked_by`
 
-现有 D1 继续使用，不需要为了 v0.6.2 清库或新建数据库。
+`marked_by` 使用稳定身份键（`user` / `daddy`），不会把当前显示名或颜色写死到历史数据里。
 
-## 后端测试
+## 部署顺序
 
-```bash
-cd server/little-phone-cloudflare
-npm test
-```
-
-当前测试覆盖普通信双已拆、纸条回复、未来信锁定、日常册原 ID 更新、profiles、门禁申请解锁、popup/call 隔离、bootstrap、待办、日期、周期兜底、删除、一次性来访、快照过期、MCP、状态、来电、延迟来电、健康桥契约、OAuth、行内图片回退与截图禁用。
+1. 覆盖仓库到 v0.6.3。
+2. 先部署 `server/little-phone-cloudflare/`，继续使用现有 D1 与 Worker secret，不清库。
+3. 再构建并安装 Android APK；`open_app` dispatcher、统一门禁页、权限展示和自定义提醒文案都需要新 APK。
+4. 部署后检查 `/health` 应返回 `0.6.3-little-phone`。
 
 ## Android 构建
 
-需要 Android SDK Platform 34 / Build Tools 34.0.0：
-
 ```bash
-bash android/build.sh
+cd android
+./build.sh
 ```
 
-输出：`android/LittlePhone-v0.6.2.apk`
+预期输出：`android/LittlePhone-v0.6.3.apk`。
 
-## Cloudflare 部署
+## 回归检查
 
-GitHub Actions 工作流：`.github/workflows/deploy-little-phone-backend.yml`
+```bash
+node server/little-phone-cloudflare/test.mjs
+node --check server/little-phone-cloudflare/worker.js
+node --check mcp/server.js
+python -m py_compile server/health-bridge/app.py
+```
 
-Repository Secrets：
+同时应检查 `index.html` 内联 JavaScript 语法，并在真机上重点回归：
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `LINJIAN_TOKEN`
-
-默认 Worker：`little-phone-backend`。现有 D1 数据库继续沿用。
+- `lock_app` / `unlock_app` 与全屏门禁页
+- `open_little_phone_app` 是否从 pending 被 Android 消费并回报 completed
+- 普通信/未来信分区和锁定正文不泄漏
+- user/daddy 独立字体与颜色
+- 日记到底部不被导航栏遮挡
+- 无障碍权限状态是否正确显示
 
 ## 交付
 
-- ZIP：`little-phone-v0.6.2.zip`
+- ZIP：`little-phone-v0.6.3.zip`
 - Branch：`main`
-- Commit：`Upgrade little-phone to v0.6.2`
+- Commit：`Upgrade little-phone to v0.6.3`

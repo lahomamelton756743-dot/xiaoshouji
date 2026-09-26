@@ -77,7 +77,7 @@ const DEFAULT_CARE_POLICY = {
   care_style: "active_possessive_affectionate",
   allowed_actions: [
     "get_phone_state", "get_life_state", "get_calendar_state", "upsert_calendar_event", "get_senses_state", "send_notification",
-    "trigger_guidian", "screen_break_app", "end_screen_break", "extend_screen_break", "get_screen_break_state", "get_lock_state", "open_app", "set_alarm", "screen_off", "run_sequence"
+    "trigger_guidian", "screen_break_app", "end_screen_break", "extend_screen_break", "get_screen_break_state", "get_lock_state", "open_little_phone_app", "open_app", "set_alarm", "screen_off", "run_sequence"
   ],
   sensitive_apps: [
     { name: "小红书", package: "com.xingin.xhs", max_lock_minutes: 90 },
@@ -106,7 +106,9 @@ const KNOWN_APP_PACKAGES = {
   "QQ": "com.tencent.mobileqq",
   "QQ音乐": "com.tencent.qqmusic",
   "qq音乐": "com.tencent.qqmusic",
-  "qqmusic": "com.tencent.qqmusic"
+  "qqmusic": "com.tencent.qqmusic",
+  "DeepSeek": "com.deepseek.chat",
+  "deepseek": "com.deepseek.chat"
 };
 
 function looksLikePackage(value = "") {
@@ -143,7 +145,7 @@ function missingAppTargetResult(action = "open_app") {
 }
 
 const APP_TARGET_ACTIONS = new Set([
-  "open_app", "screen_break_app", "start_screen_break", "screen_break", "end_screen_break", "stop_screen_break",
+  "open_little_phone_app", "open_app", "screen_break_app", "start_screen_break", "screen_break", "end_screen_break", "stop_screen_break",
   "temporary_screen_break_release", "temporary_screen_release", "extend_screen_break", "deny_screen_break_release_request",
   "lock_app", "unlock_app", "temporary_unlock_app", "extend_lock", "deny_unlock_request",
   "remove_screen_break_app", "remove_locked_app", "set_screen_break_passphrase", "set_emergency_passphrase",
@@ -174,7 +176,8 @@ const COMPANION_ACTION_META = {
   set_alarm: ["守护", "设置闹钟", "为接下来的安排留下提醒"],
   trigger_guidian: ["守护", "发起归电", "轻轻叫你回到窗边"],
   care_action: ["守护", "执行关心行动", "完成一次主动照顾"],
-  open_app: ["操作", "打开应用", "完成一次手机操作"],
+  open_little_phone_app: ["操作", "打开应用", "通过小手机命令队列打开指定应用"],
+  open_app: ["操作", "打开应用", "通过小手机命令队列打开指定应用"],
   screen_break_app: ["守护", "开始屏幕休息", "让眼睛和注意力休息一会儿"],
   end_screen_break: ["守护", "结束屏幕休息", "恢复应用使用"],
   run_sequence: ["操作", "完成组合行动", "按顺序完成了一组手机动作"]
@@ -2047,16 +2050,21 @@ function makeServer() {
     return { content: [{ type: "text", text: JSON.stringify({ ...result, safety_note: "命令已排队，手机执行器下一次轮询时执行。若需要实时确认结果，请稍后读取命令状态或查看掌心窗调试日志。" }, null, 2) }] };
   });
 
-  server.tool("open_app", "打开指定 App。app 可填用户保存的应用昵称，或直接传 package。当用户明确要求打开或前往某个 App 时使用；若只是闲聊提到 App，不必每次打开。参数为空时会直接提示，不再下发 package_empty。", { app: z.string().default(""), package: z.string().default(""), device_id: z.string().default(DEFAULT_DEVICE) }, async ({ app = "", package: pkg = "", device_id = DEFAULT_DEVICE }) => {
+  const openLittlePhoneApp = async ({ app = "", package: pkg = "", device_id = DEFAULT_DEVICE }, toolName = "open_little_phone_app") => {
     const target = normalizeAppTarget(app, pkg);
-    if (!target.app && !target.package) return missingAppTargetResult("open_app");
-    const result = await postCommand({ action: "open_app", app: target.app, package: target.package, device_id, payload: { app: target.app, package: target.package } });
+    if (!target.app && !target.package) return missingAppTargetResult(toolName);
+    // v0.6.3: this path is Cloudflare-only. Never fall back to the legacy Render phone controller.
+    const result = await postCommand({ action: "open_app", app: target.app, package: target.package, device_id, payload: { app: target.app, package: target.package, requested_via: toolName } });
     const id = result?.command?.id;
     if (!id) return textResult(result);
     const observed = await waitCommand(id, DEFAULT_COMMAND_WAIT_SECONDS);
-    postCompanionAction("open_app", { summary: `打开了${target.app || target.package || "指定应用"}` }).catch(() => null);
-    return textResult({ ...result, observed_status: observed?.command || null, note: "命令已排队。若 observed_status 仍是 pending/dispatched，说明手机端尚未回传；可稍后查看掌心窗调试日志。" });
-  });
+    postCompanionAction("open_little_phone_app", { summary: `打开了${target.app || target.package || "指定应用"}` }).catch(() => null);
+    return textResult({ ...result, observed_status: observed?.command || null, route: "Cloudflare → Android command", note: "命令直接进入 Little Phone Android command queue；不会请求旧 Render。" });
+  };
+
+  server.tool("open_little_phone_app", "通过当前小手机 Cloudflare command queue 打开指定 App。参数至少提供 app 或 package；不会转发旧 Render。", { app: z.string().default(""), package: z.string().default(""), device_id: z.string().default(DEFAULT_DEVICE) }, async (args) => openLittlePhoneApp(args, "open_little_phone_app"));
+
+  server.tool("open_app", "兼容旧工具名：行为与 open_little_phone_app 相同，直接创建 Cloudflare → Android open_app command，不再请求旧 Render。", { app: z.string().default(""), package: z.string().default(""), device_id: z.string().default(DEFAULT_DEVICE) }, async (args) => openLittlePhoneApp(args, "open_app"));
 
   server.tool("phone_home", "让手机回到桌面。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => ({ content: [{ type: "text", text: JSON.stringify(await postCommand({ action: "home", device_id }), null, 2) }] }));
   server.tool("phone_back", "让手机执行返回。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => ({ content: [{ type: "text", text: JSON.stringify(await postCommand({ action: "back", device_id }), null, 2) }] }));

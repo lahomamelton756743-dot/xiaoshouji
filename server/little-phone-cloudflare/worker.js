@@ -154,6 +154,7 @@ const OAUTH_ACCESS_TTL_SECONDS = 60 * 60;
 const OAUTH_REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
 const OAUTH_CODE_TTL_SECONDS = 5 * 60;
 const CHATGPT_OAUTH_CLIENT_ID = "chatgpt-little-phone";
+const OAUTH_PUBLIC_ORIGIN = "https://little-phone-gateway.netlify.app";
 
 function originOf(url) { return `${url.protocol}//${url.host}`; }
 function resourceUri(url) { return `${originOf(url)}/mcp`; }
@@ -214,14 +215,14 @@ async function oauthAccessTokenOk(request, env, url) {
 function oauthProtectedResourceMetadata(url) {
   return json({
     resource: resourceUri(url),
-    authorization_servers:[originOf(url)],
+    authorization_servers:[OAUTH_PUBLIC_ORIGIN],
     scopes_supported:oauthScopes(),
     bearer_methods_supported:["header"],
     resource_name:"小手机 MCP"
   });
 }
 function oauthAuthorizationServerMetadata(url) {
-  const origin=originOf(url);
+  const origin=OAUTH_PUBLIC_ORIGIN;
   return json({
     issuer:origin,
     authorization_endpoint:`${origin}/authorize`,
@@ -307,7 +308,7 @@ async function validateAuthorize(env,url,p) {
 function authorizeHtml(url,p,clientName,error="") {
   const hidden = Object.entries(p).map(([k,v])=>`<input type="hidden" name="${htmlEscape(k)}" value="${htmlEscape(v)}">`).join("\n");
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小手机连接授权</title><style>
-  :root{color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;background:radial-gradient(circle at 20% 10%,#eef8ff 0,#eaf2ff 35%,#f6efff 100%);color:#202839}.card{width:min(92vw,480px);padding:28px;border-radius:34px;background:rgba(255,255,255,.68);backdrop-filter:blur(24px);box-shadow:0 22px 80px rgba(92,108,156,.18),inset 0 1px 0 rgba(255,255,255,.9)}h1{font-size:28px;margin:0 0 10px}p{line-height:1.65;color:#677186}.scope{margin:18px 0;padding:16px 18px;border-radius:22px;background:rgba(244,248,255,.75)}label{display:block;font-size:14px;color:#68748a;margin:18px 0 8px}input[type=password]{width:100%;border:1px solid rgba(123,139,174,.25);border-radius:18px;padding:14px 16px;font-size:16px;background:rgba(255,255,255,.78);outline:none}button{width:100%;margin-top:16px;border:0;border-radius:20px;padding:15px 18px;font-size:17px;font-weight:650;background:linear-gradient(110deg,#8eb6ff,#b9a4ec);color:white}.error{color:#a64e5b;background:#fff0f3;padding:10px 12px;border-radius:14px}.note{font-size:12px;margin-top:14px;color:#8992a5}</style></head><body><main class="card"><h1>连接「小手机」</h1><p><b>${htmlEscape(clientName||"ChatGPT")}</b> 请求连接你的私人小手机 MCP。</p><div class="scope">授权后可按你在 ChatGPT 中确认的操作读取或修改小手机数据。设备状态仍只会在一次“来访”事件中读取，不会持续监控。</div>${error?`<div class="error">${htmlEscape(error)}</div>`:""}<form method="post" action="${htmlEscape(originOf(url)+"/authorize")}">${hidden}<label>小手机连接口令</label><input type="password" name="access_key" autocomplete="current-password" required placeholder="粘贴小手机里的 Token"><button type="submit">允许连接</button></form><div class="note">口令只用于这次授权验证，不会写入 OAuth Token 数据表。</div></main></body></html>`;
+  :root{color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;background:radial-gradient(circle at 20% 10%,#eef8ff 0,#eaf2ff 35%,#f6efff 100%);color:#202839}.card{width:min(92vw,480px);padding:28px;border-radius:34px;background:rgba(255,255,255,.68);backdrop-filter:blur(24px);box-shadow:0 22px 80px rgba(92,108,156,.18),inset 0 1px 0 rgba(255,255,255,.9)}h1{font-size:28px;margin:0 0 10px}p{line-height:1.65;color:#677186}.scope{margin:18px 0;padding:16px 18px;border-radius:22px;background:rgba(244,248,255,.75)}label{display:block;font-size:14px;color:#68748a;margin:18px 0 8px}input[type=password]{width:100%;border:1px solid rgba(123,139,174,.25);border-radius:18px;padding:14px 16px;font-size:16px;background:rgba(255,255,255,.78);outline:none}button{width:100%;margin-top:16px;border:0;border-radius:20px;padding:15px 18px;font-size:17px;font-weight:650;background:linear-gradient(110deg,#8eb6ff,#b9a4ec);color:white}.error{color:#a64e5b;background:#fff0f3;padding:10px 12px;border-radius:14px}.note{font-size:12px;margin-top:14px;color:#8992a5}</style></head><body><main class="card"><h1>连接「小手机」</h1><p><b>${htmlEscape(clientName||"ChatGPT")}</b> 请求连接你的私人小手机 MCP。</p><div class="scope">授权后可按你在 ChatGPT 中确认的操作读取或修改小手机数据。设备状态仍只会在一次“来访”事件中读取，不会持续监控。</div>${error?`<div class="error">${htmlEscape(error)}</div>`:""}<form method="post" action="${htmlEscape(OAUTH_PUBLIC_ORIGIN+"/authorize")}">${hidden}<label>小手机连接口令</label><input type="password" name="access_key" autocomplete="current-password" required placeholder="粘贴小手机里的 Token"><button type="submit">允许连接</button></form><div class="note">口令只用于这次授权验证，不会写入 OAuth Token 数据表。</div></main></body></html>`;
 }
 async function oauthAuthorize(request,env,url) {
   if (request.method === "GET") {
@@ -324,7 +325,7 @@ async function oauthAuthorize(request,env,url) {
   await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE expires_at_epoch<=?").bind(epochSeconds()).run();
   await env.DB.prepare("INSERT INTO lp_oauth_codes(code_hash,client_id,redirect_uri,code_challenge,scope,resource,expires_at_epoch) VALUES(?,?,?,?,?,?,?)")
     .bind(codeHash,p.client_id,p.redirect_uri,p.code_challenge,normalizedScope(p.scope),p.resource||resourceUri(url),exp).run();
-  const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); redirect.searchParams.set("iss",originOf(url)); if(p.state)redirect.searchParams.set("state",p.state);
+  const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); redirect.searchParams.set("iss",OAUTH_PUBLIC_ORIGIN); if(p.state)redirect.searchParams.set("state",p.state);
   return new Response(null,{status:303,headers:{Location:redirect.toString(),"Cache-Control":"no-store"}});
 }
 

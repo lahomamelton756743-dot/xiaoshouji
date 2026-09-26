@@ -174,9 +174,9 @@ assert.equal(modernJson.result._meta['io.modelcontextprotocol/serverInfo'].title
 
 // OAuth 2.1: discovery -> dynamic client registration -> PKCE authorization -> token -> MCP -> refresh.
 let ox = await worker.fetch(new Request(base+'/.well-known/oauth-protected-resource/mcp'),env);
-assert.equal(ox.status,200); let oj=await ox.json(); assert.equal(oj.resource,base+'/mcp'); assert.ok(oj.authorization_servers.includes(base));
+assert.equal(ox.status,200); let oj=await ox.json(); assert.equal(oj.resource,base+'/mcp'); assert.ok(oj.authorization_servers.includes('https://little-phone-gateway.netlify.app'));
 ox = await worker.fetch(new Request(base+'/.well-known/oauth-authorization-server'),env);
-oj=await ox.json(); assert.equal(oj.authorization_endpoint,base+'/authorize'); assert.equal(oj.token_endpoint,base+'/token'); assert.equal(oj.registration_endpoint,base+'/register'); assert.ok(oj.scopes_supported.includes('offline_access'));
+oj=await ox.json(); assert.equal(oj.authorization_endpoint,'https://little-phone-gateway.netlify.app/authorize'); assert.equal(oj.token_endpoint,'https://little-phone-gateway.netlify.app/token'); assert.equal(oj.registration_endpoint,'https://little-phone-gateway.netlify.app/register'); assert.ok(oj.scopes_supported.includes('offline_access'));
 
 // Unauthenticated MCP discovery must work so ChatGPT can scan tools before account linking.
 ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:91,method:'initialize',params:{}})}),env);

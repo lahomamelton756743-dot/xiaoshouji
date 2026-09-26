@@ -319,14 +319,14 @@ async function oauthAuthorize(request,env,url) {
   if (request.method !== "POST") return oauthError("invalid_request","Use GET or POST /authorize",405);
   const form=await request.formData(); const p=authorizeParams(form); const valid=await validateAuthorize(env,url,p);
   if (valid.error) return oauthError(valid.error,valid.description,400);
-  const expected=String(env.LINJIAN_TOKEN||""); const supplied=String(form.get("access_key")||"");
+  const expected=String(env.LINJIAN_TOKEN||"").trim(); const supplied=String(form.get("access_key")||"").trim();
   if (!expected || supplied !== expected) return new Response(authorizeHtml(url,p,valid.client.client_name,"连接口令不正确"),{status:401,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}});
   const code=randomToken(32), codeHash=await sha256Hex(code), exp=epochSeconds()+OAUTH_CODE_TTL_SECONDS;
   await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE expires_at_epoch<=?").bind(epochSeconds()).run();
   await env.DB.prepare("INSERT INTO lp_oauth_codes(code_hash,client_id,redirect_uri,code_challenge,scope,resource,expires_at_epoch) VALUES(?,?,?,?,?,?,?)")
     .bind(codeHash,p.client_id,p.redirect_uri,p.code_challenge,normalizedScope(p.scope),p.resource||resourceUri(url),exp).run();
   const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); redirect.searchParams.set("iss",OAUTH_PUBLIC_ORIGIN); if(p.state)redirect.searchParams.set("state",p.state);
-  return new Response(null,{status:303,headers:{Location:redirect.toString(),"Cache-Control":"no-store"}});
+  return new Response(null,{status:302,headers:{Location:redirect.toString(),"Cache-Control":"no-store","Pragma":"no-cache"}});
 }
 
 async function issueOauthTokens(env,{client_id,scope,resource}) {

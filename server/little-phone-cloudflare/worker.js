@@ -1,4 +1,4 @@
-const VERSION = "0.6.1-little-phone";
+const VERSION = "0.6.2-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -71,6 +71,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/calls") return listCallsApi(env, url);
     if (path === "/api/littlephone/health-summary") return getHealthSummaryApi(env);
     if (path === "/api/littlephone/profiles") return getProfilesApi(env);
+    if (path === "/api/littlephone/memories") return listMemoriesApi(env, url);
     if (path === "/api/littlephone/unlock-requests") return listUnlockRequestsApi(env, url);
     if (path === "/api/mail") return listMailApi(env, url);
     if (path === "/api/capsules") return listCapsulesApi(env, url);
@@ -108,6 +109,9 @@ async function handle(request, env) {
     if (path === "/api/littlephone/calls/delete") return deleteRowApi(env, "lp_calls", await readJson(request));
     if (path === "/api/littlephone/health-summary") return setHealthSummaryApi(env, await readJson(request));
     if (path === "/api/littlephone/profiles") return setProfileApi(env, await readJson(request));
+    if (path === "/api/littlephone/memories") return addMemoryApi(env, await readJson(request));
+    if (path === "/api/littlephone/memories/update") return updateMemoryApi(env, await readJson(request));
+    if (path === "/api/littlephone/memories/delete") return deleteRowApi(env, "lp_memories", await readJson(request));
     if (path === "/api/littlephone/unlock-requests/respond") return respondUnlockRequestApi(env, await readJson(request));
     if (path === "/api/littlephone/command") return queueGenericCommandApi(env, await readJson(request));
     if (path === "/api/appgate/unlock_request") return addUnlockRequestApi(env, await readJson(request));
@@ -493,8 +497,14 @@ async function ensureSchema(env) {
       )`,
       `CREATE TABLE IF NOT EXISTS lp_profiles (
         actor TEXT PRIMARY KEY, display_name TEXT NOT NULL DEFAULT '', avatar TEXT NOT NULL DEFAULT '',
-        identity_color TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+        identity_color TEXT NOT NULL DEFAULT '', identity_font TEXT NOT NULL DEFAULT 'clean', updated_at TEXT NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS lp_memories (
+        id TEXT PRIMARY KEY, author TEXT NOT NULL DEFAULT 'daddy', content TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'noticed', confidence TEXT NOT NULL DEFAULT 'remembered',
+        confirmed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_memories_created ON lp_memories(created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_unlock_requests (
         id TEXT PRIMARY KEY, device_id TEXT NOT NULL DEFAULT 'android-phone', package_name TEXT NOT NULL, app_name TEXT NOT NULL DEFAULT '',
         requester TEXT NOT NULL DEFAULT 'user', reason TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending',
@@ -522,7 +532,8 @@ async function ensureSchema(env) {
         "ALTER TABLE lp_mail ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE lp_mail ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE lp_capsules ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE lp_capsules ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0"
+        "ALTER TABLE lp_capsules ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE lp_profiles ADD COLUMN identity_font TEXT NOT NULL DEFAULT 'clean'"
       ];
       for (const sql of alters) { try { await env.DB.prepare(sql).run(); } catch (e) { if (!String(e).toLowerCase().includes("duplicate column")) throw e; } }
       // v0.5.2 single seen meant the phone user had opened the letter. Preserve that truth,
@@ -726,8 +737,8 @@ async function addDiaryApi(env,body){const item=await addDiary(env,body);return 
 async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const title=clip(body.title!==undefined?body.title:old.title,160).trim()||old.title,content=clip(body.content!==undefined?body.content:old.content,20000).trim(),date=clip(body.date!==undefined?body.date:old.event_date,20);if(!content)return json({ok:false,error:"content_required"},400);if(!validDate(date))return json({ok:false,error:"invalid_date"},400);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return json({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
 
 async function bootstrapApi(env){
-  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listUnlockRequests(env,30)]);
-  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,unlock_requests});
+  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listMemories(env,80),listUnlockRequests(env,30)]);
+  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests});
 }
 
 function rowTodo(r){return {...r,done:Boolean(r.done)};}
@@ -752,7 +763,7 @@ async function updateTodoApi(env,body){const item=await updateTodo(env,body);ret
 
 
 async function deleteRowApi(env, table, body){
-  const allowed=new Set(["lp_events","lp_papers","lp_mail","lp_capsules","lp_diaries","lp_todos","lp_dates","lp_cycle_records","lp_calls"]);
+  const allowed=new Set(["lp_events","lp_papers","lp_mail","lp_capsules","lp_diaries","lp_todos","lp_dates","lp_cycle_records","lp_calls","lp_memories"]);
   if(!allowed.has(table))return json({ok:false,error:"delete_not_allowed"},400);
   const id=clip(body.id||"",100);if(!id)return json({ok:false,error:"id_required"},400);
   const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
@@ -831,22 +842,46 @@ async function setHealthSummaryApi(env,body){
   return json({ok:true,...await healthSummary(env)});
 }
 function validIdentityColor(v){return /^#[0-9A-Fa-f]{6}$/.test(String(v||""));}
+function validIdentityFont(v){return ["clean","rounded","serif","kai","mono"].includes(String(v||""));}
 async function getProfiles(env){
-  const defaults={user:{actor:"user",display_name:"瑞安",avatar:"",identity_color:"#6E83C1",updated_at:""},daddy:{actor:"daddy",display_name:"daddy",avatar:"",identity_color:"#C78EAD",updated_at:""}};
+  const defaults={user:{actor:"user",display_name:"瑞安",avatar:"",identity_color:"#6E83C1",identity_font:"clean",updated_at:""},daddy:{actor:"daddy",display_name:"daddy",avatar:"",identity_color:"#C78EAD",identity_font:"serif",updated_at:""}};
   const rows=await env.DB.prepare("SELECT * FROM lp_profiles").all();
-  for(const r of rows.results||[])if(defaults[r.actor])defaults[r.actor]={...defaults[r.actor],...r};
+  for(const r of rows.results||[])if(defaults[r.actor])defaults[r.actor]={...defaults[r.actor],...r,identity_font:validIdentityFont(r.identity_font)?r.identity_font:defaults[r.actor].identity_font};
   return defaults;
 }
 async function getProfilesApi(env){return json({ok:true,profiles:await getProfiles(env)});}
 async function setProfile(env,body){
   const raw=String(body.actor||"").toLowerCase(),actor=raw==="daddy"?"daddy":raw==="user"?"user":"";if(!actor)return {error:"invalid_actor"};
-  const current=(await getProfiles(env))[actor],display=clip(body.display_name!==undefined?body.display_name:current.display_name,80).trim()||current.display_name,avatar=clip(body.avatar!==undefined?body.avatar:current.avatar,450000),color=String(body.identity_color!==undefined?body.identity_color:current.identity_color).trim();
-  if(!validIdentityColor(color))return {error:"invalid_identity_color"};const updated=nowIso();
-  await env.DB.prepare("INSERT INTO lp_profiles(actor,display_name,avatar,identity_color,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(actor) DO UPDATE SET display_name=excluded.display_name,avatar=excluded.avatar,identity_color=excluded.identity_color,updated_at=excluded.updated_at")
-    .bind(actor,display,avatar,color.toUpperCase(),updated).run();
-  return {actor,display_name:display,avatar,identity_color:color.toUpperCase(),updated_at:updated};
+  const current=(await getProfiles(env))[actor],display=clip(body.display_name!==undefined?body.display_name:current.display_name,80).trim()||current.display_name,avatar=clip(body.avatar!==undefined?body.avatar:current.avatar,450000),color=String(body.identity_color!==undefined?body.identity_color:current.identity_color).trim(),font=String(body.identity_font!==undefined?body.identity_font:current.identity_font||"clean").trim();
+  if(!validIdentityColor(color))return {error:"invalid_identity_color"};
+  if(!validIdentityFont(font))return {error:"invalid_identity_font"};
+  const updated=nowIso();
+  await env.DB.prepare("INSERT INTO lp_profiles(actor,display_name,avatar,identity_color,identity_font,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(actor) DO UPDATE SET display_name=excluded.display_name,avatar=excluded.avatar,identity_color=excluded.identity_color,identity_font=excluded.identity_font,updated_at=excluded.updated_at")
+    .bind(actor,display,avatar,color.toUpperCase(),font,updated).run();
+  return {actor,display_name:display,avatar,identity_color:color.toUpperCase(),identity_font:font,updated_at:updated};
 }
 async function setProfileApi(env,body){const x=await setProfile(env,body);return x.error?json({ok:false,error:x.error},400):json({ok:true,profile:x});}
+
+function rowMemory(r){return {id:r.id,author:r.author||"daddy",content:r.content||"",category:r.category||"noticed",confidence:r.confidence||"remembered",confirmed:Boolean(r.confirmed),created_at:r.created_at,updated_at:r.updated_at};}
+async function listMemories(env,limit=80){const rows=await env.DB.prepare("SELECT * FROM lp_memories ORDER BY created_at DESC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowMemory);}
+async function listMemoriesApi(env,url){return json({ok:true,memories:await listMemories(env,asLimit(url,80,300))});}
+async function addMemory(env,body){
+  const content=clip(body.content||"",2000).trim();if(!content)return {error:"content_required"};
+  const now=nowIso(),item={id:uuid(),author:"daddy",content,category:clip(body.category||"noticed",60),confidence:["remembered","tentative"].includes(String(body.confidence||"remembered"))?String(body.confidence||"remembered"):"remembered",confirmed:Boolean(body.confirmed),created_at:now,updated_at:now};
+  await env.DB.prepare("INSERT INTO lp_memories(id,author,content,category,confidence,confirmed,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.author,item.content,item.category,item.confidence,boolInt(item.confirmed),item.created_at,item.updated_at).run();
+  return item;
+}
+async function addMemoryApi(env,body){const x=await addMemory(env,body);return x.error?json({ok:false,error:x.error},400):json({ok:true,memory:x});}
+async function updateMemory(env,body){
+  const id=clip(body.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_memories WHERE id=?").bind(id).first();if(!old)return {error:"not_found"};
+  const content=body.content!==undefined?clip(body.content||"",2000).trim():old.content;if(!content)return {error:"content_required"};
+  const category=body.category!==undefined?clip(body.category||"noticed",60):old.category;
+  const confidence=body.confidence!==undefined&&["remembered","tentative"].includes(String(body.confidence))?String(body.confidence):old.confidence;
+  const confirmed=body.confirmed!==undefined?Boolean(body.confirmed):Boolean(old.confirmed),updated=nowIso();
+  await env.DB.prepare("UPDATE lp_memories SET content=?,category=?,confidence=?,confirmed=?,updated_at=? WHERE id=?").bind(content,category,confidence,boolInt(confirmed),updated,id).run();
+  return rowMemory(await env.DB.prepare("SELECT * FROM lp_memories WHERE id=?").bind(id).first());
+}
+async function updateMemoryApi(env,body){const x=await updateMemory(env,body);return x.error?json({ok:false,error:x.error},x.error==="not_found"?404:400):json({ok:true,memory:x});}
 function rowUnlockRequest(r){return {id:r.id,device_id:r.device_id,package:r.package_name,app:r.app_name,requester:r.requester,reason:r.reason,status:r.status,response:r.response,created_at:r.created_at,updated_at:r.updated_at};}
 async function addUnlockRequest(env,body){
   const pkg=clip(body.package||body.package_name||"",180).trim();if(!pkg)return {error:"package_required"};const now=nowIso();
@@ -871,7 +906,7 @@ async function respondUnlockRequest(env,body){
 }
 async function respondUnlockRequestApi(env,body){const x=await respondUnlockRequest(env,body);return x.error?json({ok:false,error:x.error},x.error==="not_found"?404:400):json({ok:true,...x});}
 
-async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","show_reminder_popup","trigger_guidian","trigger_call","lock_app","unlock_app","temporary_unlock_app","add_locked_app","remove_locked_app","phone_home","phone_back","phone_recents","open_app","list_lockable_apps"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),delay=Math.max(0,Math.min(1440,Number(body.delay_minutes||0)||0)),created=nowIso(),scheduled=new Date(Date.now()+delay*60000).toISOString().replace(/\.\d{3}Z$/,"Z"),device=clip(body.device_id||DEFAULT_DEVICE,120);const cmd={id,device_id:device,action,status:"pending",created_at:created,scheduled_for:scheduled,requested_by:clip(body.requested_by||"daddy",40),...body,action};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,action,JSON.stringify(cmd),"pending",scheduled).run();return cmd;}
+async function queueGenericCommand(env,body){const action=clip(body.action||"",80);if(!action)return {error:"action_required"};const allowed=new Set(["send_notification","show_reminder_popup","trigger_guidian","trigger_call","get_guidian_state","set_guidian_config","mark_guidian_returned","lock_app","unlock_app","temporary_unlock_app","extend_lock","deny_unlock_request","get_lock_state","set_emergency_passphrase","add_locked_app","remove_locked_app","list_locked_apps","screen_break_app","end_screen_break","temporary_screen_break_release","extend_screen_break","deny_screen_break_release_request","get_screen_break_state","list_screen_break_apps","add_screen_break_app","remove_screen_break_app","set_screen_break_passphrase","phone_home","home","phone_back","back","phone_recents","recents","phone_screen_off","screen_off","open_app","list_lockable_apps","get_phone_state","get_life_state","get_senses_state","get_screen_nodes","tap_text","input_text","tap","swipe","wait","set_alarm","run_sequence","get_calendar_state","upsert_calendar_event","add_calendar_event","delete_calendar_event","create_diary_book","list_diary_books","rename_diary_book","update_diary_book_cover","delete_diary_book","write_diary_entry","list_diary_entries","read_diary_entry","read_diary_entry_with_annotations","search_diary_entries","update_diary_entry","delete_diary_entry","add_diary_annotation","list_diary_annotations","mark_diary_annotations_seen","delete_diary_annotation","start_focus_mode","enable_focus_mode","end_focus_mode","disable_focus_mode","set_focus_plan","request_focus_unlock","create_focus_request","reply_focus_request","focus_reply","approve_focus_unlock","temporary_focus_unlock","deny_focus_unlock","save_known_app","get_wallet_state","get_wallet_month_state","list_wallet_months","add_wallet_record","list_wallet_pending","list_wallet_approvals","list_companion_wallet_requests","list_wallet_request_results","submit_wallet_approval","submit_companion_wallet_request","decide_wallet_approval","save_wallet_request_result","update_wallet_request_result","save_user_wallet_request_result","edit_wallet_record","update_wallet_record","delete_wallet_record","remove_wallet_record","confirm_wallet_record","get_wallet_rules","set_wallet_rules","wallet_approval_request","get_takeout_state","list_takeout_cards","list_takeout_meals","remember_takeout_meal","remember_current_takeout_meal","set_takeout_budget","set_takeout_preferences","add_takeout_card","save_takeout_card","update_takeout_card","remove_takeout_card","delete_takeout_card","suggest_takeout_options","create_takeout_plan","open_takeout_link","open_takeout_plan","copy_takeout_note","record_takeout_order","takeout_wallet_request","prepare_takeout_checkout","auto_takeout_checkout","get_takeout_checkout_status","cancel_takeout_checkout"]);if(!allowed.has(action))return {error:"action_not_allowed"};const id=uuid(),delay=Math.max(0,Math.min(1440,Number(body.delay_minutes||0)||0)),created=nowIso(),scheduled=new Date(Date.now()+delay*60000).toISOString().replace(/\.\d{3}Z$/,"Z"),device=clip(body.device_id||DEFAULT_DEVICE,120);const cmd={id,device_id:device,action,status:"pending",created_at:created,scheduled_for:scheduled,requested_by:clip(body.requested_by||"daddy",40),...body,action};delete cmd.token;await env.DB.prepare("INSERT INTO lp_commands(id,device_id,action,command_json,status,created_at) VALUES(?,?,?,?,?,?)").bind(id,device,action,JSON.stringify(cmd),"pending",scheduled).run();return cmd;}
 async function queueGenericCommandApi(env,body){const c=await queueGenericCommand(env,body);return c.error?json({ok:false,error:c.error},400):json({ok:true,command:c});}
 async function getCommand(env,id){const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE id=?").bind(clip(id||"",120)).first();if(!row)return null;const command=safeJson(row.command_json,{});let parsedResult=row.result||"";try{parsedResult=JSON.parse(parsedResult);}catch{}return{...command,id:row.id,device_id:row.device_id,action:row.action,status:row.status,created_at:command.created_at||row.created_at,scheduled_for:command.scheduled_for||row.created_at,dispatched_at:row.dispatched_at||command.dispatched_at||null,completed_at:row.completed_at||command.completed_at||null,result:parsedResult};}
 
@@ -881,9 +916,17 @@ async function queueVisit(env,deviceId=DEFAULT_DEVICE){
 }
 async function queueVisitApi(env,body){const cmd=await queueVisit(env,clip(body.device_id||DEFAULT_DEVICE,120));return json({ok:true,command:cmd,mode:"read_once"});}
 async function pollCommand(env,url){
-  const deviceId=clip(url.searchParams.get("device_id")||DEFAULT_DEVICE,120); const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE device_id=? AND status='pending' AND created_at<=? ORDER BY created_at ASC LIMIT 1").bind(deviceId,nowIso()).first();
-  if(!row)return json({ok:true,command:null}); const cmd=safeJson(row.command_json,{}); cmd.status="dispatched";cmd.dispatched_at=nowIso();
-  await env.DB.prepare("UPDATE lp_commands SET command_json=?,status='dispatched',dispatched_at=? WHERE id=?").bind(JSON.stringify(cmd),cmd.dispatched_at,row.id).run(); return json({ok:true,command:cmd});
+  const deviceId=clip(url.searchParams.get("device_id")||DEFAULT_DEVICE,120);
+  // v0.6.2：Accessibility fallback 可能在前台服务轮询线程失活时接管。
+  // 因此 poll 必须用 compare-and-set 方式 claim，避免两个 poller 同时拿到同一条命令。
+  for(let attempt=0;attempt<3;attempt++){
+    const row=await env.DB.prepare("SELECT * FROM lp_commands WHERE device_id=? AND status='pending' AND created_at<=? ORDER BY created_at ASC LIMIT 1").bind(deviceId,nowIso()).first();
+    if(!row)return json({ok:true,command:null});
+    const cmd=safeJson(row.command_json,{}); cmd.status="dispatched";cmd.dispatched_at=nowIso();
+    const claimed=await env.DB.prepare("UPDATE lp_commands SET command_json=?,status='dispatched',dispatched_at=? WHERE id=? AND status='pending'").bind(JSON.stringify(cmd),cmd.dispatched_at,row.id).run();
+    if(Number(claimed?.meta?.changes||0)>0)return json({ok:true,command:cmd});
+  }
+  return json({ok:true,command:null});
 }
 async function commandStatus(env,url){const id=clip(url.searchParams.get("id")||"",100);const row=await env.DB.prepare("SELECT command_json FROM lp_commands WHERE id=?").bind(id).first();return json({ok:Boolean(row),command:row?safeJson(row.command_json,{}):null});}
 function parseSnapshotResult(raw){if(raw&&typeof raw==="object")return raw;const obj=safeJson(String(raw||""),null);return obj&&typeof obj==="object"?obj:null;}
@@ -950,7 +993,7 @@ const MCP_TOOLS = [
   tool("list_little_phone_calls","读取来电/接通/拒绝记录和拒绝留言。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("get_health_summary","读取小米健康桥提供的最新健康摘要；未接入时明确返回 health_source_not_connected。",{}),
   tool("get_sleep_summary","只读取最新睡眠摘要；未接入时明确返回 health_source_not_connected。",{}),
-  tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","cycle_record","call"]},id:{type:"string"}},["kind","id"]),
+  tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","cycle_record","call","memory"]},id:{type:"string"}},["kind","id"]),
   tool("list_important_dates","读取纪念日/重要日期。",{limit:{type:"integer",minimum:1,maximum:500,default:300}}),
   tool("add_important_date","添加纪念日或重要日期。",{title:{type:"string"},date:{type:"string",description:"YYYY-MM-DD"},kind:{type:"string",default:"important"},remind_days:{type:"integer",default:3},note:{type:"string",default:""}},["title","date"]),
   tool("update_important_date","修改纪念日或重要日期。",{id:{type:"string"},title:{type:"string"},date:{type:"string"},kind:{type:"string"},remind_days:{type:"integer"},note:{type:"string"}},["id"]),
@@ -961,8 +1004,11 @@ const MCP_TOOLS = [
   tool("send_little_phone_reminder","向小手机发送一次本地提醒/弹窗命令。",{message:{type:"string"},title:{type:"string",default:"小手机提醒"},mode:{type:"string",enum:["notification","popup"],default:"notification"},device_id:{type:"string",default:DEFAULT_DEVICE}},["message"]),
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
-  tool("get_little_phone_profiles","读取双方当前显示名、头像和身份色。",{}),
-  tool("set_little_phone_profile","修改一方显示名、头像或身份色。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"}},["actor"]),
+  tool("get_little_phone_profiles","读取双方当前显示名、头像、身份色和身份字体。",{}),
+  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","serif","kai","mono"]}},["actor"]),
+  tool("remember_about_user","给“{display_name} 记得”写入一条真正的理解/记忆；不要用于简单复制事件。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
+  tool("list_daddy_memories","读取“记得”里的条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("update_daddy_memory","修改一条已有理解，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
   tool("list_little_phone_unlock_requests","读取应用门禁解锁申请。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("respond_little_phone_unlock_request","回复一条应用门禁解锁申请；approve 会实际下发解锁命令。",{id:{type:"string"},decision:{type:"string",enum:["approve","deny"]},response:{type:"string",default:""}},["id","decision"]),
   tool("phone_home","让手机回到桌面。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
@@ -1090,7 +1136,7 @@ async function callTool(name,args,env){
     case "list_little_phone_calls": return mcpText({ok:true,calls:await listCalls(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "get_health_summary": {const h=await healthSummary(env);return mcpText(h.connected?{ok:true,...h}:{ok:false,error:"health_source_not_connected",...h},!h.connected);}
     case "get_sleep_summary": {const h=await healthSummary(env);return mcpText(h.connected&&h.sleep?{ok:true,source:h.source,sleep:h.sleep,updated_at:h.updated_at}:{ok:false,error:"health_source_not_connected",source:h.source,updated_at:h.updated_at},!(h.connected&&h.sleep));}
-    case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",diary:"lp_diaries",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records",call:"lp_calls"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
+    case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",diary:"lp_diaries",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records",call:"lp_calls",memory:"lp_memories"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
     case "list_important_dates": return mcpText({ok:true,dates:await listDates(env,Math.max(1,Math.min(500,Number(args.limit||300))))});
     case "add_important_date": {const title=clip(args.title||"",120),date=clip(args.date||"",20);if(!title||!validDate(date))return mcpText({ok:false,error:"title_and_date_required"},true);const now=nowIso(),item={id:uuid(),title,date,kind:clip(args.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(args.remind_days??3)||0)),note:clip(args.note||"",500),created_at:now,updated_at:now};if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.created_at,item.updated_at).run();return mcpText({ok:true,date:item});}
     case "get_cycle_record": return mcpText({ok:true,...cycleProjection(await cycleSettings(env),await listCycleRecords(env,120))});
@@ -1103,6 +1149,9 @@ async function callTool(name,args,env){
     case "unlock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"unlock_app",package:args.package,requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "get_little_phone_profiles": return mcpText({ok:true,profiles:await getProfiles(env)});
     case "set_little_phone_profile": {const x=await setProfile(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
+    case "remember_about_user": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "list_daddy_memories": return mcpText({ok:true,memories:await listMemories(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
+    case "update_daddy_memory": {const x=await updateMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
     case "list_little_phone_unlock_requests": return mcpText({ok:true,requests:await listUnlockRequests(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "respond_little_phone_unlock_request": {const x=await respondUnlockRequest(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,...x},Boolean(x.error));}
     case "phone_home": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"phone_home",requested_by:"daddy"});return mcpText({ok:true,command:c});}

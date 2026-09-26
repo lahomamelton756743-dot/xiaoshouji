@@ -1,6 +1,6 @@
-# 小手机 v0.6.1
+# 小手机 v0.6.2
 
-瑞安与 ChatGPT 私人使用的小手机。v0.6.1 在 v0.5.2 功能基线上继续升级，视觉保持 v0.4.1 的冰蓝 / 珍珠白 / 淡灰紫液态玻璃，不清空既有数据，也不重写已经验证通过的链路。
+瑞安与 ChatGPT 私人使用的小手机。v0.6.2 在 v0.5.2 功能基线上继续升级，视觉保持 v0.4.1 的冰蓝 / 珍珠白 / 淡灰紫液态玻璃，不清空既有数据，也不重写已经验证通过的链路。
 
 ## 架构
 
@@ -10,7 +10,7 @@
 - MCP：同一个 Cloudflare Worker 暴露 `/mcp`。
 - 不使用模型 API，不使用 Claude channel，不提供截图能力。
 
-## v0.6.1 重点
+## v0.6.2 重点
 
 - 双人身份系统：稳定 actor 键 `user` / `daddy`，显示名、头像、身份色独立可编辑并全局同步；正文不随昵称变化。
 - “我们”页：状态缩为头像上方小胶囊；头像靠近；共享耳机线在下方汇合；显示动态相伴天数；右侧“一起听”读取真实 `media_state`。
@@ -27,9 +27,12 @@
 - 应用门禁：保留现有 lock/unlock 底层，UI 改为小手机液态玻璃；动态读取锁定者头像、名字、身份色；保留“长按 5 秒紧急解锁”；支持申请解锁理由与后端响应。
 - 旧 Render 能力：新增 Cloudflare 原生 phone home/back/recents/open_app、App 列表命令，以及基于最新一次授权快照的 phone/life/senses 状态工具。
 
+- v0.6.2 门禁修复：只保留统一 LockActivity，不再叠悬浮门禁页；紧急解锁改为本机长按 5 秒直接临时放行，不再依赖未知口令，按钮宽度改为自适应。
+- v0.6.2 通用 command dispatcher：显式处理 `open_app` / home / back / recents / screen_off / 状态读取等通用动作；前台轮询线程失活时由无障碍服务兜底接管；Cloudflare poll 使用原子 claim 防止重复领取。
+
 ## 数据迁移
 
-Worker 启动时会使用幂等迁移补齐 v0.6.1 字段与表，包括：
+Worker 启动时会使用幂等迁移补齐 v0.6.2 字段与表，包括：
 
 - `lp_papers.reply_to`
 - `lp_mail.user_seen` / `lp_mail.daddy_seen`
@@ -37,7 +40,7 @@ Worker 启动时会使用幂等迁移补齐 v0.6.1 字段与表，包括：
 - `lp_profiles`
 - `lp_unlock_requests`
 
-现有 D1 继续使用，不需要为了 v0.6.1 清库或新建数据库。
+现有 D1 继续使用，不需要为了 v0.6.2 清库或新建数据库。
 
 ## 后端测试
 
@@ -56,7 +59,7 @@ npm test
 bash android/build.sh
 ```
 
-输出：`android/LittlePhone-v0.6.1.apk`
+输出：`android/LittlePhone-v0.6.2.apk`
 
 ## Cloudflare 部署
 
@@ -72,6 +75,6 @@ Repository Secrets：
 
 ## 交付
 
-- ZIP：`little-phone-v0.6.1.zip`
+- ZIP：`little-phone-v0.6.2.zip`
 - Branch：`main`
-- Commit：`Upgrade little-phone to v0.6.1`
+- Commit：`Upgrade little-phone to v0.6.2`

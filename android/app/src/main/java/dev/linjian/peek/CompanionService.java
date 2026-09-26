@@ -36,6 +36,8 @@ public class CompanionService extends Service {
     private static final int NOTIFICATION_ID = 20260715;
     private static final int HOME_MODE_NOTIFICATION_ID = 20260913;
     private static volatile boolean running = false;
+    private static volatile long lastPollAttemptMs = 0L;
+    private static volatile long lastPollSuccessMs = 0L;
 
     private String serverUrl;
     private String token;
@@ -45,6 +47,18 @@ public class CompanionService extends Service {
     private static long lastStateUploadMs = 0L;
 
     public static boolean isRunning() { return running; }
+    /**
+     * 前台服务进程还在不等于轮询线程一定健康。v0.6.2 用最近一次成功 poll
+     * 作为健康信号，让无障碍服务在轮询线程卡死时接管 command queue。
+     */
+    public static boolean isPollingHealthy() {
+        if (!running) return false;
+        long last = lastPollSuccessMs;
+        if (last <= 0) return false;
+        return System.currentTimeMillis() - last < 12000L;
+    }
+    public static long lastPollAttemptMs() { return lastPollAttemptMs; }
+    public static long lastPollSuccessMs() { return lastPollSuccessMs; }
     @Override public IBinder onBind(Intent intent) { return null; }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -87,8 +101,14 @@ public class CompanionService extends Service {
             if (rateLimitedUntilMs > now) {
                 delay = Math.max(delay, rateLimitedUntilMs - now);
             } else {
+                lastPollAttemptMs = System.currentTimeMillis();
                 String body = pollServer();
-                if (body != null && body.length() > 0) handleCommandBody(this, body, serverUrl, token);
+                if (body != null && body.length() > 0) {
+                    handleCommandBody(this, body, serverUrl, token);
+                    // 队列一次只 claim 一条；刚处理完命令后快速再 poll 一次，避免
+                    // open_app/home/back 等通用命令在多个 pending command 后面排很久。
+                    delay = AppPrefs.MIN_POLL_INTERVAL_MS;
+                }
             }
         } catch (Exception e) { DebugState.append(this, "轮询异常：" + ScreenshotService.shortMsg(e)); }
         if (running) pollHandler.postDelayed(this::pollLoop, Math.max(AppPrefs.MIN_POLL_INTERVAL_MS, delay));
@@ -100,6 +120,7 @@ public class CompanionService extends Service {
         try {
             int code = conn.getResponseCode(); String body = ScreenshotService.readBody(conn, code);
             if (code == 200) {
+                lastPollSuccessMs = System.currentTimeMillis();
                 if (body.contains("\"command\": null") || body.contains("\"command\":null")) return "";
                 DebugState.append(this, "轮询成功：收到命令包"); return body;
             } else {
@@ -242,6 +263,11 @@ public class CompanionService extends Service {
                 executeSequence(ctx, id, cmd, serverUrl, token);
                 return;
             }
+            if (isGenericPhoneCommandAction(action)) {
+                DebugState.append(ctx, "通用 command dispatcher 接管：" + action + "；id=" + id);
+                executeCommand(ctx, id, action, app, pkg, x, y, x1, y1, x2, y2, duration, hour, minute, title, message, vibrate, serverUrl, token, skipUi, targetText, inputText, match, index, append);
+                return;
+            }
             executeCommand(ctx, id, action, app, pkg, x, y, x1, y1, x2, y2, duration, hour, minute, title, message, vibrate, serverUrl, token, skipUi, targetText, inputText, match, index, append);
         } catch (Exception e) { DebugState.append(ctx, "命令解析异常：" + ScreenshotService.shortMsg(e)); }
     }
@@ -280,6 +306,26 @@ public class CompanionService extends Service {
         return "get_takeout_state".equals(action) || "list_takeout_cards".equals(action) || "list_takeout_meals".equals(action) || "remember_takeout_meal".equals(action) || "remember_current_takeout_meal".equals(action) || "set_takeout_budget".equals(action) || "set_takeout_preferences".equals(action) || "add_takeout_card".equals(action) || "save_takeout_card".equals(action) || "update_takeout_card".equals(action) || "remove_takeout_card".equals(action) || "delete_takeout_card".equals(action) || "suggest_takeout_options".equals(action) || "create_takeout_plan".equals(action) || "open_takeout_link".equals(action) || "open_takeout_plan".equals(action) || "copy_takeout_note".equals(action) || "record_takeout_order".equals(action) || "takeout_wallet_request".equals(action) || "prepare_takeout_checkout".equals(action) || "auto_takeout_checkout".equals(action) || "get_takeout_checkout_status".equals(action) || "cancel_takeout_checkout".equals(action);
     }
 
+    /**
+     * Cloudflare generic command queue 的通用动作。
+     * 明确列出来而不是依赖最后的 fall-through，避免后续新增业务 handler 时把
+     * open_app / home / back / recents 等动作提前吞掉或误报 noop。
+     */
+    private static boolean isGenericPhoneCommandAction(String action) {
+        return "open_app".equals(action)
+                || "home".equals(action) || "phone_home".equals(action)
+                || "back".equals(action) || "phone_back".equals(action)
+                || "recents".equals(action) || "phone_recents".equals(action)
+                || "screen_off".equals(action) || "turn_screen_off".equals(action) || "lock_screen".equals(action) || "phone_screen_off".equals(action)
+                || "tap".equals(action) || "swipe".equals(action) || "wait".equals(action)
+                || "get_screen_nodes".equals(action) || "tap_text".equals(action) || "input_text".equals(action)
+                || "set_alarm".equals(action)
+                || "send_notification".equals(action) || "show_reminder_popup".equals(action)
+                || "little_phone_visit".equals(action)
+                || "get_phone_state".equals(action) || "get_life_state".equals(action) || "get_senses_state".equals(action)
+                || "peek".equals(action) || "noop".equals(action);
+    }
+
     private static void executeCommand(Context ctx, String id, String action, String app, String pkg, float x, float y, float x1, float y1, float x2, float y2, long duration, int hour, int minute, String title, String message, boolean vibrate, String serverUrl, String token) {
         executeCommand(ctx, id, action, app, pkg, x, y, x1, y1, x2, y2, duration, hour, minute, title, message, vibrate, serverUrl, token, true, "", "", "contains", 1, false);
     }
@@ -309,7 +355,8 @@ public class CompanionService extends Service {
                 JSONObject snapshot = LittlePhoneVisitPolicy.collectSnapshot(ctx);
                 ok = snapshot.optBoolean("ok", false);
                 result = snapshot.toString();
-            } else if ("get_life_state".equals(action)) { ok = true; result = LifeState.collect(ctx).toString();
+            } else if ("get_phone_state".equals(action) || "get_life_state".equals(action)) { ok = true; result = LifeState.collect(ctx).toString();
+            } else if ("get_senses_state".equals(action)) { ok = true; result = NowState.collect(ctx).toString();
             } else if (isWalletAction(action)) { JSONObject rr = WalletState.handleCommand(ctx, new JSONObject().put("action", action).put("amount", 0)); ok = rr.optBoolean("ok", false); result = rr.toString();
             } else if (isTakeoutAction(action)) { JSONObject rr = TakeoutState.handleCommand(ctx, new JSONObject().put("action", action)); ok = rr.optBoolean("ok", false); result = rr.toString();
             } else if ("get_calendar_state".equals(action) || "upsert_calendar_event".equals(action) || "add_calendar_event".equals(action) || "delete_calendar_event".equals(action)) { JSONObject rr = CalendarState.handleCommand(ctx, new JSONObject().put("action", action).put("title", title).put("date", message)); ok = rr.optBoolean("ok", false); result = rr.optString("result", rr.toString());
@@ -335,7 +382,11 @@ public class CompanionService extends Service {
                 ok = false; result = "screenshot_disabled";
             } else if ("open_app".equals(action)) {
                 if (pkg == null || pkg.length() == 0) pkg = AppPrefs.packageForApp(ctx, app);
-                result = openPackageResult(ctx, pkg);
+                // 优先从已连接的 AccessibilityService 上下文启动目标 App。
+                // 部分 ROM 对普通后台 Service 的 startActivity 限制更严格；无障碍服务
+                // 已经是小手机通用 command dispatcher 的执行宿主，兼容性更好。
+                Context launchCtx = svc != null ? svc : ctx;
+                result = openPackageResult(launchCtx, pkg);
                 ok = result.startsWith("opened_");
             } else if ("home".equals(action) || "phone_home".equals(action)) { ok = svc != null && svc.doHome(); result = ok ? "home" : "home_failed_or_accessibility_missing";
             } else if ("back".equals(action) || "phone_back".equals(action)) { ok = svc != null && svc.doBack(); result = ok ? "back" : "back_failed_or_accessibility_missing";
@@ -347,7 +398,8 @@ public class CompanionService extends Service {
             } else if ("send_notification".equals(action)) { ok = showReminderNotification(ctx, title, message); result = ok ? "heads_up_notification_sent" : "notification permission missing";
             } else if ("show_reminder_popup".equals(action)) { ok = showReminderPopup(ctx, title, message); result = ok ? "reminder_popup_shown" : "reminder_popup_failed";
             } else if ("get_guidian_state".equals(action) || "set_guidian_config".equals(action) || "trigger_guidian".equals(action) || "trigger_call".equals(action) || "mark_guidian_returned".equals(action)) { JSONObject c = new JSONObject().put("action", "trigger_call".equals(action) ? "trigger_guidian" : action).put("message", message); JSONObject rr = GuidianState.handleCommand(ctx, c); ok = rr.optBoolean("ok", false); result = rr.toString();
-            } else { ok = true; result = "noop"; }
+            } else if ("noop".equals(action)) { ok = true; result = "noop";
+            } else { ok = false; result = "unsupported_action:" + action; }
         } catch (Exception e) { result = ScreenshotService.shortMsg(e); }
         try { out.put("ok", ok); out.put("action", action); out.put("result", result); } catch (Exception ignored) { }
         return out;

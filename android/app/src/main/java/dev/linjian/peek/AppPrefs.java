@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
-    public static final String APP_VERSION_NAME = "0.6.1";
-    public static final int APP_VERSION_CODE = 60100;
+    public static final String APP_VERSION_NAME = "0.6.2";
+    public static final int APP_VERSION_CODE = 60200;
     public static final String KEY_SERVER = "server_url";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";
@@ -52,10 +52,14 @@ public class AppPrefs {
     public static final String KEY_COMPANION_AVATAR = "little_phone_companion_avatar";
     public static final String KEY_USER_IDENTITY_COLOR = "little_phone_user_identity_color";
     public static final String KEY_COMPANION_IDENTITY_COLOR = "little_phone_companion_identity_color";
+    public static final String KEY_USER_IDENTITY_FONT = "little_phone_user_identity_font";
+    public static final String KEY_COMPANION_IDENTITY_FONT = "little_phone_companion_identity_font";
     public static final String DEFAULT_USER_NAME = "瑞安";
     public static final String DEFAULT_COMPANION_NAME = "daddy";
     public static final String DEFAULT_USER_IDENTITY_COLOR = "#6E83C1";
     public static final String DEFAULT_COMPANION_IDENTITY_COLOR = "#C78EAD";
+    public static final String DEFAULT_USER_IDENTITY_FONT = "clean";
+    public static final String DEFAULT_COMPANION_IDENTITY_FONT = "serif";
     // 仅用于从旧公开版平滑迁移，新的 UI 和业务逻辑不再写入这两个键。
     public static final String KEY_USER_NICKNAME = "user_nickname";
     public static final String KEY_PARTNER_NICKNAME = "partner_nickname";
@@ -155,6 +159,16 @@ public class AppPrefs {
     }
     public static String companionIdentityColor(Context ctx) {
         return safeColor(get(ctx).getString(KEY_COMPANION_IDENTITY_COLOR, DEFAULT_COMPANION_IDENTITY_COLOR), DEFAULT_COMPANION_IDENTITY_COLOR);
+    }
+    public static String userIdentityFont(Context ctx) {
+        return safeIdentityFont(get(ctx).getString(KEY_USER_IDENTITY_FONT, DEFAULT_USER_IDENTITY_FONT), DEFAULT_USER_IDENTITY_FONT);
+    }
+    public static String companionIdentityFont(Context ctx) {
+        return safeIdentityFont(get(ctx).getString(KEY_COMPANION_IDENTITY_FONT, DEFAULT_COMPANION_IDENTITY_FONT), DEFAULT_COMPANION_IDENTITY_FONT);
+    }
+    private static String safeIdentityFont(String raw, String fallback) {
+        String v = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        return ("clean".equals(v) || "rounded".equals(v) || "serif".equals(v) || "kai".equals(v) || "mono".equals(v)) ? v : fallback;
     }
     private static String safeColor(String raw, String fallback) {
         String v = raw == null ? "" : raw.trim();

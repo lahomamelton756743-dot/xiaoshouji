@@ -74,7 +74,10 @@ public class ScreenshotService extends AccessibilityService {
                 String url = normalizeUrl(prefs.getString(AppPrefs.KEY_SERVER, ""));
                 String tk = prefs.getString(AppPrefs.KEY_TOKEN, "");
                 boolean userStopped = prefs.getBoolean("user_stopped", true);
-                if (!userStopped && !url.isEmpty() && !tk.isEmpty() && !CompanionService.isRunning()) {
+                if (!userStopped && !url.isEmpty() && !tk.isEmpty() && (!CompanionService.isRunning() || !CompanionService.isPollingHealthy())) {
+                    if (CompanionService.isRunning()) {
+                        DebugState.append(ScreenshotService.this, "无障碍兜底轮询接管：前台服务存在，但 command poll 已超过健康窗口");
+                    }
                     String body = pollServerFromAccessibility(url, tk);
                     if (body != null && body.length() > 0) CompanionService.handleCommandBody(ScreenshotService.this, body, url, tk);
                 }

@@ -8,6 +8,7 @@ import path from "path";
 
 const PORT = Number(process.env.PORT || 8787);
 const RAW_LINJIAN_URL = (process.env.LINJIAN_URL || "").trim();
+const RAW_LITTLE_PHONE_URL = (process.env.LITTLE_PHONE_URL || process.env.LINJIAN_LITTLE_PHONE_URL || "https://little-phone-backend.lahomamelton756743.workers.dev").trim();
 
 function normalizeBaseUrl(value = "") {
   return String(value || "").trim().replace(/\/$/, "");
@@ -49,6 +50,7 @@ function effectiveLinjianUrl() {
   return activeLinjianUrl || LINJIAN_URL_CANDIDATES[0] || "";
 }
 const LINJIAN_TOKEN = process.env.LINJIAN_TOKEN || "";
+const LITTLE_PHONE_URL = normalizeBaseUrl(RAW_LITTLE_PHONE_URL);
 const DEFAULT_DEVICE = process.env.LINJIAN_DEFAULT_DEVICE || "android-phone";
 
 // v0.3.6.6：公开 MCP 经常被平台限制在 20 秒内返回。
@@ -182,11 +184,17 @@ async function postCompanionAction(toolName, overrides = {}) {
   const meta = COMPANION_ACTION_META[toolName];
   if (!meta) return null;
   try {
-    const res = await linjianFetch("/api/companion/action", {
+    const res = await littlePhoneFetch("/api/littlephone/events", {
       method: "POST",
       timeout_ms: ACTIVITY_TIMEOUT_MS,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: meta[0], title: meta[1], summary: meta[2], type: overrides.type || activityTypeForTool(toolName), action: overrides.action || toolName, status: "completed", write_activity: true, device_id: overrides.device_id || DEFAULT_DEVICE, dedupe_seconds: isStatusTool(toolName) ? 20 : 0, ...overrides })
+      body: JSON.stringify({
+        actor: "daddy",
+        type: overrides.type || activityTypeForTool(toolName),
+        title: overrides.title || meta[1],
+        content: overrides.summary || meta[2],
+        metadata: { action: overrides.action || toolName, device_id: overrides.device_id || DEFAULT_DEVICE, event_key: `mcp:${toolName}:${overrides.device_id || DEFAULT_DEVICE}` }
+      })
     });
     return await res.json();
   } catch {
@@ -593,9 +601,14 @@ function actionPayloadForCare({ action, target_app = "", package: pkg = "", dura
 
 async function buildActiveCareSuggestion({ reason = "", care_intent = "check_in", device_id = DEFAULT_DEVICE }) {
   const policy = careState.policy || DEFAULT_CARE_POLICY;
-  const life = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`).then((r) => r.json()).catch((e) => ({ ok: false, error: String(e) }));
-  const guidian = await linjianFetch(`/api/guidian_state?device_id=${encodeURIComponent(device_id)}`).then((r) => r.json()).catch(() => ({}));
-  const lockState = await linjianFetch(`/api/appgate/state?device_id=${encodeURIComponent(device_id)}`).then((r) => r.json()).catch(() => ({}));
+  const [snap, guidianQuery, gateQuery] = await Promise.all([
+    currentSnapshot(device_id),
+    queryAndroidState("get_guidian_state", device_id, 6),
+    queryAndroidState("get_screen_break_state", device_id, 6)
+  ]);
+  const life = snap.ok ? { ok: true, state: snap.snapshot || {} } : { ok: false, error: snap.error || "no_fresh_snapshot" };
+  const guidian = guidianQuery?.phone_result || guidianQuery?.command || {};
+  const lockState = gateQuery?.phone_result || gateQuery?.command || {};
   const state = unwrapLifeState(life);
   const app = currentAppInfo(state);
   const sensitive = matchSensitiveApp(policy, app.name, app.package);
@@ -708,13 +721,44 @@ async function linjianFetch(path, options = {}) {
   throw new Error(`Linjian server fetch failed. tried=${errors.join(" | ")}`);
 }
 
+function requireLittlePhoneConfig() {
+  if (!LITTLE_PHONE_URL) throw new Error("Missing LITTLE_PHONE_URL");
+  if (!LINJIAN_TOKEN) throw new Error("Missing env LINJIAN_TOKEN");
+}
+
+async function littlePhoneFetch(path, options = {}) {
+  requireLittlePhoneConfig();
+  const { timeout_ms, ...fetchOptions } = options || {};
+  const timeoutMs = Math.max(500, Number(timeout_ms || DEFAULT_FETCH_TIMEOUT_MS));
+  const res = await fetch(`${LITTLE_PHONE_URL}${path}`, {
+    ...fetchOptions,
+    signal: fetchOptions.signal || AbortSignal.timeout(timeoutMs),
+    headers: { "X-Auth-Token": LINJIAN_TOKEN, "Authorization": `Bearer ${LINJIAN_TOKEN}`, ...(fetchOptions.headers || {}) }
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Little Phone Cloudflare HTTP ${res.status}: ${body || res.statusText}`);
+  }
+  return res;
+}
+
 async function postCommand(payload) {
-  const res = await linjianFetch("/api/command", {
+  const res = await littlePhoneFetch("/api/littlephone/command", {
     method: "POST",
     timeout_ms: COMMAND_QUEUE_TIMEOUT_MS,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
+  return await res.json();
+}
+
+async function latestLittlePhoneVisit(device_id = DEFAULT_DEVICE) {
+  const res = await littlePhoneFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+  return await res.json();
+}
+
+async function littlePhoneBootstrap() {
+  const res = await littlePhoneFetch("/api/littlephone/bootstrap", { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
   return await res.json();
 }
 
@@ -737,7 +781,7 @@ function durationToGateMinutes(value) {
 }
 
 async function commandStatus(id, timeoutMs = COMMAND_STATUS_TIMEOUT_MS) {
-  const res = await linjianFetch(`/api/command/status?id=${encodeURIComponent(id)}`, { timeout_ms: timeoutMs });
+  const res = await littlePhoneFetch(`/api/command/status?id=${encodeURIComponent(id)}`, { timeout_ms: timeoutMs });
   return await res.json();
 }
 
@@ -790,6 +834,30 @@ async function waitCommand(id, seconds = DEFAULT_COMMAND_WAIT_SECONDS) {
   return last;
 }
 
+async function queryAndroidState(action, device_id = DEFAULT_DEVICE, waitSeconds = 7, extra = {}) {
+  try {
+    const queued = await postCommand({ action, device_id, ...extra });
+    const id = queued?.command?.id;
+    const observed = id ? await waitCommand(id, waitSeconds) : null;
+    const command = observed?.command || queued?.command || null;
+    const phone_result = parsePhoneResult(command);
+    return { ok: command?.status === "completed", queued, command, phone_result };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+async function currentSnapshot(device_id = DEFAULT_DEVICE) {
+  try {
+    const data = await latestLittlePhoneVisit(device_id);
+    const visit = data?.visit || null;
+    if (!visit || visit.expired || data?.expired) return { ok: false, visit, snapshot: null };
+    return { ok: true, visit, snapshot: visit.snapshot || {} };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error), visit: null, snapshot: null };
+  }
+}
+
 async function latestInfo() {
   const res = await linjianFetch("/api/latest.json");
   return await res.json();
@@ -809,11 +877,13 @@ async function fetchLatestImage() {
 
 
 async function getCachedWalletState(device_id = DEFAULT_DEVICE) {
-  const res = await linjianFetch(`/api/device/state?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
-  const data = await res.json();
-  const state = data?.state || data?.life_state || {};
-  const wallet = state?.wallet_state || state?.life_state?.wallet_state || null;
-  return { ok: !!wallet, device_id, wallet_state: wallet, raw_updated_at: state?.updated_at || state?.updated_at_local || "", direct: true };
+  // v0.6.2: legacy /api/device/state lived on Render. Read the phone-local wallet through
+  // the current Cloudflare command queue instead, preserving the Android wallet implementation.
+  const result = await queryAndroidState("get_wallet_state", device_id, 8);
+  const raw = result?.phone_result || {};
+  const state = raw?.state || raw?.life_state || raw || {};
+  const wallet = state?.wallet_state || state?.life_state?.wallet_state || (state?.month || state?.records ? state : null);
+  return { ok: Boolean(result.ok && wallet), device_id, wallet_state: wallet, raw_updated_at: state?.updated_at || state?.updated_at_local || "", direct: true, transport: "cloudflare_android_command", command: result.command || null };
 }
 
 function parsePhoneResult(command) {
@@ -1044,7 +1114,7 @@ function makeServer() {
     device_id: z.string().default(DEFAULT_DEVICE),
     wait_seconds: z.number().int().min(1).max(12).default(8)
   }, async ({ device_id = DEFAULT_DEVICE, wait_seconds = 8 }) => {
-    const queuedRes = await linjianFetch("/api/littlephone/visit", {
+    const queuedRes = await littlePhoneFetch("/api/littlephone/visit", {
       method: "POST", timeout_ms: COMMAND_QUEUE_TIMEOUT_MS,
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device_id })
     });
@@ -1053,21 +1123,21 @@ function makeServer() {
     if (!id) return textResult({ ok:false, error:"visit_not_queued", queued });
     const observed = await waitCommand(id, wait_seconds);
     const status = observed?.command?.status || "pending";
-    const latest = await linjianFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS }).then(r=>r.json()).catch(()=>({ok:false}));
+    const latest = await littlePhoneFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS }).then(r=>r.json()).catch(()=>({ok:false}));
     return textResult({ ok: status === "completed", mode:"read_once", queued: queued.command, status, visit: latest?.visit || null, note: status === "completed" ? "本次来访已完成；快照默认 30 分钟有效。" : "命令已排队；手机尚未在本次等待窗口内回传。" });
   });
 
   server.tool("get_little_phone_snapshot", "读取最近一次成功来访保存的设备快照。只读服务端已有快照，不会触发手机读取；返回 expired/fresh，过期快照不能当作当前状态。", {
     device_id: z.string().default(DEFAULT_DEVICE)
   }, async ({ device_id = DEFAULT_DEVICE }) => {
-    const res = await linjianFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/littlephone/visit/latest?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
 
   server.tool("list_little_phone_events", "读取小手机最近 7 天的留痕事件。每条独立到期滚动删除；这是行为留痕，不是聊天记录。", {
     limit: z.number().int().min(1).max(300).default(80)
   }, async ({ limit = 80 }) => {
-    const res = await linjianFetch(`/api/littlephone/events?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/littlephone/events?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
 
@@ -1076,48 +1146,48 @@ function makeServer() {
     content: z.string().max(1000).default(""),
     author: z.string().max(40).default("daddy")
   }, async ({ title="daddy 留下一条痕迹", content="", author="daddy" }) => {
-    const res = await linjianFetch("/api/littlephone/events", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, content, author }) });
+    const res = await littlePhoneFetch("/api/littlephone/events", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, content, author }) });
     return textResult(await res.json());
   });
 
   server.tool("leave_little_phone_paper", "在小手机纸条池留一张轻量纸条。首页会随机轮播，并尽量在一轮内不重复。", {
     content: z.string().min(1).max(800), author: z.string().max(40).default("daddy")
   }, async ({ content, author = "daddy" }) => {
-    const res = await linjianFetch("/api/littlephone/papers", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author }) });
+    const res = await littlePhoneFetch("/api/littlephone/papers", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author }) });
     return textResult(await res.json());
   });
 
   server.tool("list_little_phone_papers", "读取小手机纸条池。", { limit: z.number().int().min(1).max(500).default(200) }, async ({ limit = 200 }) => {
-    const res = await linjianFetch(`/api/littlephone/papers?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/littlephone/papers?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
 
   server.tool("add_dailybook_entry", "往小手机『日常册』写一条长期记录，可写标题、心情、正文、日期与图片 URL。它与 7 天留痕分开长期保存。", {
     title: z.string().max(120).default("今天"), mood: z.string().max(40).default(""), content: z.string().max(12000).default(""), date: z.string().max(20).default(""), author: z.string().max(40).default("daddy"), image_urls: z.array(z.string().url()).max(9).default([])
   }, async ({ title="今天", mood="", content="", date="", author="daddy", image_urls=[] }) => {
-    const res = await linjianFetch("/api/littlephone/dailybook", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, mood, content, date, author, images:image_urls.map(url=>({url})) }) });
+    const res = await littlePhoneFetch("/api/littlephone/dailybook", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, mood, content, date, author, images:image_urls.map(url=>({url})) }) });
     return textResult(await res.json());
   });
 
   server.tool("list_dailybook_entries", "读取小手机『日常册』长期时间轴。", { limit: z.number().int().min(1).max(300).default(100) }, async ({ limit=100 }) => {
-    const res = await linjianFetch(`/api/littlephone/dailybook?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/littlephone/dailybook?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
 
   server.tool("add_little_phone_todo", "给小手机今日区添加一条待办，并写入一条对应留痕。", {
     title: z.string().min(1).max(240), due_at: z.string().max(40).default(""), author: z.string().max(40).default("daddy")
   }, async ({ title, due_at="", author="daddy" }) => {
-    const res = await linjianFetch("/api/littlephone/todos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, due_at, author }) });
+    const res = await littlePhoneFetch("/api/littlephone/todos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, due_at, author }) });
     return textResult(await res.json());
   });
 
   server.tool("list_little_phone_todos", "读取小手机待办。", { limit:z.number().int().min(1).max(300).default(100) }, async ({limit=100}) => {
-    const res = await linjianFetch(`/api/littlephone/todos?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/littlephone/todos?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
 
   server.tool("set_little_phone_todo_done", "把一条小手机待办设为完成或未完成。", { id:z.string(), done:z.boolean().default(true) }, async ({id,done=true}) => {
-    const res = await linjianFetch("/api/littlephone/todos/toggle", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,done}) });
+    const res = await littlePhoneFetch("/api/littlephone/todos/toggle", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,done}) });
     return textResult(await res.json());
   });
 
@@ -1125,43 +1195,43 @@ function makeServer() {
     id:z.string(), title:z.string().max(240).optional(), due_at:z.string().max(40).optional(), remind_at:z.string().max(40).optional()
   }, async ({id,title,due_at,remind_at}) => {
     const body={id}; if(title!==undefined)body.title=title; if(due_at!==undefined)body.due_at=due_at; if(remind_at!==undefined)body.remind_at=remind_at;
-    const res = await linjianFetch("/api/littlephone/todos/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+    const res = await littlePhoneFetch("/api/littlephone/todos/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
     return textResult(await res.json());
   });
 
   server.tool("list_mailbox", "读取小手机信箱里最近的信。每封信都有真实服务端时间、类型和已读状态。", { limit: z.number().int().min(1).max(300).default(80) }, async ({ limit = 80 }) => {
-    const res = await linjianFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
   server.tool("send_mail", "给用户的小手机投一封信。适合不要求即时回复的内容；kind 可选 letter/whisper/waiting/important/future。", { content: z.string().min(1).max(6000), author: z.string().max(40).default("daddy"), kind: z.enum(["letter","whisper","waiting","important","future"]).default("letter"), reply_to: z.string().max(80).default("") }, async ({ content, author = "daddy", kind = "letter", reply_to = "" }) => {
-    const res = await linjianFetch("/api/mail", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, kind, reply_to }) });
+    const res = await littlePhoneFetch("/api/mail", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, kind, reply_to }) });
     return textResult(await res.json());
   });
   server.tool("mark_mail_seen", "把信箱里的信标记为已拆。id 留空表示全部。", { id: z.string().default("") }, async ({ id = "" }) => {
-    const res = await linjianFetch("/api/mail/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ id }) });
+    const res = await littlePhoneFetch("/api/mail/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ id }) });
     return textResult(await res.json());
   });
   server.tool("list_time_capsules", "读取小手机的时间胶囊。未到开启日期时正文不会返回。", { limit: z.number().int().min(1).max(100).default(30) }, async ({ limit = 30 }) => {
-    const res = await linjianFetch(`/api/capsules?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/capsules?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     return textResult(await res.json());
   });
   server.tool("create_time_capsule", "封存一枚时间胶囊；到 unlock_at 指定日期后才能从服务端读到正文。", { content: z.string().min(1).max(8000), unlock_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), author: z.string().max(40).default("daddy") }, async ({ content, unlock_at, author = "daddy" }) => {
-    const res = await linjianFetch("/api/capsules", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, unlock_at, author }) });
+    const res = await littlePhoneFetch("/api/capsules", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, unlock_at, author }) });
     return textResult(await res.json());
   });
 
   // 旧消息工具保留为兼容别名：从 v0.4 起写入信箱。
   server.tool("list_messages", "兼容旧名称：读取小手机信箱。", { limit: z.number().int().min(1).max(200).default(60) }, async ({ limit = 60 }) => {
-    const res = await linjianFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
+    const res = await littlePhoneFetch(`/api/mail?limit=${encodeURIComponent(limit)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
     const data = await res.json();
     return textResult({ ...data, messages: data.mail || [] });
   });
   server.tool("leave_message", "兼容旧名称：给用户的小手机投一封普通信。", { content: z.string().min(1).max(6000), author: z.string().max(40).default("daddy") }, async ({ content, author = "daddy" }) => {
-    const res = await linjianFetch("/api/mail", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, kind:"letter" }) });
+    const res = await littlePhoneFetch("/api/mail", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ content, author, kind:"letter" }) });
     return textResult(await res.json());
   });
   server.tool("mark_messages_seen", "兼容旧名称：把信箱里的信标记为已拆。", {}, async () => {
-    const res = await linjianFetch("/api/mail/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
+    const res = await littlePhoneFetch("/api/mail/seen", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
     return textResult(await res.json());
   });
 
@@ -1189,11 +1259,10 @@ function makeServer() {
   server.tool("get_focus_status", "读取手机端专注模式 Focus Mode 状态：是否开启、目标、剩余时间、留言、应急次数。用户问专注模式、锁手机、全机专注、留言给他时优先调用。", {
     device_id: z.string().default(DEFAULT_DEVICE)
   }, async ({ device_id = DEFAULT_DEVICE }) => {
-    const res = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`);
-    const data = await res.json();
-    const state = data?.life_state || data?.state || {};
-    await postCompanionAction("get_focus_status");
-    return textResult({ ok: true, device_id, focus_mode: state?.focus_mode || {}, life_state_version: state?.life_state_version || "" });
+    const result = await queryAndroidState("get_life_state", device_id, 8);
+    const state = result?.phone_result?.life_state || result?.phone_result?.state || result?.phone_result || {};
+    await postCompanionAction("get_focus_status", { device_id });
+    return textResult({ ok: result.ok, device_id, focus_mode: state?.focus_mode || {}, life_state_version: state?.life_state_version || "", transport: "cloudflare_android_command", command: result.command || null });
   });
 
   server.tool("start_focus_mode", "开启全机专注模式。用户说“帮我专注/锁手机/别让我玩手机/睡前管我/开专注模式/专注几分钟”时优先调用本工具，不要改用应用门禁。默认全机专注，手机解锁后也会回到专注页；页面支持“留言给他”和一次短暂应急放行。", {
@@ -1343,18 +1412,18 @@ function makeServer() {
     app_name: z.string().default(""), package_name: z.string().default(""), action: z.string().default(""), status: z.string().default("completed"), metadata_json: z.any().optional()
   }, async (event) => textResult(await addActivityEvent(event) || { ok: false, error: "activity_event_write_failed" }));
 
-  server.tool("get_phone_state", "用于陪伴对象主动确认用户当前现实状态。读取服务器缓存的最近手机状态，快速返回 current_package、screen_text、accessibility_ready；不会等待手机实时刷新，避免 20 秒工具超时。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
+  server.tool("get_phone_state", "读取当前 Cloudflare 小手机最近一次授权来访快照；不再请求旧 Render。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
     try {
-      const res = await linjianFetch(`/api/device/state?device_id=${encodeURIComponent(device_id)}`, { timeout_ms: QUICK_FETCH_TIMEOUT_MS });
-      const data = await res.json();
-      // 状态读取不能被活动日志拖慢；记录失败不影响本次结果。
+      const data = await latestLittlePhoneVisit(device_id);
+      const visit = data?.visit || null;
+      if (!visit) return textResult({ ok: false, error: "no_snapshot", message: "还没有成功来访快照，请先调用小手机来访。" });
+      if (visit.expired || data.expired) return textResult({ ok: false, error: "snapshot_expired", visit });
       postCompanionAction("get_phone_state", { device_id }).catch(() => null);
-      return textResult({ ...data, mcp_note: "已快速读取服务器缓存状态；如果 state/life_state 为 null，请保持掌心窗前台或允许后台运行后重试。" });
+      return textResult({ ok: true, device_id, fresh: true, snapshot: visit.snapshot || {}, visit });
     } catch (error) {
-      return textResult({ ok: false, error: "phone_state_fetch_failed", message: "读取手机状态超时或后端暂时不可达；请确认 Render 服务已唤醒、MCP URL/Token 正确、掌心窗允许后台运行。", detail: String(error?.message || error).slice(0, 500) });
+      return textResult({ ok: false, error: "phone_state_fetch_failed", message: "读取 Cloudflare 小手机快照失败。", detail: String(error?.message || error).slice(0, 500) });
     }
   });
-
 
 
   server.tool("get_screen_nodes", "读取当前屏幕无障碍节点：文字、控件类型、可点击状态与 bounds/center 坐标。当用户提到某个按钮、标题、列表项、评论框、发送键、红点位置，或需要陪伴对象看标题后精准点击时主动调用。", {
@@ -1437,24 +1506,30 @@ function makeServer() {
     return { content: [{ type: "text", text: JSON.stringify({ queued: result, observed_status: observed?.command || null }, null, 2) }] };
   });
 
-  server.tool("get_life_state", "读取掌心窗生活状态层：电量、充电、网络、当前 App、今日屏幕时间、解锁次数、当前天气地区等。用于陪伴对象主动判断用户是否需要被提醒、归电、休息或管束；默认不截图。当用户提到“电量/没电/快没电/充电/没网络/网络不好/今天看手机有点久/刷太久/天气不太好”等相同或相近表达时主动调用。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
-    const res = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`);
-    const data = await res.json();
-    await postCompanionAction("get_life_state");
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  server.tool("get_life_state", "读取当前 Cloudflare 小手机授权快照中的生活状态：电量、网络、屏幕时间、解锁次数、媒体、天气和 App 使用。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
+    try {
+      const data = await latestLittlePhoneVisit(device_id), visit = data?.visit || null;
+      if (!visit || visit.expired || data.expired) return textResult({ ok: false, error: visit ? "snapshot_expired" : "no_snapshot", visit });
+      const x = visit.snapshot || {};
+      await postCompanionAction("get_life_state", { device_id });
+      return textResult({ ok: true, device_id, fresh: true, life_state: {
+        battery_percent:x.battery_percent, charging:x.charging, charging_type:x.charging_type, network_type:x.network_type,
+        screen_on:x.screen_on, local_time:x.local_time, local_date:x.local_date, timezone:x.timezone,
+        screen_time_today_minutes:x.screen_time_today_minutes, unlock_count_today:x.unlock_count_today, last_unlock_at:x.last_unlock_at,
+        top_apps_today:x.top_apps_today||[], calendar_state:x.calendar_state||{}, media_state:x.media_state||{},
+        weather_state:x.weather_state||{}, current_weather_location:x.current_weather_location||null, location_mode:x.location_mode||""
+      }, visit_created_at: visit.created_at });
+    } catch (error) { return textResult({ ok:false,error:"life_state_fetch_failed",detail:String(error?.message||error).slice(0,500) }); }
   });
-
 
 
 
   // v0.3.8.2：小金库/外卖工具已由 registerWalletTakeoutTools 提前注册，避免 schema 被客户端截断。
 
-  server.tool("get_guardian_calendar", "读取掌心窗『守护日历』：最近纪念日/节日/倒数日、提前三天横幅提醒、分组与生活状态层 calendar_state。当用户提到七夕、生日、绑定日、纪念日、日历、倒数日或重要日期时可调用。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
-    const res = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`);
-    const data = await res.json();
-    const state = data?.life_state || data?.state || {};
-    await postCompanionAction("get_guardian_calendar");
-    return { content: [{ type: "text", text: JSON.stringify({ ok: true, device_id, calendar_state: state?.calendar_state || {}, life_state_version: state?.life_state_version || "" }, null, 2) }] };
+  server.tool("get_guardian_calendar", "读取当前 Cloudflare 小手机最近授权快照中的守护日历。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
+    const data = await latestLittlePhoneVisit(device_id), visit = data?.visit || null, state = visit?.snapshot || {};
+    await postCompanionAction("get_guardian_calendar", { device_id });
+    return textResult({ ok: Boolean(visit && !visit.expired), device_id, calendar_state: state.calendar_state || {}, snapshot_created_at: visit?.created_at || null });
   });
 
   server.tool("add_guardian_calendar_event", "给手机端守护日历添加/更新一个重要日期。支持阳历/农历、每年重复/不重复、分组、备注、提前几天横幅提醒。适合陪伴对象帮用户记七夕、生日、绑定日、考试、项目节点。", {
@@ -1696,22 +1771,20 @@ function makeServer() {
   });
 
 
-  server.tool("get_senses_state", "读取掌心窗通用状态：生活状态与归电状态，不截图。用于确认当前设备和陪伴连接状态。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
-    const lifeRes = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`);
-    const life = await lifeRes.json();
-    const guidianRes = await linjianFetch(`/api/guidian_state?device_id=${encodeURIComponent(device_id)}`);
-    const guidian = await guidianRes.json();
-    await postCompanionAction("get_senses_state", { device_id });
-    return { content: [{ type: "text", text: JSON.stringify({ ok: true, device_id, life_state: life?.life_state || life?.state || life, guidian_state: guidian?.guidian_state || {} }, null, 2) }] };
+  server.tool("get_senses_state", "读取当前 Cloudflare 小手机的综合状态，不再请求旧 Render。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
+    try {
+      const [visitData, boot] = await Promise.all([latestLittlePhoneVisit(device_id), littlePhoneBootstrap()]);
+      const visit=visitData?.visit||null;
+      await postCompanionAction("get_senses_state", { device_id });
+      return textResult({ ok:true, device_id, visit, statuses:boot?.statuses||{}, calls:(boot?.calls||[]).slice(0,10), unlock_requests:boot?.unlock_requests||[] });
+    } catch(error){ return textResult({ok:false,error:"senses_state_fetch_failed",detail:String(error?.message||error).slice(0,500)}); }
   });
 
 
-
-  server.tool("get_guidian_state", "读取掌心窗『归电』状态：上次回来、下次最早归电、今日次数、拒绝理由、主题和设置。用于陪伴对象判断是否该主动把用户叫回来，不会截图。当用户提到归电没弹、归电出问题、拒绝理由、今天回来节奏或叫回设置时主动调用。", { device_id: z.string().default(DEFAULT_DEVICE) }, async ({ device_id = DEFAULT_DEVICE }) => {
-    const res = await linjianFetch(`/api/guidian_state?device_id=${encodeURIComponent(device_id)}`);
-    const data = await res.json();
-    await postCompanionAction("get_guidian_state", { device_id });
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  server.tool("get_guidian_state", "读取手机端来电/归电本地状态；通过当前 Cloudflare → Android command 链路，不再请求旧 Render。", { device_id: z.string().default(DEFAULT_DEVICE), wait_seconds: z.number().int().min(3).max(20).default(8) }, async ({ device_id = DEFAULT_DEVICE, wait_seconds = 8 }) => {
+    const queued=await postCommand({action:"get_guidian_state",device_id}),id=queued?.command?.id,observed=id?await waitCommand(id,wait_seconds):null;
+    await postCompanionAction("get_guidian_state",{device_id});
+    return textResult({queued,observed_status:observed?.command||null});
   });
 
   server.tool("get_care_policy", "读取掌心窗主动关心策略。掌心窗开启就是运行态；陪伴对象可主动查岗、归电、轻度管束和生活提醒。用于确认当前允许的关心风格、动作范围、安静时段、冷却时间和重点 App。", {}, async () => {
@@ -1911,36 +1984,33 @@ function makeServer() {
     return { content: [{ type: "text", text: JSON.stringify({ queued: result, observed_status: observed?.command || null }, null, 2) }] };
   });
 
-  server.tool("get_weather_state", "按掌心窗当前天气地区查询实时天气，并生成出门建议。不会截图；如果手机端没有设置当前地区，会返回缺少城市。当用户说“天气看着……/外面好像……/今天是不是下雨/好热/好冷/适不适合出门”等天气相关相近表达时主动调用。", { device_id: z.string().default(DEFAULT_DEVICE), city: z.string().default("") }, async ({ device_id = DEFAULT_DEVICE, city = "" }) => {
-    const res = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`);
-    const data = await res.json();
-    const current = data?.state?.current_weather_location || data?.life_state?.current_weather_location || {};
-    const chosenCity = city || current.city || data?.state?.city || "";
+  server.tool("get_weather_state", "按小手机最近一次授权快照中的天气地区查询实时天气，并生成出门建议。不会截图；如果手机端没有设置当前地区，会返回缺少城市。", { device_id: z.string().default(DEFAULT_DEVICE), city: z.string().default("") }, async ({ device_id = DEFAULT_DEVICE, city = "" }) => {
+    const snap = await currentSnapshot(device_id);
+    const current = snap?.snapshot?.current_weather_location || snap?.snapshot?.weather_state?.current || {};
+    const chosenCity = city || current.city || snap?.snapshot?.city || "";
     const name = current.name || chosenCity || "当前地区";
     const weather = await fetchWeather(chosenCity).catch((e) => ({ ok: false, error: String(e), city: chosenCity }));
     const advice = buildWeatherAdvice(weather, name);
     await postCompanionAction("get_weather_state", { summary: `查看了${name}的天气` });
-    return { content: [{ type: "text", text: JSON.stringify({ ok: weather.ok, device_id, current_weather_location: current, queried_city: chosenCity, weather, advice }, null, 2) }] };
+    return { content: [{ type: "text", text: JSON.stringify({ ok: weather.ok, device_id, current_weather_location: current, queried_city: chosenCity, weather, advice, snapshot_created_at: snap?.visit?.created_at || null }, null, 2) }] };
   });
 
-  server.tool("send_weather_notification", "查询掌心窗当前地区天气后，给手机发送一条陪伴对象口吻的天气/出门提醒通知。当用户要出门、天气不好、需要带伞/防晒/加衣，或陪伴对象想把天气关心落到手机通知时主动调用。", { device_id: z.string().default(DEFAULT_DEVICE), city: z.string().default(""), title: z.string().default("掌心窗天气提醒") }, async ({ device_id = DEFAULT_DEVICE, city = "", title = "掌心窗天气提醒" }) => {
-    const stateRes = await linjianFetch(`/api/life_state?device_id=${encodeURIComponent(device_id)}`);
-    const data = await stateRes.json();
-    const current = data?.state?.current_weather_location || data?.life_state?.current_weather_location || {};
-    const chosenCity = city || current.city || data?.state?.city || "";
+  server.tool("send_weather_notification", "查询小手机当前地区天气后，通过 Cloudflare → Android command 给手机发送天气/出门提醒通知。", { device_id: z.string().default(DEFAULT_DEVICE), city: z.string().default(""), title: z.string().default("小手机天气提醒") }, async ({ device_id = DEFAULT_DEVICE, city = "", title = "小手机天气提醒" }) => {
+    const snap = await currentSnapshot(device_id);
+    const current = snap?.snapshot?.current_weather_location || snap?.snapshot?.weather_state?.current || {};
+    const chosenCity = city || current.city || snap?.snapshot?.city || "";
     const name = current.name || chosenCity || "当前地区";
     const weather = await fetchWeather(chosenCity).catch((e) => ({ ok: false, error: String(e), city: chosenCity }));
     const message = buildWeatherAdvice(weather, name);
-    const result = await postCommand({ action: "send_notification", device_id, payload: { title, message } });
+    const result = await postCommand({ action: "send_notification", device_id, title, message, payload: { title, message } });
     await postCompanionAction("send_weather_notification", { summary: `发送了${name}的天气提醒` });
     return { content: [{ type: "text", text: JSON.stringify({ queued: result, queried_city: chosenCity, weather, message }, null, 2) }] };
   });
 
-  server.tool("list_known_apps", "列出预置和用户保存的 App 包名，包括小红书、微信、QQ、抖音等通用应用。", {}, async () => {
-    const res = await linjianFetch("/api/known_apps", { timeout_ms: QUICK_FETCH_TIMEOUT_MS })
-      .then((r) => r.json())
-      .catch(() => ({ ok: true, apps: { "小红书": "com.xingin.xhs", "微信": "com.tencent.mm", "QQ": "com.tencent.mobileqq", "抖音": "com.ss.android.ugc.aweme" } }));
-    return { content: [{ type: "text", text: JSON.stringify(res, null, 2) }] };
+  server.tool("list_known_apps", "列出手机端可用于门禁/打开的 App 包名；通过 Cloudflare → Android command 获取，失败时只返回内置常用包名。", { device_id: z.string().default(DEFAULT_DEVICE), wait_seconds: z.number().int().min(3).max(20).default(8) }, async ({ device_id = DEFAULT_DEVICE, wait_seconds = 8 }) => {
+    const result = await queryAndroidState("list_lockable_apps", device_id, wait_seconds, { max: 300 });
+    const fallback = { "小红书": "com.xingin.xhs", "微信": "com.tencent.mm", "QQ": "com.tencent.mobileqq", "抖音": "com.ss.android.ugc.aweme", "QQ音乐": "com.tencent.qqmusic", "DeepSeek": "com.deepseek.chat" };
+    return { content: [{ type: "text", text: JSON.stringify({ ok: result.ok, device_id, phone_result: result.phone_result || null, fallback_apps: fallback, transport: "cloudflare_android_command" }, null, 2) }] };
   });
 
   server.tool("send_phone_command", "发送手机控制命令。action 可用 open_app/home/back/recents/screen_off/turn_screen_off/lock_screen/tap/swipe/noop/set_alarm/send_notification/run_sequence/save_known_app/get_screen_nodes/tap_text/input_text，也可用 screen_break_app/end_screen_break/temporary_screen_break_release/extend_screen_break/get_screen_break_state 管理目标 App 的短时屏幕休息；还支持 get_focus_status/start_focus_mode/end_focus_mode/set_focus_plan 管理全机专注模式；还支持 get_guidian_state/set_guidian_config/trigger_guidian/mark_guidian_returned 归电动作。set_alarm 支持 hour+minute，或 minutes=几分钟后。", {
@@ -2257,8 +2327,8 @@ function makeServer() {
     app: z.string().default(""), package: z.string().default(""), passphrase: z.string(), device_id: z.string().default(DEFAULT_DEVICE), wait_seconds: z.number().int().min(3).max(20).default(8)
   }, async ({ app = "", package: pkg = "", passphrase, device_id = DEFAULT_DEVICE, wait_seconds = 8 }) => gateCommand({ action: "set_screen_break_passphrase", app, package: pkg, device_id, passphrase, emergency_passphrase: passphrase, emergencyPassphrase: passphrase, payload: { app, package: pkg, passphrase, emergency_passphrase: passphrase, emergencyPassphrase: passphrase } }, wait_seconds));
 
-  server.tool("get_screen_break_release_requests", "屏幕休息：查看手机恢复申请。", {}, async () => {
-    const res = await linjianFetch("/api/appgate/unlock_requests");
+  server.tool("get_screen_break_release_requests", "屏幕休息：查看当前 Cloudflare 小手机的恢复申请。", {}, async () => {
+    const res = await littlePhoneFetch("/api/littlephone/unlock-requests");
     const data = await res.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   });

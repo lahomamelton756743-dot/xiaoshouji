@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.6.1 Web/PWA 外壳。
+ * 小手机 v0.6.2 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -402,6 +402,8 @@ public class LittlePhoneActivity extends Activity {
                 o.put("daddy_avatar", AppPrefs.get(LittlePhoneActivity.this).getString(AppPrefs.KEY_COMPANION_AVATAR, ""));
                 o.put("ryan_color", AppPrefs.userIdentityColor(LittlePhoneActivity.this));
                 o.put("daddy_color", AppPrefs.companionIdentityColor(LittlePhoneActivity.this));
+                o.put("ryan_font", AppPrefs.userIdentityFont(LittlePhoneActivity.this));
+                o.put("daddy_font", AppPrefs.companionIdentityFont(LittlePhoneActivity.this));
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
@@ -431,6 +433,19 @@ public class LittlePhoneActivity extends Activity {
                 String color = identityColor == null ? "" : identityColor.trim();
                 if (!color.matches("^#[0-9A-Fa-f]{6}$")) return false;
                 AppPrefs.get(LittlePhoneActivity.this).edit().putString(keyColor, color.toUpperCase(java.util.Locale.ROOT)).apply();
+                emit("littlephone-profile-changed", getProfile());
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public boolean saveProfileV3(String who, String name, String avatarDataUrl, String identityColor, String identityFont) {
+            if (!saveProfileV2(who, name, avatarDataUrl, identityColor)) return false;
+            try {
+                String font = identityFont == null ? "" : identityFont.trim().toLowerCase(java.util.Locale.ROOT);
+                if (!("clean".equals(font) || "rounded".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
+                String key = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_IDENTITY_FONT : AppPrefs.KEY_USER_IDENTITY_FONT;
+                AppPrefs.get(LittlePhoneActivity.this).edit().putString(key, font).apply();
                 emit("littlephone-profile-changed", getProfile());
                 return true;
             } catch (Exception e) { return false; }

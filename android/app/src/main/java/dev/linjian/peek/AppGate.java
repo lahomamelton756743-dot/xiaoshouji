@@ -5,22 +5,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
-import android.graphics.Color;
-import android.graphics.PixelFormat;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
-import android.view.Gravity;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -51,8 +37,6 @@ public class AppGate {
     private static volatile long lastForegroundSince = 0;
     private static volatile long lastGateAt = 0;
     private static volatile String lastGatePackage = "";
-    private static volatile View overlayView = null;
-    private static volatile WindowManager overlayWindowManager = null;
     private static volatile String visibleLockActivityPackage = "";
     private static volatile long visibleLockActivityAt = 0;
 
@@ -285,18 +269,10 @@ public class AppGate {
         } catch (Exception e) { DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e)); }
     }
 
-    private static boolean canDrawOverlay(Context ctx) {
-        try { return Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(ctx); }
-        catch (Exception e) { return false; }
-    }
-
     public static void markLockActivityVisible(String pkg, boolean visible) {
         if (visible) {
             visibleLockActivityPackage = pkg == null ? "" : pkg;
             visibleLockActivityAt = System.currentTimeMillis();
-            // The Activity is the primary gate. Drop any fallback overlay so the
-            // user never sees two stacked lock surfaces.
-            removeOverlay();
         } else {
             visibleLockActivityPackage = "";
             visibleLockActivityAt = 0;
@@ -313,25 +289,16 @@ public class AppGate {
         final Context app = ctx.getApplicationContext();
         final Handler main = new Handler(Looper.getMainLooper());
 
-        // v0.3.8.9：应用门禁优先级调整为「全屏锁定页 > 全屏悬浮遮罩 > 回到桌面」。
-        // 这样 OPPO/ColorOS 上即使悬浮窗或后台弹层被系统限制，也会先尝试最强的 Activity 拦截。
+        // v0.6.2：门禁只保留一层 LockActivity。
+        // 旧版 Activity + 悬浮遮罩双层兜底会造成同一次拦截出现两套 UI，
+        // 用户确认只保留统一的小手机门禁页。Activity 若确实没显示，直接回桌面兜底，
+        // 不再叠第二个悬浮页面。
         showLockActivity(app, pkg);
 
         main.postDelayed(() -> {
             if (isLockActivityVisibleFor(pkg)) return;
-            if (canDrawOverlay(app)) {
-                DebugState.append(app, "应用门禁：全屏锁定页未确认显示，改用全屏悬浮遮罩兜底；目标=" + pkg);
-                showOverlayLock(app, pkg, lock);
-            } else {
-                goHome(app, "全屏锁定页未确认显示，且没有悬浮窗权限");
-            }
-        }, 1100);
-
-        main.postDelayed(() -> {
-            if (isLockActivityVisibleFor(pkg)) return;
-            if (overlayView != null) return;
-            goHome(app, "全屏锁定页与悬浮遮罩均未确认显示");
-        }, 2100);
+            goHome(app, "统一门禁页未确认显示");
+        }, 1500);
     }
 
     private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
@@ -372,195 +339,6 @@ public class AppGate {
             ctx.startActivity(i);
             DebugState.append(ctx, "门禁启动全屏锁定页：" + pkg);
         } catch (Exception e) { DebugState.append(ctx, "门禁启动全屏锁定页失败：" + ScreenshotService.shortMsg(e)); }
-    }
-
-    private static void showOverlayLock(final Context ctx, final String pkg, final JSONObject lock) {
-        new Handler(Looper.getMainLooper()).post(() -> {
-            try {
-                final Context app = ctx.getApplicationContext();
-                final WindowManager wm = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
-                if (wm == null) { goHome(ctx, "WindowManager 为空，悬浮遮罩无法显示"); return; }
-                removeOverlay();
-
-                final int accent;
-                try { accent = Color.parseColor(AppPrefs.companionIdentityColor(app)); }
-                catch (Exception ignored) { throw new IllegalStateException("invalid identity color"); }
-
-                LinearLayout root = new LinearLayout(app);
-                root.setOrientation(LinearLayout.VERTICAL);
-                root.setGravity(Gravity.CENTER);
-                root.setPadding(dp(ctx, 20), dp(ctx, 24), dp(ctx, 20), dp(ctx, 24));
-                root.setClickable(true);
-                root.setFocusable(true);
-                root.setBackgroundColor(0xE8EEF6FF);
-                root.setOnClickListener(v -> { });
-
-                LinearLayout card = new LinearLayout(app);
-                card.setOrientation(LinearLayout.VERTICAL);
-                card.setGravity(Gravity.CENTER_HORIZONTAL);
-                card.setPadding(dp(ctx, 22), dp(ctx, 24), dp(ctx, 22), dp(ctx, 22));
-                GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        new int[]{0xF7FFFFFF, 0xEAF2F8FF, 0xE9F4EEFF});
-                bg.setCornerRadius(dp(ctx, 28));
-                bg.setStroke(dp(ctx, 1), 0xCCFFFFFF);
-                card.setBackground(bg);
-                card.setClickable(true);
-                card.setOnClickListener(v -> { });
-
-                TextView owner = new TextView(app);
-                owner.setText("●  " + AppPrefs.companionName(app));
-                owner.setTextColor(accent);
-                owner.setTextSize(11);
-                owner.setTypeface(Typeface.DEFAULT_BOLD);
-                owner.setGravity(Gravity.CENTER);
-                GradientDrawable ownerBg = new GradientDrawable();
-                ownerBg.setColor(0xBFFFFFFF);
-                ownerBg.setCornerRadius(dp(ctx, 18));
-                ownerBg.setStroke(dp(ctx, 1), (accent & 0x00FFFFFF) | 0x55000000);
-                owner.setBackground(ownerBg);
-                owner.setPadding(dp(ctx, 13), dp(ctx, 7), dp(ctx, 13), dp(ctx, 7));
-                card.addView(owner, new LinearLayout.LayoutParams(-2, -2));
-
-                TextView title = new TextView(app);
-                title.setText(lock.optString("app_name", labelOf(ctx, pkg)) + " 暂时休息一下");
-                title.setTextColor(0xFF263044);
-                title.setTextSize(23);
-                title.setTypeface(Typeface.DEFAULT_BOLD);
-                title.setGravity(Gravity.CENTER);
-                LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(-1, -2);
-                titleLp.topMargin = dp(ctx, 18);
-                card.addView(title, titleLp);
-
-                TextView msg = new TextView(app);
-                String note = lock.optString("message", "").trim();
-                if (note.isEmpty()) note = lock.optString("reason", "").trim();
-                String base = AppPrefs.companionName(app) + " 给它关上了一会儿\n到 "
-                        + lock.optString("locked_until_local", "稍后") + " 自动解除";
-                if (!note.isEmpty()) base += "\n\n" + note;
-                msg.setText(base);
-                msg.setTextColor(0xFF667187);
-                msg.setTextSize(12);
-                msg.setGravity(Gravity.CENTER);
-                msg.setLineSpacing(dp(ctx, 3), 1f);
-                LinearLayout.LayoutParams msgLp = new LinearLayout.LayoutParams(-1, -2);
-                msgLp.topMargin = dp(ctx, 10);
-                card.addView(msg, msgLp);
-
-                EditText reason = new EditText(app);
-                reason.setHint("写一句申请解锁的理由");
-                reason.setHintTextColor(0xFF9BA4B5);
-                reason.setTextColor(0xFF263044);
-                reason.setTextSize(12);
-                reason.setSingleLine(false);
-                reason.setMinLines(2);
-                reason.setPadding(dp(ctx, 13), dp(ctx, 10), dp(ctx, 13), dp(ctx, 10));
-                GradientDrawable reasonBg = new GradientDrawable();
-                reasonBg.setColor(0xAAFFFFFF);
-                reasonBg.setCornerRadius(dp(ctx, 19));
-                reasonBg.setStroke(dp(ctx, 1), 0xCCFFFFFF);
-                reason.setBackground(reasonBg);
-                LinearLayout.LayoutParams reasonLp = new LinearLayout.LayoutParams(-1, dp(ctx, 68));
-                reasonLp.topMargin = dp(ctx, 16);
-                card.addView(reason, reasonLp);
-
-                LinearLayout row = new LinearLayout(app);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.CENTER);
-                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, dp(ctx, 42));
-                rowLp.topMargin = dp(ctx, 12);
-
-                Button request = overlayButton(app, "申请解锁", true, accent);
-                request.setOnClickListener(v -> {
-                    String why = reason.getText().toString().trim();
-                    if (why.isEmpty()) { Toast.makeText(app, "先写一句理由", Toast.LENGTH_SHORT).show(); return; }
-                    submitUnlockRequest(app, pkg, why);
-                    reason.setText("");
-                    Toast.makeText(app, "已经交给 " + AppPrefs.companionName(app), Toast.LENGTH_LONG).show();
-                });
-                row.addView(request, new LinearLayout.LayoutParams(0, -1, 1f));
-
-                Button home = overlayButton(app, "回到桌面", false, accent);
-                LinearLayout.LayoutParams homeLp = new LinearLayout.LayoutParams(0, -1, 1f);
-                homeLp.leftMargin = dp(ctx, 8);
-                home.setOnClickListener(v -> { ScreenshotService svc = ScreenshotService.getInstance(); if (svc != null) svc.doHome(); removeOverlay(); });
-                row.addView(home, homeLp);
-                card.addView(row, rowLp);
-
-                EditText emergencyPass = new EditText(app);
-                emergencyPass.setHint("紧急口令");
-                emergencyPass.setTextSize(11);
-                emergencyPass.setSingleLine(true);
-                emergencyPass.setVisibility(View.GONE);
-                LinearLayout.LayoutParams emergencyInputLp = new LinearLayout.LayoutParams(-1, dp(ctx, 44));
-                emergencyInputLp.topMargin = dp(ctx, 10);
-                card.addView(emergencyPass, emergencyInputLp);
-
-                Button emergency = overlayButton(app, "长按 5 秒紧急解锁", false, accent);
-                final Handler hold = new Handler(Looper.getMainLooper());
-                final Runnable unlock = () -> {
-                    if (emergencyPass.getVisibility() != View.VISIBLE) {
-                        emergencyPass.setVisibility(View.VISIBLE);
-                        Toast.makeText(app, "输入紧急口令，再长按 5 秒确认", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    boolean ok = tryEmergencyUnlock(app, pkg, emergencyPass.getText().toString());
-                    Toast.makeText(app, ok ? "紧急解锁成功" : "口令不对", Toast.LENGTH_LONG).show();
-                    if (ok) removeOverlay();
-                };
-                emergency.setOnTouchListener((v, event) -> {
-                    if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) { hold.postDelayed(unlock, 5000); return true; }
-                    if (event.getAction() == android.view.MotionEvent.ACTION_UP || event.getAction() == android.view.MotionEvent.ACTION_CANCEL) { hold.removeCallbacks(unlock); return true; }
-                    return true;
-                });
-                LinearLayout.LayoutParams emergencyLp = new LinearLayout.LayoutParams(-2, dp(ctx, 34));
-                emergencyLp.topMargin = dp(ctx, 9);
-                card.addView(emergency, emergencyLp);
-
-                LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-                        Math.max(dp(ctx, 286), app.getResources().getDisplayMetrics().widthPixels - dp(ctx, 34)), -2);
-                root.addView(card, cardLp);
-
-                int type = Build.VERSION.SDK_INT >= 26 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
-                WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        type,
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                        PixelFormat.TRANSLUCENT);
-                lp.gravity = Gravity.CENTER;
-                wm.addView(root, lp);
-                overlayView = root;
-                overlayWindowManager = wm;
-                DebugState.append(app, "小手机门禁悬浮兜底已启动：single_layer=true；目标=" + pkg);
-            } catch (Exception e) {
-                DebugState.append(ctx, "门禁悬浮层失败，回到桌面兜底：" + ScreenshotService.shortMsg(e));
-                goHome(ctx, "悬浮遮罩显示失败");
-            }
-        });
-    }
-
-    private static Button overlayButton(Context ctx, String text, boolean primary, int accent) {
-        Button b = new Button(ctx);
-        b.setText(text);
-        b.setTextSize(12);
-        b.setAllCaps(false);
-        b.setTextColor(primary ? Color.WHITE : accent);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(primary ? accent : 0xBFFFFFFF);
-        bg.setCornerRadius(dp(ctx, 20));
-        if (!primary) bg.setStroke(dp(ctx, 1), (accent & 0x00FFFFFF) | 0x44000000);
-        b.setBackground(bg);
-        return b;
-    }
-
-    private static int dp(Context ctx, float value) { return Math.round(value * ctx.getResources().getDisplayMetrics().density); }
-
-    private static void removeOverlay() {
-        try {
-            if (overlayWindowManager != null && overlayView != null) overlayWindowManager.removeView(overlayView);
-        } catch (Exception ignored) { }
-        overlayView = null;
-        overlayWindowManager = null;
     }
 
     private static void accountUsageSwitch(Context ctx, String nextPkg, long now) throws Exception {
@@ -620,16 +398,23 @@ public class AppGate {
         l.put("temporary_window_until_ms", 0); l.put("temporary_allowed_ms", 0); l.put("temporary_used_ms", 0); l.put("temporary_session_started_ms", 0); l.put("temporary_one_time_used", false);
     }
 
-    public static boolean tryEmergencyUnlock(Context ctx, String pkg, String passphrase) {
+    /**
+     * v0.6.2 紧急解锁改为“本机长按 5 秒”安全兜底，不再要求一条用户从未设置/不知道的口令。
+     * 这只临时放行 emergency_unlock_minutes（默认 5 分钟），并保留日志；远程正常解锁逻辑不变。
+     */
+    public static boolean tryEmergencyUnlock(Context ctx, String pkg) {
         try {
             JSONObject s = state(ctx); JSONObject l = locks(s).optJSONObject(pkg);
             if (l == null) return false;
-            String stored = l.optString("emergency_hash", "");
-            if (stored.length() == 0 || !stored.equals(hash(passphrase == null ? "" : passphrase))) return false;
             JSONObject cmd = new JSONObject(); cmd.put("package", pkg); cmd.put("minutes", Math.max(1, l.optInt("emergency_unlock_minutes", 5))); cmd.put("allow_type", "real_time");
-            temporaryUnlock(ctx, cmd); log(ctx, "紧急口令解锁成功：" + pkg);
+            temporaryUnlock(ctx, cmd); log(ctx, "紧急长按解锁成功：" + pkg);
             return true;
         } catch (Exception e) { return false; }
+    }
+
+    /** 旧调用兼容：口令参数自 v0.6.2 起不再参与本机紧急解锁。 */
+    public static boolean tryEmergencyUnlock(Context ctx, String pkg, String ignoredPassphrase) {
+        return tryEmergencyUnlock(ctx, pkg);
     }
 
     public static void submitUnlockRequest(final Context ctx, final String pkg, final String reason) {

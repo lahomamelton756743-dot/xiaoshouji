@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.6.1-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.6.2-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -82,10 +82,15 @@ r = await req('/api/littlephone/statuses'); assert.equal(r.status,200); assert.e
 r = await req('/api/littlephone/statuses',{method:'POST',body:{actor:'daddy',text:'在小手机里晃',presence:'online'}}); assert.equal(r.status,200); assert.equal(r.data.status.text,'在小手机里晃');
 r = await req('/api/littlephone/statuses'); assert.equal(r.data.statuses.daddy.text,'在小手机里晃');
 
-// v0.6.1 双人身份 profile：稳定 actor + 动态显示资料。
+// v0.6.2 双人身份 profile：稳定 actor + 动态显示资料 + 身份字体。
 r = await req('/api/littlephone/profiles'); assert.equal(r.status,200); assert.equal(r.data.profiles.user.actor,'user'); assert.equal(r.data.profiles.daddy.actor,'daddy');
-r = await req('/api/littlephone/profiles',{method:'POST',body:{actor:'user',display_name:'宝宝',identity_color:'#7A8FD0'}}); assert.equal(r.status,200); assert.equal(r.data.profile.display_name,'宝宝');
-r = await req('/api/littlephone/profiles'); assert.equal(r.data.profiles.user.display_name,'宝宝'); assert.equal(r.data.profiles.user.identity_color,'#7A8FD0');
+r = await req('/api/littlephone/profiles',{method:'POST',body:{actor:'user',display_name:'宝宝',identity_color:'#7A8FD0',identity_font:'rounded'}}); assert.equal(r.status,200); assert.equal(r.data.profile.display_name,'宝宝'); assert.equal(r.data.profile.identity_font,'rounded');
+r = await req('/api/littlephone/profiles'); assert.equal(r.data.profiles.user.display_name,'宝宝'); assert.equal(r.data.profiles.user.identity_color,'#7A8FD0'); assert.equal(r.data.profiles.user.identity_font,'rounded');
+
+// “{display_name} 记得”：理解不是事件回放，支持写入、读取与原 ID 更新。
+r = await req('/api/littlephone/memories',{method:'POST',body:{content:'宝宝更喜欢功能和情感表达真正连在一起。',category:'noticed',confidence:'remembered'}}); assert.equal(r.status,200); const memoryId=r.data.memory.id;
+r = await req('/api/littlephone/memories?limit=10'); assert.equal(r.status,200); assert.equal(r.data.memories[0].content,'宝宝更喜欢功能和情感表达真正连在一起。');
+r = await req('/api/littlephone/memories/update',{method:'POST',body:{id:memoryId,content:'宝宝喜欢功能和情感表达真正连在一起。',confirmed:true}}); assert.equal(r.status,200); assert.equal(r.data.memory.id,memoryId); assert.equal(r.data.memory.confirmed,true);
 
 // 门禁解锁申请链：申请 -> daddy 同意 -> 独立 unlock_app 命令。
 r = await req('/api/appgate/unlock_request',{method:'POST',body:{client_id:'unlock_req_0001',device_id:'android-phone',package:'com.deepseek.chat',app:'DeepSeek',reason:'测试完成了'}}); assert.equal(r.status,200); const unlockReqId=r.data.request.id;
@@ -98,6 +103,14 @@ const callsBeforePopup=env.DB.db.prepare('SELECT count(*) AS n FROM lp_calls').g
 r = await req('/api/littlephone/command',{method:'POST',body:{action:'show_reminder_popup',title:'弹窗测试',message:'不是来电'}}); assert.equal(r.status,200); assert.equal(r.data.command.action,'show_reminder_popup');
 assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM lp_calls').get().n,callsBeforePopup);
 r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.action,'show_reminder_popup');
+
+// v0.6.2 通用 Android command：open_app 必须与 lock_app/call 共用同一 poll queue，
+// 能从 pending 被 claim 为 dispatched，并保留 package 供 Android dispatcher 使用。
+r = await req('/api/littlephone/command',{method:'POST',body:{action:'open_app',device_id:'android-phone',package:'com.deepseek.chat'}}); assert.equal(r.status,200); const openAppCmd=r.data.command.id;
+r = await req('/api/command/status?id='+encodeURIComponent(openAppCmd)); assert.equal(r.data.command.status,'pending'); assert.ok(!r.data.command.dispatched_at);
+r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.id,openAppCmd); assert.equal(r.data.command.action,'open_app'); assert.equal(r.data.command.package,'com.deepseek.chat'); assert.ok(r.data.command.dispatched_at);
+r = await req('/api/command/status?id='+encodeURIComponent(openAppCmd)); assert.equal(r.data.command.status,'dispatched'); assert.ok(r.data.command.dispatched_at);
+r = await req('/api/device/report',{method:'POST',body:{command_id:openAppCmd,ok:true,result:'opened_standard:com.deepseek.chat'}}); assert.equal(r.status,200);
 
 // 来电记录 + 延迟来电。
 r = await req('/api/littlephone/calls',{method:'POST',body:{id:'call-test-1',caller:'daddy',prompt:'想听听你的声音。',status:'rejected',note:'晚一点再打',target_package:'com.example.app'}}); assert.equal(r.status,200); const callId=r.data.call.id;
@@ -131,8 +144,8 @@ assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM lp_visits').get().n,be
 assert.equal(env.DB.db.prepare("SELECT count(*) AS n FROM lp_events WHERE type='visit'").get().n,beforeVisitEvents);
 
 
-// 通用设备命令必须限制在小手机明确开放的提醒/门禁动作中。
-r = await req('/api/littlephone/command',{method:'POST',body:{action:'tap',x:10,y:10}}); assert.equal(r.status,400); assert.equal(r.data.error,'action_not_allowed');
+// 通用设备命令只开放 Android 已实现/兼容的动作；未知高风险动作仍必须拒绝。
+r = await req('/api/littlephone/command',{method:'POST',body:{action:'reboot_device'}}); assert.equal(r.status,400); assert.equal(r.data.error,'action_not_allowed');
 r = await req('/api/littlephone/command',{method:'POST',body:{action:'send_notification',title:'测试提醒',message:'喝水'}}); assert.equal(r.status,200); const reminderCmd=r.data.command.id;
 r = await req('/api/poll?device_id=android-phone'); assert.equal(r.data.command.id,reminderCmd); assert.equal(r.data.command.action,'send_notification');
 r = await req('/api/device/report',{method:'POST',body:{command_id:reminderCmd,ok:true,result:'sent'}}); assert.equal(r.status,200);
@@ -249,5 +262,5 @@ assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); ass
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.6.1');
-console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));
+console.log('PASS little-phone backend v0.6.2');
+console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,memories:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

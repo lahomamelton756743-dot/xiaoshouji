@@ -1,7 +1,6 @@
 package com.littlephone.app;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -24,7 +23,7 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
-/** v0.6.1 小手机统一应用门禁页。 */
+/** v0.6.2 小手机统一应用门禁页。 */
 public class LockActivity extends Activity {
     private String pkg;
     private TextView titleView, ownerView, remainView, reasonView, messageView, ownerNameView;
@@ -167,11 +166,17 @@ public class LockActivity extends Activity {
         root.addView(actions, lp(-1, dp(44), 0, 0, 0, 14));
 
         Button emergency = textButton("长按 5 秒紧急解锁");
-        final Runnable emergencyRunnable = this::showEmergencyDialog;
+        emergency.setSingleLine(true);
+        emergency.setGravity(Gravity.CENTER);
+        final Runnable emergencyRunnable = () -> {
+            boolean ok = AppGate.tryEmergencyUnlock(this, pkg);
+            Toast.makeText(this, ok ? "紧急解锁成功，已临时放行" : "紧急解锁失败，请稍后重试", Toast.LENGTH_LONG).show();
+            if (ok) finish();
+        };
         emergency.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 handler.postDelayed(emergencyRunnable, 5000);
-                Toast.makeText(this, "继续按住 5 秒，才会打开紧急解锁", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "继续按住 5 秒即可紧急解锁，不需要口令", Toast.LENGTH_SHORT).show();
                 return true;
             }
             if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -180,9 +185,10 @@ public class LockActivity extends Activity {
             }
             return true;
         });
-        root.addView(emergency, lp(dp(180), dp(34), 0, 0, 0, 6));
+        // 不再用固定 180dp 宽度，避免系统字体放大/不同字库时文字挤出边框。
+        root.addView(emergency, lp(-1, dp(40), 16, 0, 16, 8));
 
-        TextView foot = text("时间结束后会自动解除 · 紧急解锁始终保留", 9, 0xFF9AA3B4, false);
+        TextView foot = text("时间结束后会自动解除 · 紧急解锁会临时放行并写入记录", 9, 0xFF9AA3B4, false);
         foot.setGravity(Gravity.CENTER_HORIZONTAL);
         root.addView(foot, lp(-1, -2, 0, 0, 0, 0));
         setContentView(scroll);
@@ -221,22 +227,6 @@ public class LockActivity extends Activity {
             }
         } catch (Exception ignored) { }
         ownerAvatarView.setImageDrawable(null);
-    }
-
-    private void showEmergencyDialog() {
-        final EditText input = new EditText(this);
-        input.setHint("输入 " + AppPrefs.companionName(this) + " 告诉你的紧急口令");
-        new AlertDialog.Builder(this)
-                .setTitle("紧急解锁")
-                .setMessage("确认是紧急情况再用。通过后会临时放行几分钟，并写入日志。")
-                .setView(input)
-                .setPositiveButton("解锁", (d, which) -> {
-                    boolean ok = AppGate.tryEmergencyUnlock(this, pkg, input.getText().toString());
-                    Toast.makeText(this, ok ? "紧急解锁成功，临时放行" : "口令不对", Toast.LENGTH_LONG).show();
-                    if (ok) finish();
-                })
-                .setNegativeButton("取消", null)
-                .show();
     }
 
     private TextView text(String s, int sp, int color, boolean bold) {

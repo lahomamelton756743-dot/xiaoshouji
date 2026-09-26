@@ -212,6 +212,10 @@ const authForm=new URLSearchParams(authQuery); authForm.set('access_key','test-t
 ox = await worker.fetch(new Request(base+'/authorize',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:authForm.toString(),redirect:'manual'}),env);
 assert.equal(ox.status,302); const loc=new URL(ox.headers.get('Location')); assert.equal(loc.searchParams.get('state'),'state-123'); const oauthCode=loc.searchParams.get('code'); assert.ok(oauthCode);
 
+const proxyForm=new URLSearchParams(authForm); proxyForm.set('state','netlify-state');
+ox = await worker.fetch(new Request(base+'/authorize',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','x-nf-netlify-proxy':'test-proxy'},body:proxyForm.toString(),redirect:'manual'}),env);
+assert.equal(ox.status,200); const proxyHtml=await ox.text(); assert.match(proxyHtml,/授权成功/); assert.match(proxyHtml,/chatgpt\.example\/callback/); assert.match(proxyHtml,/netlify-state/);
+
 const tokenForm=new URLSearchParams({grant_type:'authorization_code',client_id:oauthClient,code:oauthCode,redirect_uri:'https://chatgpt.example/callback',code_verifier:verifier});
 ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:tokenForm.toString()}),env);
 assert.equal(ox.status,200); oj=await ox.json(); const accessToken=oj.access_token, refreshToken=oj.refresh_token; assert.ok(accessToken); assert.ok(refreshToken); assert.equal(oj.token_type,'Bearer');

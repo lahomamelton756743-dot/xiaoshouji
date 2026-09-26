@@ -1,4 +1,4 @@
-const VERSION = "0.7.1-little-phone";
+const VERSION = "0.7.2-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";

@@ -34,6 +34,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import android.util.Base64;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -50,7 +51,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.7.1 Web/PWA 外壳。
+ * 小手机 v0.7.2 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -697,6 +698,7 @@ public class LittlePhoneActivity extends Activity {
                     String safePath = path == null ? "" : path.trim();
                     if (!safePath.startsWith("/")) safePath = "/" + safePath;
                     URL url = new URL(base + safePath);
+                    Log.d("LittlePhoneHTTP", (method == null ? "GET" : method.trim().toUpperCase()) + " " + url);
                     HttpURLConnection c = (HttpURLConnection) url.openConnection();
                     c.setRequestMethod((method == null ? "GET" : method.trim().toUpperCase()));
                     c.setConnectTimeout(7000);
@@ -714,8 +716,12 @@ public class LittlePhoneActivity extends Activity {
                     status = c.getResponseCode();
                     InputStream in = status >= 200 && status < 400 ? c.getInputStream() : c.getErrorStream();
                     if (in != null) response = readAll(in);
+                    String preview = response == null ? "" : response.replace('\n',' ');
+                    if (preview.length() > 240) preview = preview.substring(0, 240) + "…";
+                    Log.d("LittlePhoneHTTP", "HTTP " + status + " " + safePath + " bytes=" + (response == null ? 0 : response.length()) + " body=" + preview);
                     c.disconnect();
                 } catch (Exception e) {
+                    Log.e("LittlePhoneHTTP", "request failed " + method + " " + path, e);
                     status = 599;
                     try {
                         JSONObject err = new JSONObject();

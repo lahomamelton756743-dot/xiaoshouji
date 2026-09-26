@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#edf6ff">
-<title>小手机 v0.7.1</title>
+<title>小手机 v0.7.2</title>
 <style>
 :root{
   --ink:#263044;--ink2:#6f778c;--ink3:#969caf;
@@ -124,7 +124,7 @@ html,body{font-family:var(--font-ui)}
 @media(max-width:520px){.musicCapsule{min-height:70px!important;padding:8px 9px!important}.usHeroV2{grid-template-columns:minmax(0,1fr) 154px}.mailWindow{padding:15px}.bookPage,.bookCover{height:calc(100dvh - 235px);min-height:440px}}
 
 
-/* v0.7.1 relationship layout + typographic hierarchy */
+/* v0.7.2 relationship layout + resilient remote loading */
 :root{--font-display:"Songti SC","STSong","Noto Serif CJK SC",serif;--font-round:"Arial Rounded MT Bold","PingFang SC","Microsoft YaHei",sans-serif}
 .usHeroV3{border-radius:34px;padding:16px 18px 21px;display:flex;flex-direction:column;gap:2px;min-height:292px;overflow:visible}
 .musicCapsuleBar{align-self:center;width:min(82%,430px);min-height:58px!important;border-radius:20px!important;padding:7px 12px!important;display:grid!important;grid-template-columns:34px minmax(0,1fr)!important;align-items:center!important;gap:9px!important;transform:none!important;margin:0 auto 2px;box-shadow:0 12px 30px rgba(93,112,157,.08),inset 0 1px 0 rgba(255,255,255,.78)}
@@ -146,7 +146,7 @@ html,body{font-family:var(--font-ui)}
 @media(max-width:520px){.usHeroV3{padding:14px 12px 18px}.musicCapsuleBar{width:88%}.usBondPairV3 .statusPill.daddy{left:4px}.usBondPairV3 .statusPill.user{right:4px}.usBondPairV3{width:100%}.earCableV3{width:228px}.calendarTileDate{font-size:18px}}
 
 
-/* v0.7.1 — information architecture, transparent glass, page backgrounds */
+/* v0.7.2 — information architecture, transparent glass, page backgrounds */
 :root{--page-background-image:none}
 body:before{content:"";position:fixed;inset:0;z-index:-5;background-image:var(--page-background-image);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0;transition:opacity .28s ease}
 body.hasCustomBackground:before{opacity:0}body.hasCustomBackground{background-color:transparent!important}
@@ -164,6 +164,17 @@ body.hasCustomBackground .aurora{opacity:.28}.glass{background:linear-gradient(1
 .journalTopV7{margin-bottom:14px}.journalTopV7 .eyebrow{font-family:var(--font-editorial);font-style:italic;letter-spacing:.18em}.bookCoverTitle{font-family:"Snell Roundhand","Segoe Script",var(--font-editorial)!important;font-style:italic;background:linear-gradient(115deg,#f5efff,#f0bfd6 52%,#b9d8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 @media(max-width:520px){.homeTogetherCard{grid-template-columns:1.12fr .88fr;padding-left:8px;padding-right:8px}.homePair{transform:scale(.92);transform-origin:left center}.musicCapsuleV7{grid-template-columns:minmax(0,1fr) 52px!important;padding:10px!important}.bondNumber{font-size:62px}.weatherDaddyNote{width:142px;font-size:9px}.statePhoneCard .statusGrid{grid-template-columns:1fr 1fr}}
 
+
+/* v0.7.2 hotfix: relationship line, unframed now-playing, deterministic nav */
+.homeTogetherCard{min-height:205px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:4px!important;padding:16px 18px 14px!important}
+.homePairArea{height:118px!important;width:100%!important;display:flex!important;justify-content:center!important;align-items:flex-start!important}
+.homePair{position:relative!important;width:270px!important;height:116px!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;gap:42px!important}
+.homePair .avatarWrap{position:relative!important;top:8px!important;left:auto!important;width:86px!important;z-index:3!important}.homePair .avatarButton,.homePair .avatar{width:78px!important;height:78px!important}.homePair .avatarName{margin-top:5px!important}
+.heartLink{position:absolute;left:50%;top:32px;width:250px;height:48px;transform:translateX(-50%);z-index:1;overflow:visible}.heartLink path{fill:none;stroke:color-mix(in srgb,var(--daddy-identity) 36%,var(--user-identity));stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;opacity:.82;filter:drop-shadow(0 0 3px rgba(255,255,255,.7))}
+.musicNow{width:min(82%,440px)!important;min-height:54px!important;margin:-1px 0 0 auto!important;padding:2px 4px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;display:grid!important;grid-template-columns:minmax(0,1fr) 74px!important;align-items:center!important;gap:12px!important}.musicNow:before,.musicNow:after{display:none!important}.musicNow .musicTitle{font-size:15px!important;text-align:left!important;color:#2e394f!important}.musicNow .musicArtist{font-size:10px!important;text-align:left!important}.musicNow .musicMeta{font-size:9px!important;text-align:left!important;color:#8d96aa!important}.musicNow .heartWave{justify-content:flex-end!important}
+.navV7 .liquidIndicator{display:none!important}.navV7 button:not(.homeNav).active{border-radius:27px;background:linear-gradient(140deg,rgba(255,255,255,.70),rgba(173,202,255,.31),rgba(222,186,247,.27));border:1px solid rgba(255,255,255,.70);box-shadow:0 8px 23px rgba(103,126,190,.11),inset 0 1px 0 rgba(255,255,255,.86);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.userFontCheese .authoredText.user,.userFontCheese .identityUser{font-weight:760!important;letter-spacing:.055em!important;text-shadow:0 1px 0 rgba(255,255,255,.55),0 0 1px currentColor!important}.daddyFontCheese .authoredText.daddy,.daddyFontCheese .identityDaddy{font-weight:760!important;letter-spacing:.055em!important;text-shadow:0 1px 0 rgba(255,255,255,.55),0 0 1px currentColor!important}
+@media(max-width:520px){.homePair{width:248px!important;gap:34px!important}.heartLink{width:228px!important}.musicNow{width:88%!important;margin-right:2%!important}}
 </style>
 </head>
 <body>
@@ -195,11 +206,13 @@ body.hasCustomBackground .aurora{opacity:.28}.glass{background:linear-gradient(1
           <div class="homePairArea">
             <div class="homePair">
               <div class="avatarWrap homeAvatarLeft"><button class="avatarButton" data-avatar="daddy"><span class="avatar" data-avatar-view="daddy">G</span></button><div class="avatarName identityDaddy" id="daddyNameUs">daddy</div></div>
+              <svg class="heartLink" viewBox="0 0 250 48" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M54 24 H94 C94 14 106 11 115 21 C124 11 136 14 136 24 C136 33 124 39 115 44 C106 39 94 33 94 24 M136 24 H196"/>
+              </svg>
               <div class="avatarWrap homeAvatarRight"><button class="avatarButton" data-avatar="ryan"><span class="avatar user" data-avatar-view="ryan">瑞</span></button><div class="avatarName identityUser" id="ryanNameUs">瑞安</div></div>
-              <svg class="homeEarCable" viewBox="0 0 230 200" preserveAspectRatio="none" aria-hidden="true"><path class="cableDaddy" d="M80 45 C58 68,58 98,103 116 C129 127,117 148,112 176"/><path class="cableUser" d="M150 45 C172 68,172 98,127 116 C101 127,113 148,118 176"/><path class="cableTwist" d="M103 116 C115 124,127 124,127 136 C127 147,112 149,112 164 C112 170,116 174,118 176"/></svg>
             </div>
           </div>
-          <div class="glass contentGlass musicCapsule musicCapsuleV7 idle" id="musicCapsule">
+          <div class="musicNow musicCapsuleV7 idle" id="musicCapsule">
             <div class="musicCopy"><div class="musicTitle" id="musicTitle">一起听</div><div class="musicArtist" id="musicArtist">等待音乐</div><div class="musicMeta" id="musicMeta">共享耳机 · 安静中</div></div>
             <div class="heartWave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           </div>
@@ -332,7 +345,7 @@ function actorTitle(v=''){let t=String(v||'').replace(/归电/g,'来电'),dn=act
 function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2100)}
 const modalStack=[];function show(id){const el=$(id);if(!el||el.classList.contains('show'))return;el.style.zIndex=String(110+modalStack.length*12);el.classList.add('show');modalStack.push(id)}function hide(id){const el=$(id);if(!el)return;el.classList.remove('show');el.style.zIndex='';for(let i=modalStack.length-1;i>=0;i--)if(modalStack[i]===id)modalStack.splice(i,1)}function closeTopOverlay(){const id=modalStack[modalStack.length-1];if(id){hide(id);return true}return false}
 window.__littlePhoneResolve=(id,status,raw)=>{const p=pending.get(id);if(!p)return;pending.delete(id);const data=parse(raw,{raw});if(status>=200&&status<300)p.resolve(data);else p.reject(new Error(data?.error||`HTTP ${status||0}`))};
-function nativeRequest(method,path,body){return new Promise((resolve,reject)=>{if(!hasNative())return reject(new Error('native_bridge_missing'));const id='v063_'+(++reqSeq);pending.set(id,{resolve,reject});window.LittlePhoneNative.request(id,method,path,JSON.stringify(body||{}));setTimeout(()=>{if(pending.has(id)){pending.delete(id);reject(new Error('request_timeout_18s'))}},18000)})}
+function nativeRequest(method,path,body){return new Promise((resolve,reject)=>{if(!hasNative())return reject(new Error('native_bridge_missing'));const id='v072_'+(++reqSeq);pending.set(id,{resolve,reject});window.LittlePhoneNative.request(id,method,path,JSON.stringify(body||{}));setTimeout(()=>{if(pending.has(id)){pending.delete(id);reject(new Error('request_timeout_18s'))}},18000)})}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));async function apiWrite(path,body){try{return await nativeRequest('POST',path,body)}catch(e){const m=String(e?.message||'').toLowerCase();if(m.includes('failed to connect')||m.includes('unknown host')||m.includes('connection refused')||m.includes('network is unreachable')){await sleep(650);return nativeRequest('POST',path,body)}throw e}}
 function mockNative(){return{local_time:'22:28',local_date:'2026-09-24',battery_percent:86,charging:false,network_type:'wifi',screen_time_today_minutes:0,unlock_count_today:0,city:'家',weather_note:'天气待更新',calendar_state:{nearest:[]},media_state:{},user_name:'瑞安',companion_name:'daddy'}}
 function readNative(){
@@ -430,24 +443,56 @@ function renderAll(){
   const jobs=[renderHome,renderTraceHub,renderMail,renderCapsules,renderRiver,renderTodos,renderUs,renderPaperBox,renderDates,renderJournal,renderHealth];
   for(const job of jobs){try{job()}catch(e){console.warn('render failed',job.name,e)}}
 }
+async function fetchRemoteSlices(){
+  const tasks=[
+    ['visit','/api/littlephone/visit/latest',x=>{if('visit' in x)state.visit=x.visit||null}],
+    ['events','/api/littlephone/events?limit=160',x=>{if(Array.isArray(x.events))state.events=x.events}],
+    ['papers','/api/littlephone/papers?limit=300',x=>{if(Array.isArray(x.papers))state.papers=x.papers}],
+    ['mail','/api/mail?limit=120',x=>{if(Array.isArray(x.mail))state.mail=x.mail}],
+    ['capsules','/api/capsules?limit=80',x=>{if(Array.isArray(x.capsules))state.capsules=x.capsules}],
+    ['dailybook','/api/littlephone/dailybook?limit=160',x=>{if(Array.isArray(x.entries))state.dailybook=x.entries}],
+    ['diaries','/api/littlephone/diaries?limit=160',x=>{if(Array.isArray(x.diaries))state.diaries=x.diaries}],
+    ['todos','/api/littlephone/todos?limit=160',x=>{if(Array.isArray(x.todos))state.todos=x.todos}],
+    ['dates','/api/littlephone/dates?limit=300',x=>{if(Array.isArray(x.dates))state.dates=x.dates}],
+    ['cycle','/api/littlephone/cycle',x=>{if(x&&typeof x==='object')state.cycle=x}],
+    ['statuses','/api/littlephone/statuses',x=>{if(x.statuses)mergeStatuses(x.statuses)}],
+    ['calls','/api/littlephone/calls?limit=120',x=>{if(Array.isArray(x.calls))state.calls=mergeCalls(x.calls)}],
+    ['health','/api/littlephone/health-summary',x=>{if(x&&typeof x==='object')state.health={...x,ok:undefined}}],
+    ['profiles','/api/littlephone/profiles',x=>{if(x.profiles)mergeRemoteProfiles(x.profiles)}],
+    ['memories','/api/littlephone/memories?limit=100',x=>{if(Array.isArray(x.memories))state.memories=x.memories}]
+  ];
+  const results=await Promise.allSettled(tasks.map(async t=>({task:t,data:await nativeRequest('GET',t[1])})));
+  let success=0;const errors=[];
+  for(const r of results){
+    if(r.status==='fulfilled'){
+      const [key,path,apply]=r.value.task;
+      try{apply(r.value.data||{});success++}catch(e){errors.push(`${key}:parse:${e?.message||e}`)}
+    }else errors.push(String(r.reason?.message||r.reason||'request_failed'));
+  }
+  console.info('LittlePhone remote slices', {success,total:tasks.length,errors:errors.slice(0,5)});
+  return {success,total:tasks.length,errors};
+}
 async function loadRemote(){
   loadCache();loadPendingEvents();loadPendingWrites();
   if(!state.conn.connected){state.remoteError=true;state.lastRemoteError='not_connected';updateOfflineBanner();renderAll();return}
   try{
-    const d=await nativeRequest('GET','/api/littlephone/bootstrap');
-    state.visit=d.visit||null;state.events=d.events||[];state.papers=d.papers||[];state.mail=d.mail||[];state.capsules=d.capsules||[];state.dailybook=d.dailybook||[];state.diaries=d.diaries||[];state.todos=d.todos||[];state.dates=d.dates||[];state.cycle=d.cycle||{};mergeStatuses(d.statuses||{});state.calls=mergeCalls(d.calls||[]);state.memories=d.memories||[];state.health=d.health||state.health||{connected:false,source:'not_connected'};mergeRemoteProfiles(d.profiles||{});
-    try{await syncLocalCalls(d.calls||[])}catch{}
-    state.remoteError=false;state.lastRemoteError='';applyPendingWrites();saveCache();mergePendingEvents();
-    const writesFlushed=await flushPendingWrites();
-    if(writesFlushed){try{const fresh=await nativeRequest('GET','/api/littlephone/bootstrap');state.visit=fresh.visit||state.visit;state.events=fresh.events||state.events;state.papers=fresh.papers||state.papers;state.mail=fresh.mail||state.mail;state.capsules=fresh.capsules||state.capsules;state.dailybook=fresh.dailybook||state.dailybook;state.diaries=fresh.diaries||state.diaries;state.todos=fresh.todos||state.todos;state.dates=fresh.dates||state.dates;state.cycle=fresh.cycle||state.cycle;mergeStatuses(fresh.statuses||{});state.calls=mergeCalls(fresh.calls||state.calls);state.memories=fresh.memories||state.memories;state.health=fresh.health||state.health;mergeRemoteProfiles(fresh.profiles||{})}catch{applyPendingWrites()}}
-    if(hasNative()&&window.LittlePhoneNative.syncImportantDates){try{window.LittlePhoneNative.syncImportantDates(JSON.stringify(state.dates||[]))}catch{}}
-    if(hasNative()&&window.LittlePhoneNative.setCycleConfig&&state.cycle?.settings){try{window.LittlePhoneNative.setCycleConfig(JSON.stringify(state.cycle.settings))}catch{}}
-    if(state.pendingEvents.length){const flushed=await flushPendingEvents();if(flushed){try{const e=await nativeRequest('GET','/api/littlephone/events?limit=160');state.events=e.events||state.events;saveCache()}catch{}}}
+    // v0.7.2: core UI data is intentionally fetched per endpoint. A single oversized or
+    // newly-added bootstrap field must never blank every module at once.
+    const first=await fetchRemoteSlices();
+    state.remoteError=first.success===0;
+    state.lastRemoteError=state.remoteError?(first.errors[0]||'request_failed'):'';
+    if(first.success){
+      try{await syncLocalCalls(state.calls||[])}catch{}
+      applyPendingWrites();saveCache();mergePendingEvents();
+      const writesFlushed=await flushPendingWrites();
+      if(writesFlushed){const again=await fetchRemoteSlices();if(again.success)saveCache();else applyPendingWrites()}
+      if(hasNative()&&window.LittlePhoneNative.syncImportantDates){try{window.LittlePhoneNative.syncImportantDates(JSON.stringify(state.dates||[]))}catch{}}
+      if(hasNative()&&window.LittlePhoneNative.setCycleConfig&&state.cycle?.settings){try{window.LittlePhoneNative.setCycleConfig(JSON.stringify(state.cycle.settings))}catch{}}
+      if(state.pendingEvents.length){const flushed=await flushPendingEvents();if(flushed){try{const e=await nativeRequest('GET','/api/littlephone/events?limit=160');if(Array.isArray(e.events))state.events=e.events;saveCache()}catch{}}}
+    }
   }catch(e){
-    const msg=String(e?.message||'request_failed');
-    if(msg.includes('LINJIAN_ERR_BAD_METHOD')||msg.includes('HTTP 404')){
-      const tasks=[['visit','/api/littlephone/visit/latest'],['events','/api/littlephone/events?limit=160'],['papers','/api/littlephone/papers?limit=300'],['mail','/api/mail?limit=120'],['capsules','/api/capsules?limit=80'],['dailybook','/api/littlephone/dailybook?limit=160'],['diaries','/api/littlephone/diaries?limit=160'],['todos','/api/littlephone/todos?limit=160'],['dates','/api/littlephone/dates?limit=300'],['cycle','/api/littlephone/cycle'],['memories','/api/littlephone/memories?limit=80']];let success=0,first='';for(const [key,path] of tasks){try{const x=await nativeRequest('GET',path);success++;if(key==='visit')state.visit=x.visit||null;else if(key==='events')state.events=x.events||[];else if(key==='papers')state.papers=x.papers||[];else if(key==='mail')state.mail=x.mail||[];else if(key==='capsules')state.capsules=x.capsules||[];else if(key==='dailybook')state.dailybook=x.entries||[];else if(key==='diaries')state.diaries=x.diaries||[];else if(key==='todos')state.todos=x.todos||[];else if(key==='dates')state.dates=x.dates||[];else if(key==='memories')state.memories=x.memories||[];else state.cycle=x||{}}catch(ex){if(!first)first=ex.message||'request_failed'}}state.remoteError=success===0;state.lastRemoteError=state.remoteError?first:'';if(success)saveCache();
-    }else{state.remoteError=true;state.lastRemoteError=msg}
+    state.remoteError=true;state.lastRemoteError=String(e?.message||'request_failed');
+    console.warn('LittlePhone loadRemote failed',state.lastRemoteError);
   }
   mergePendingEvents();updateOfflineBanner();renderAll();
 }
@@ -531,7 +576,7 @@ function openMemoryRecords(){const list=state.memories||[];openDetail(`${actorNa
 function openCallRecords(){const label={accepted:'已接通',rejected:'已拒绝',hung_up:'已挂断',ringing:'来电中',missed:'未接'};openDetail('来电记录',state.calls.length?state.calls.map(c=>`<div class="traceListRow"><span class="callState ${esc(c.status||'')}">${label[c.status]||esc(c.status||'来电')}</span><span class="traceListMain"><b>${esc(c.status==='rejected'&&c.note?`留言：${c.note}`:(c.prompt||'来电'))}</b><small>${esc(actorName(c.caller||'daddy'))}</small></span><time>${fmt(c.created_at)}</time></div>`).join(''):'<div class="glass empty">还没有来电记录。</div>')}
 function openStatusEditor(actor){state.statusEditing=actor;const st=state.statuses?.[actor]||{};state.statusPresence=st.presence||'online';$('#statusModalTitle').textContent=actor==='user'?'编辑我的状态':`编辑 ${actorName('daddy')} 的状态`;$('#statusTextInput').value=st.text||'';$$('[data-presence]').forEach(b=>b.classList.toggle('active',b.dataset.presence===state.statusPresence));show('#statusModal')}
 async function saveStatus(){const actor=state.statusEditing,text=$('#statusTextInput').value.trim(),presence=state.statusPresence||'online',item={text,presence,updated_at:new Date().toISOString()};state.statuses[actor]=item;localDataSet('lp_v052_statuses',JSON.stringify(state.statuses));hide('#statusModal');renderStatuses();saveCache();toast('状态已保存');await writeWithLocalFallback('/api/littlephone/statuses',{actor,text,presence},'status',{actor,...item})}
-function renderHealthDetails(){const h=state.health||{},root=$('#healthDetails');if(!h.connected){root.innerHTML='<div class="hintBox">还没有连接小米健康数据源。v0.7.1 已预留 Xiaomi Health Bridge；完成小米亲友授权与 bridge 同步后，这里会自动出现真实睡眠、心率和步数。</div><div class="healthRow"><span>数据源</span><b>not_connected</b></div>';return}const sl=h.sleep||{},hr=h.heart_rate||{},st=h.steps||{},cy=h.cycle||{};root.innerHTML=`<div class="healthRow"><span>昨夜睡眠</span><b>${(sl.duration_minutes??sl.total_minutes)?`${Math.floor(Number(sl.duration_minutes??sl.total_minutes)/60)}小时${Number(sl.duration_minutes??sl.total_minutes)%60}分`:sl.total||'—'}</b></div><div class="healthRow"><span>睡眠评分</span><b>${sl.score??'—'}</b></div><div class="healthRow"><span>步数</span><b>${st.count??'—'}</b></div><div class="healthRow"><span>静息心率</span><b>${hr.resting??hr.average??'—'}</b></div>${cy.days_until_next!=null?`<div class="healthRow"><span>预计下次周期</span><b>还有 ${cy.days_until_next} 天</b></div>`:''}<div class="healthSource">${esc(h.source||'')} · ${h.updated_at?fmt(h.updated_at):''}</div>`}
+function renderHealthDetails(){const h=state.health||{},root=$('#healthDetails');if(!h.connected){root.innerHTML='<div class="hintBox">还没有连接小米健康数据源。v0.7.2 已预留 Xiaomi Health Bridge；完成小米亲友授权与 bridge 同步后，这里会自动出现真实睡眠、心率和步数。</div><div class="healthRow"><span>数据源</span><b>not_connected</b></div>';return}const sl=h.sleep||{},hr=h.heart_rate||{},st=h.steps||{},cy=h.cycle||{};root.innerHTML=`<div class="healthRow"><span>昨夜睡眠</span><b>${(sl.duration_minutes??sl.total_minutes)?`${Math.floor(Number(sl.duration_minutes??sl.total_minutes)/60)}小时${Number(sl.duration_minutes??sl.total_minutes)%60}分`:sl.total||'—'}</b></div><div class="healthRow"><span>睡眠评分</span><b>${sl.score??'—'}</b></div><div class="healthRow"><span>步数</span><b>${st.count??'—'}</b></div><div class="healthRow"><span>静息心率</span><b>${hr.resting??hr.average??'—'}</b></div>${cy.days_until_next!=null?`<div class="healthRow"><span>预计下次周期</span><b>还有 ${cy.days_until_next} 天</b></div>`:''}<div class="healthSource">${esc(h.source||'')} · ${h.updated_at?fmt(h.updated_at):''}</div>`}
 
 function statusAgo(v){return v?ago(v):'尚未同步'}
 function mergeStatuses(remote){const local=parse(localDataGet('lp_v052_statuses'),{});for(const actor of ['user','daddy']){const a=remote?.[actor]||{},b=local?.[actor]||{},ta=Date.parse(a.updated_at||0)||0,tb=Date.parse(b.updated_at||0)||0;state.statuses[actor]=tb>ta?b:{...state.statuses[actor],...a};}localDataSet('lp_v052_statuses',JSON.stringify(state.statuses))}
@@ -576,9 +621,9 @@ function getAvatarSrc(who){return (who==='daddy'?state.profile.daddy_avatar:stat
 
 function identityColor(actor){return actor==='daddy'?(state.profile.daddy_color||state.profile?.profiles?.daddy?.identity_color||'#C78EAD'):(state.profile.ryan_color||state.profile?.profiles?.user?.identity_color||'#6E83C1')}
 function identityFontId(actor){return actor==='daddy'?(state.profile.daddy_font||'serif'):(state.profile.ryan_font||'clean')}
-function identityFontStack(actor){const map={clean:'-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif',rounded:'"Arial Rounded MT Bold","HarmonyOS Sans SC","PingFang SC",sans-serif',cheese:'"YouYuan","幼圆","Kaiti SC","KaiTi","PingFang SC",cursive',italic:'"Songti SC","STSong",Georgia,serif',serif:'"Songti SC","STSong","Noto Serif CJK SC",serif',kai:'"Kaiti SC","STKaiti","KaiTi",serif',mono:'ui-monospace,"SFMono-Regular",Consolas,"Microsoft YaHei",monospace'};return map[identityFontId(actor)]||map.clean}
+function identityFontStack(actor){const map={clean:'-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif',rounded:'"Arial Rounded MT Bold","HarmonyOS Sans SC","PingFang SC",sans-serif',cheese:'"Hannotate SC","Yuanti SC","STYuanti-SC-Regular","YouYuan","幼圆","MiSans","PingFang SC",sans-serif',italic:'"Songti SC","STSong",Georgia,serif',serif:'"Songti SC","STSong","Noto Serif CJK SC",serif',kai:'"Kaiti SC","STKaiti","KaiTi",serif',mono:'ui-monospace,"SFMono-Regular",Consolas,"Microsoft YaHei",monospace'};return map[identityFontId(actor)]||map.clean}
 function mergeRemoteProfiles(profiles){if(!profiles)return;const u=profiles.user||{},d=profiles.daddy||{};if(u.display_name)state.profile.ryan_name=u.display_name;if(u.avatar)state.profile.ryan_avatar=u.avatar;if(u.identity_color)state.profile.ryan_color=u.identity_color;if(u.identity_font)state.profile.ryan_font=u.identity_font;if(d.display_name)state.profile.daddy_name=d.display_name;if(d.avatar)state.profile.daddy_avatar=d.avatar;if(d.identity_color)state.profile.daddy_color=d.identity_color;if(d.identity_font)state.profile.daddy_font=d.identity_font;applyIdentityTheme()}
-function applyIdentityTheme(){document.documentElement.style.setProperty('--user-identity',identityColor('user'));document.documentElement.style.setProperty('--daddy-identity',identityColor('daddy'));document.documentElement.style.setProperty('--user-font',identityFontStack('user'));document.documentElement.style.setProperty('--daddy-font',identityFontStack('daddy'));const uf=identityFontId('user'),df=identityFontId('daddy');document.documentElement.style.setProperty('--user-font-weight',uf==='cheese'?'650':uf==='rounded'?'620':'500');document.documentElement.style.setProperty('--daddy-font-weight',df==='cheese'?'650':df==='rounded'?'620':'500');document.documentElement.style.setProperty('--user-letter-spacing',uf==='cheese'?'.045em':'0em');document.documentElement.style.setProperty('--daddy-letter-spacing',df==='cheese'?'.055em':'0em');document.documentElement.style.setProperty('--user-font-style',(uf==='cheese'||uf==='italic')?'oblique 8deg':'normal');document.documentElement.style.setProperty('--daddy-font-style',(df==='cheese'||df==='italic')?'oblique 8deg':'normal');const u=actorName('user'),d=actorName('daddy');if($('#userFootTitle'))$('#userFootTitle').textContent=`${u} 的足迹`;if($('#daddyFootTitle'))$('#daddyFootTitle').textContent=`${d} 的足迹`;if($('#callTraceTitle'))$('#callTraceTitle').textContent=`${d} 的来电`;if($('#rememberTitle'))$('#rememberTitle').textContent=`${d} 记得`;if($('#journalPageTitle'))$('#journalPageTitle').textContent='日记';if($('#paperModalMeta'))$('#paperModalMeta').textContent=`你和 ${d} 都可以往这里写。`;const cover=$('.bookCoverMark');if(cover)cover.textContent=`${d.toUpperCase()} · PRIVATE JOURNAL`}
+function applyIdentityTheme(){document.documentElement.style.setProperty('--user-identity',identityColor('user'));document.documentElement.style.setProperty('--daddy-identity',identityColor('daddy'));document.documentElement.style.setProperty('--user-font',identityFontStack('user'));document.documentElement.style.setProperty('--daddy-font',identityFontStack('daddy'));const uf=identityFontId('user'),df=identityFontId('daddy');document.documentElement.style.setProperty('--user-font-weight',uf==='cheese'?'650':uf==='rounded'?'620':'500');document.documentElement.style.setProperty('--daddy-font-weight',df==='cheese'?'650':df==='rounded'?'620':'500');document.documentElement.style.setProperty('--user-letter-spacing',uf==='cheese'?'.045em':'0em');document.documentElement.style.setProperty('--daddy-letter-spacing',df==='cheese'?'.055em':'0em');document.documentElement.style.setProperty('--user-font-style',uf==='italic'?'oblique 8deg':'normal');document.documentElement.style.setProperty('--daddy-font-style',df==='italic'?'oblique 8deg':'normal');document.body.classList.toggle('userFontCheese',uf==='cheese');document.body.classList.toggle('daddyFontCheese',df==='cheese');const u=actorName('user'),d=actorName('daddy');if($('#userFootTitle'))$('#userFootTitle').textContent=`${u} 的足迹`;if($('#daddyFootTitle'))$('#daddyFootTitle').textContent=`${d} 的足迹`;if($('#callTraceTitle'))$('#callTraceTitle').textContent=`${d} 的来电`;if($('#rememberTitle'))$('#rememberTitle').textContent=`${d} 记得`;if($('#journalPageTitle'))$('#journalPageTitle').textContent='日记';if($('#paperModalMeta'))$('#paperModalMeta').textContent=`你和 ${d} 都可以往这里写。`;const cover=$('.bookCoverMark');if(cover)cover.textContent=`${d.toUpperCase()} · PRIVATE JOURNAL`}
 function authorSide(author){const raw=String(author||'').trim(),a=raw.toLowerCase(),dn=String(state.profile.daddy_name||state.native.companion_name||'daddy').trim().toLowerCase();if(['daddy','gpt','companion'].includes(a)||a===dn)return'daddy';return'user'}
 function isUserAuthor(author){return authorSide(author)==='user'}
 function seenState(item,actor){if(actor==='user')return item.user_seen??item.seen??isUserAuthor(item.author);return item.daddy_seen??(!isUserAuthor(item.author));}

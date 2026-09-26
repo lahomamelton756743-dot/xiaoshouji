@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.7.1-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.7.2-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -266,5 +266,5 @@ assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); ass
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.7.1');
+console.log('PASS little-phone backend v0.7.2');
 console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,memories:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

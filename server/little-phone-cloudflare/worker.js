@@ -1,6 +1,8 @@
 const VERSION = "0.5.2-little-phone";
 const DEFAULT_DEVICE = "android-phone";
-const MCP_PROTOCOL_VERSION = "2025-06-18";
+const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
+const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
+const MCP_COMPAT_PROTOCOL_VERSIONS = [MCP_MODERN_PROTOCOL_VERSION, MCP_LEGACY_PROTOCOL_VERSION, "2025-06-18"];
 const SNAPSHOT_TTL_SECONDS = 30 * 60;
 const EVENT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
@@ -126,11 +128,14 @@ function corsHeaders(extra = {}) {
   };
 }
 
-function json(value, status = 200) {
+function json(value, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(value), {
     status,
-    headers: corsHeaders({ "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" })
+    headers: corsHeaders({ "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...extraHeaders })
   });
+}
+function mcpJson(value, status = 200, protocolVersion = MCP_LEGACY_PROTOCOL_VERSION) {
+  return json(value, status, { "MCP-Protocol-Version": protocolVersion });
 }
 
 function tokenOk(request, env, url) {
@@ -226,6 +231,7 @@ function oauthAuthorizationServerMetadata(url) {
     grant_types_supported:["authorization_code","refresh_token"],
     code_challenge_methods_supported:["S256"],
     token_endpoint_auth_methods_supported:["none"],
+    authorization_response_iss_parameter_supported:true,
     scopes_supported:oauthScopes()
   });
 }
@@ -260,7 +266,7 @@ async function oauthRegister(request, env, url) {
 function isChatGptOauthRedirect(redirectUri) {
   try {
     const u = new URL(String(redirectUri || ""));
-    return u.protocol === "https:" && u.hostname === "chatgpt.com" && u.pathname.startsWith("/connector/oauth/");
+    return u.protocol === "https:" && u.hostname === "chatgpt.com" && (u.pathname.startsWith("/connector/oauth/") || u.pathname === "/connector_platform_oauth_redirect");
   } catch { return false; }
 }
 async function getOauthClient(env, clientId) {
@@ -318,7 +324,7 @@ async function oauthAuthorize(request,env,url) {
   await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE expires_at_epoch<=?").bind(epochSeconds()).run();
   await env.DB.prepare("INSERT INTO lp_oauth_codes(code_hash,client_id,redirect_uri,code_challenge,scope,resource,expires_at_epoch) VALUES(?,?,?,?,?,?,?)")
     .bind(codeHash,p.client_id,p.redirect_uri,p.code_challenge,normalizedScope(p.scope),p.resource||resourceUri(url),exp).run();
-  const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); if(p.state)redirect.searchParams.set("state",p.state);
+  const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); redirect.searchParams.set("iss",originOf(url)); if(p.state)redirect.searchParams.set("state",p.state);
   return new Response(null,{status:303,headers:{Location:redirect.toString(),"Cache-Control":"no-store"}});
 }
 
@@ -807,35 +813,89 @@ const MCP_TOOLS = [
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"])
 ];
-function tool(name,description,properties={},required=[]){return{name,description,inputSchema:{type:"object",properties,required,additionalProperties:false},securitySchemes:[{type:"oauth2",scopes:[OAUTH_SCOPE]}]};}
+function inferToolAnnotations(name){
+  const readOnly = name === "little_phone_status" || name.startsWith("get_") || name.startsWith("list_");
+  return {
+    readOnlyHint: readOnly,
+    destructiveHint: name.startsWith("delete_"),
+    idempotentHint: name.startsWith("get_") || name.startsWith("list_") || name === "little_phone_status",
+    openWorldHint: false
+  };
+}
+function tool(name,description,properties={},required=[]){
+  const securitySchemes=[{type:"oauth2",scopes:[OAUTH_SCOPE]}];
+  return {
+    name,
+    description,
+    inputSchema:{type:"object",properties,required,additionalProperties:false},
+    securitySchemes,
+    annotations:inferToolAnnotations(name),
+    _meta:{securitySchemes}
+  };
+}
 function mcpText(data,isError=false){return{isError,content:[{type:"text",text:JSON.stringify(data,null,2)}],structuredContent:data};}
 function rpcResult(id,result){return{jsonrpc:"2.0",id,result};}
-function rpcError(id,code,message){return{jsonrpc:"2.0",id,error:{code,message}};}
+function rpcError(id,code,message,data){return{jsonrpc:"2.0",id,error:{code,message,...(data===undefined?{}:{data})}};}
+function mcpServerInfo(){return{name:"little-phone",title:"Daddy的小手机",version:VERSION,description:"瑞安与 daddy 私人使用的小手机 MCP。"};}
+function mcpResultMeta(){return{"io.modelcontextprotocol/serverInfo":mcpServerInfo()};}
+function modernEnvelopeVersion(msg,request){
+  return String(request.headers.get("MCP-Protocol-Version")||msg?.params?._meta?.["io.modelcontextprotocol/protocolVersion"]||"");
+}
+function isModernMcpRequest(msg,request){return modernEnvelopeVersion(msg,request)===MCP_MODERN_PROTOCOL_VERSION || msg?.method==="server/discover";}
 async function handleMcp(request,env,url){
-  // Tool discovery must remain available before account linking so ChatGPT can
-  // scan the server and see each tool's OAuth securitySchemes. Actual tool calls
-  // stay protected by OAuth (or the existing private LINJIAN_TOKEN path).
-  if(request.method==="GET")return json({ok:true,service:"little-phone-mcp",version:VERSION,protocol:MCP_PROTOCOL_VERSION,tools:MCP_TOOLS.map(t=>t.name),auth:"oauth2"});
-  if(request.method!=="POST")return json(rpcError(null,-32000,"Use POST /mcp"),405);
+  // Discovery stays public; every actual tool call remains protected by OAuth
+  // (or the existing private LINJIAN_TOKEN compatibility path).
+  if(request.method==="GET")return mcpJson({
+    ok:true,service:"little-phone-mcp",version:VERSION,
+    supported_protocol_versions:MCP_COMPAT_PROTOCOL_VERSIONS,
+    tools:MCP_TOOLS.map(t=>t.name),auth:"oauth2"
+  },200,MCP_MODERN_PROTOCOL_VERSION);
+  if(request.method!=="POST")return mcpJson(rpcError(null,-32000,"Use POST /mcp"),405,MCP_MODERN_PROTOCOL_VERSION);
   const msg=await readJson(request); const id=msg.id??null; const method=msg.method||"";
-  if(msg.jsonrpc!=="2.0")return json(rpcError(id,-32600,"Invalid JSON-RPC request"),400);
-  if(method==="initialize")return json(rpcResult(id,{protocolVersion:MCP_PROTOCOL_VERSION,capabilities:{tools:{}},serverInfo:{name:"little-phone",version:VERSION}}));
-  if(method==="ping")return json(rpcResult(id,{}));
-  if(method==="notifications/initialized")return new Response(null,{status:204,headers:corsHeaders({"MCP-Protocol-Version":MCP_PROTOCOL_VERSION})});
-  if(method==="tools/list")return json(rpcResult(id,{tools:MCP_TOOLS}));
+  const modern=isModernMcpRequest(msg,request);
+  const responseProtocol=modern?MCP_MODERN_PROTOCOL_VERSION:MCP_LEGACY_PROTOCOL_VERSION;
+  if(msg.jsonrpc!=="2.0")return mcpJson(rpcError(id,-32600,"Invalid JSON-RPC request"),400,responseProtocol);
+
+  if(method==="server/discover"){
+    return mcpJson(rpcResult(id,{
+      supportedVersions:MCP_COMPAT_PROTOCOL_VERSIONS,
+      capabilities:{tools:{listChanged:false}},
+      instructions:"Use the Little Phone tools for Ryan's private letters, notes, todos, diaries, dates, calls, statuses, and explicitly authorized one-time device visits.",
+      _meta:mcpResultMeta()
+    }),200,MCP_MODERN_PROTOCOL_VERSION);
+  }
+
+  if(method==="initialize")return mcpJson(rpcResult(id,{
+    protocolVersion:MCP_LEGACY_PROTOCOL_VERSION,
+    capabilities:{tools:{listChanged:false}},
+    serverInfo:mcpServerInfo(),
+    instructions:"Use the Little Phone tools for Ryan's private data and explicitly authorized one-time device visits."
+  }),200,MCP_LEGACY_PROTOCOL_VERSION);
+  if(method==="ping")return mcpJson(rpcResult(id,{_meta:mcpResultMeta()}),200,responseProtocol);
+  if(method==="notifications/initialized")return new Response(null,{status:204,headers:corsHeaders({"MCP-Protocol-Version":MCP_LEGACY_PROTOCOL_VERSION})});
+  if(method==="tools/list")return mcpJson(rpcResult(id,{tools:MCP_TOOLS,_meta:mcpResultMeta()}),200,responseProtocol);
   if(method==="tools/call"){
     if(!(await oauthAccessTokenOk(request,env,url))){
       const metadata=`${originOf(url)}/.well-known/oauth-protected-resource/mcp`;
       const challenge=`Bearer resource_metadata="${metadata}", error="invalid_token", error_description="Link your private Little Phone account to continue", scope="${OAUTH_SCOPE}"`;
-      return json(rpcResult(id,{
+      return mcpJson(rpcResult(id,{
         isError:true,
         content:[{type:"text",text:"Authentication required. Link your private Little Phone account to continue."}],
-        _meta:{"mcp/www_authenticate":[challenge]}
-      }));
+        _meta:{...mcpResultMeta(),"mcp/www_authenticate":[challenge]}
+      }),200,responseProtocol);
     }
-    const name=msg.params?.name||"";const args=msg.params?.arguments||{};try{return json(rpcResult(id,await callTool(name,args,env)));}catch(err){return json(rpcResult(id,mcpText({ok:false,error:"tool_exception",detail:String(err?.message||err)},true)));}
+    const name=msg.params?.name||"";const args=msg.params?.arguments||{};
+    try{
+      const result=await callTool(name,args,env);
+      result._meta={...(result._meta||{}),...mcpResultMeta()};
+      return mcpJson(rpcResult(id,result),200,responseProtocol);
+    }catch(err){
+      const result=mcpText({ok:false,error:"tool_exception",detail:String(err?.message||err)},true);
+      result._meta=mcpResultMeta();
+      return mcpJson(rpcResult(id,result),200,responseProtocol);
+    }
   }
-  return json(rpcError(id,-32601,`Method not found: ${method}`),404);
+  return mcpJson(rpcError(id,-32601,`Method not found: ${method}`),200,responseProtocol);
 }
 async function callTool(name,args,env){
   switch(name){

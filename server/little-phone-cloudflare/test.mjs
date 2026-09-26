@@ -138,6 +138,40 @@ r = await req('/api/littlephone/dailybook/delete',{method:'POST',body:{id:dailyI
 r = await req('/api/littlephone/diaries/delete',{method:'POST',body:{id:diaryId}}); assert.equal(r.data.ok,true);
 
 
+
+// Modern MCP 2026-07-28 discovery + tool listing must work before account linking.
+let modern = await worker.fetch(new Request(base+'/mcp',{
+  method:'POST',
+  headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream','MCP-Protocol-Version':'2026-07-28','Mcp-Method':'server/discover'},
+  body:JSON.stringify({jsonrpc:'2.0',id:900,method:'server/discover',params:{_meta:{
+    'io.modelcontextprotocol/protocolVersion':'2026-07-28',
+    'io.modelcontextprotocol/clientInfo':{name:'chatgpt-test',version:'1.0.0'},
+    'io.modelcontextprotocol/clientCapabilities':{}
+  }}})
+}),env);
+assert.equal(modern.status,200); let modernJson=await modern.json();
+assert.ok(modernJson.result.supportedVersions.includes('2026-07-28'));
+assert.ok(modernJson.result.supportedVersions.includes('2025-11-25'));
+assert.ok(modernJson.result.capabilities.tools);
+assert.equal(modernJson.result._meta['io.modelcontextprotocol/serverInfo'].name,'little-phone');
+
+modern = await worker.fetch(new Request(base+'/mcp',{
+  method:'POST',
+  headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream','MCP-Protocol-Version':'2026-07-28','Mcp-Method':'tools/list'},
+  body:JSON.stringify({jsonrpc:'2.0',id:901,method:'tools/list',params:{_meta:{
+    'io.modelcontextprotocol/protocolVersion':'2026-07-28',
+    'io.modelcontextprotocol/clientInfo':{name:'chatgpt-test',version:'1.0.0'},
+    'io.modelcontextprotocol/clientCapabilities':{}
+  }}})
+}),env);
+assert.equal(modern.status,200); modernJson=await modern.json();
+assert.ok(modernJson.result.tools.length>=20);
+assert.ok(modernJson.result.tools.some(t=>t.name==='leave_little_phone_paper'));
+assert.ok(modernJson.result.tools.every(t=>Array.isArray(t.securitySchemes)&&t.securitySchemes.some(x=>x.type==='oauth2')));
+assert.ok(modernJson.result.tools.every(t=>Array.isArray(t._meta?.securitySchemes)));
+assert.ok(modernJson.result.tools.every(t=>t.annotations?.openWorldHint===false));
+assert.equal(modernJson.result._meta['io.modelcontextprotocol/serverInfo'].title,'Daddy的小手机');
+
 // OAuth 2.1: discovery -> dynamic client registration -> PKCE authorization -> token -> MCP -> refresh.
 let ox = await worker.fetch(new Request(base+'/.well-known/oauth-protected-resource/mcp'),env);
 assert.equal(ox.status,200); let oj=await ox.json(); assert.equal(oj.resource,base+'/mcp'); assert.ok(oj.authorization_servers.includes(base));
@@ -160,6 +194,10 @@ const staticChallenge=Buffer.from(staticDigest).toString('base64url');
 const staticRedirect='https://chatgpt.com/connector/oauth/test-callback-id';
 const staticQuery=new URLSearchParams({client_id:'chatgpt-little-phone',redirect_uri:staticRedirect,response_type:'code',scope:'little-phone offline_access',state:'static-state',code_challenge:staticChallenge,code_challenge_method:'S256',resource:base+'/mcp'});
 ox = await worker.fetch(new Request(base+'/authorize?'+staticQuery.toString()),env);
+assert.equal(ox.status,200); assert.match(await ox.text(),/ChatGPT · 小手机/);
+const stableRedirect='https://chatgpt.com/connector_platform_oauth_redirect';
+const stableQuery=new URLSearchParams({client_id:'chatgpt-little-phone',redirect_uri:stableRedirect,response_type:'code',scope:'little-phone offline_access',state:'stable-state',code_challenge:staticChallenge,code_challenge_method:'S256',resource:base+'/mcp'});
+ox = await worker.fetch(new Request(base+'/authorize?'+stableQuery.toString()),env);
 assert.equal(ox.status,200); assert.match(await ox.text(),/ChatGPT · 小手机/);
 
 ox = await worker.fetch(new Request(base+'/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_name:'ChatGPT Test',redirect_uris:['https://chatgpt.example/callback'],token_endpoint_auth_method:'none'})}),env);

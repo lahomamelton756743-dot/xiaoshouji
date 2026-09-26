@@ -1,4 +1,4 @@
-# 小米运动健康 Bridge · v0.6.3
+# 小米运动健康 Bridge · v0.7.1
 
 这个目录把小米运动健康数据接到现有“小手机”Cloudflare 后端。Android 和 ChatGPT MCP **不直接持有小米 token**。
 

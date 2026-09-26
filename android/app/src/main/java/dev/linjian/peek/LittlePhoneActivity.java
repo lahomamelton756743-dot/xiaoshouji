@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.7.2 Web/PWA 外壳。
+ * 小手机 v0.7.1 Web/PWA 外壳。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。

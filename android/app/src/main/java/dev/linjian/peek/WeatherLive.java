@@ -204,7 +204,7 @@ public class WeatherLive {
         HttpURLConnection conn = (HttpURLConnection) new URL(u).openConnection();
         conn.setConnectTimeout(6000);
         conn.setReadTimeout(8000);
-        conn.setRequestProperty("User-Agent", "LittlePhone/0.7.2");
+        conn.setRequestProperty("User-Agent", "LittlePhone/0.7.1");
         try {
             InputStream is = conn.getInputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"));

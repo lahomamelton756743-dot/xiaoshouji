@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.littlephone.app"
-    android:versionCode="70100"
+    android:versionCode="70310"
     android:versionName="0.7.1">
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />

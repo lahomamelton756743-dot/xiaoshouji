@@ -1,65 +1,61 @@
 # 小手机 v0.7.1
 
-瑞安与 ChatGPT 私人使用的小手机。v0.7.1 继续以现有 v0.6.3 功能链路为基础升级，不清空真实数据，不重写已经真机验证通过的来电和应用门禁核心实现。
+**Rebuilt from stable v0.6.3.** 这次升级只以最后稳定的 `little-phone v0.6.3` 为代码基线，不使用失败旧 0.7.x 的 bootstrap、API client 或数据读取改造。
 
-## v0.7.1 重点
+## 数据与后端原则
 
-- 一级导航正式改为：**日记 / 留痕 / 首页 / 信箱 / 状态**。首页仍在正中间，并像原来的「＋」一样更大、更突出。
-- 「日记」从原页面抽出成为最左侧一级页面，进入时直接展示封面，页面名称只叫「日记」。
-- 首页顶部改成渐变花体关系标题，`13` 等相伴天数作为大数字视觉中心；天数从重要日期中的关系起始日动态计算。
-- 时间天气卡保留团雀 + 深靛蓝月亮徽记，徽记放大填满圆形区域；删除「无快照」，改成根据真实天气生成的 daddy 留言。
-- 双头像和一起听组件移到首页时间卡下面：头像靠左相碰；耳机线从头像耳朵附近引出、在中间缠绕并自然垂落到接近组件底部；右侧是窄长音乐胶囊，歌名/歌手左对齐，右侧为持续轻微波动的爱心音波。
-- 首页直接完整展示一个月的仿真实体月历；点击日期即可进入标记/备注；圆圈、星星、心形、下划线、虚线圈、小旗等标记跟随标记者身份色；删除旧的「实体日历……」说明。
-- 首页月历下面为待办；手机状态和双方足迹全部移出首页。
-- 原「我们」页正式改名为「状态」：最上方小米健康占整行，其次双方足迹，再下面手机状态与今日 App 使用前五名。
-- 状态页右上角新增系统式「设置」入口；来电与提醒、设备权限、应用门禁、连接设置、外观与背景不再平铺为组件。设置页按手机设置风格分层进入/返回。
-- 「外观与背景」支持全局背景，也支持日记 / 留痕 / 首页 / 信箱 / 状态五页分别设置背景；主卡整体进一步提高透明度和液态玻璃感。
-- 双方身份字体继续独立保存；奶酪体改成更软糯的圆润/手写方向，同时增加「轻斜体 / 花体感」预设。双方互不联动。
-- 普通信与未来信继续分开；普通信和未来信轮播都改成首尾循环，不再存在第一封/最后一封切不到的问题。
-- 已拆 / 未拆信封的视觉差异加强：未拆为完整封口 + 蜡封感，已拆显示信纸边缘；寄件人与日期使用更接近正式信件的 FROM / DATE 版式。
-- 留痕页保持「纸条 | {display_name} 记得」，来电记录为全宽一行一条。
-- `{display_name} 记得` 后端 D1/API 已存在，本版补齐 MCP `remember_about_user / list_daddy_memories / update_daddy_memory / confirm_daddy_memory / correct_daddy_memory`，确保 ChatGPT 能真正读、写、确认、纠错。
-- Cloudflare `open_little_phone_app(package/app/device_id)` 保持为正式打开 App 入口；旧 `open_app` 只做 Cloudflare → Android command 兼容映射，不回退旧 Render。
-- Xiaomi Health Bridge 骨架继续保留，等待小米亲友授权/token 后接真实睡眠、心率、步数。
+- 正式后端只有 `server/little-phone-cloudflare/`。
+- 继续使用原有 D1、Worker secrets、API base URL、token/header、bootstrap/cache 和历史数据；**不要清库，不要新建空数据库替代旧库**。
+- `papers / mail / capsules / calls / todos / statuses / diaries / dailybook / dates / profiles / memories` 沿用 v0.6.3 数据结构和读取链路。
+- `lock_app / unlock_app / trigger_call` 保留已稳定实现。
+- `open_little_phone_app` 与兼容别名 `open_app` 只创建 Cloudflare → Android `open_app` command；不会回退历史后端。
+- Android command dispatcher 支持 `open_app / home / back / recents / screen_off / get_phone_state / get_life_state / get_senses_state`，并回报 command 结果。
+- 旧本地 MCP/Render 网关已明确 deprecated；`mcp/server.js` 只负责报错提示，不代理、不 fallback。
 
-## 部署顺序
+## v0.7.1 UI
 
-1. 覆盖仓库到 v0.7.1。
-2. 先部署 `server/little-phone-cloudflare/`，继续使用现有 D1 与 Worker secret，不清库。
-3. 再构建并安装 Android APK。页面结构、设置入口、身份字体、背景与通用 command dispatcher 都需要新 APK。
-4. 部署后检查 `/health` 应返回 `0.7.1-little-phone`。
+一级导航固定为：`日记 ｜ 留痕 ｜ 首页 ｜ 信箱 ｜ 状态`，首次打开默认首页，选中态直接绑定 active page，不存在独立滑动气泡。
 
-## Android 构建
+首页依次为相伴主视觉、时间/天气、双头像与一起听、完整月历、待办。日记成为独立一级页；普通信和未来信分区；未解锁未来信只返回寄件人/创建日/解锁日/locked；留痕页保留纸条、`{daddy.display_name} 记得`、来电记录和日常册时间河；状态页前三块固定为健康、足迹、手机状态；设置项进入逐级设置页面。
+
+身份数据始终使用稳定 actor `user` / `daddy`，显示名、头像、身份色和身份字体只是显示层。身份色只应用到本人写下的内容，不污染系统 UI。当前“奶酪感”选项明确使用系统圆体近似，没有伪装为独立字体资源。
+
+## 版本
+
+- `versionName = 0.7.1`
+- `versionCode = 70310`
+- APK 目标名：`LittlePhone-v0.7.1.apk`
+- ZIP：`little-phone-v0.7.1.zip`
+- Branch：`main`
+- Commit：`Rebuild little-phone v0.7.1 from stable v0.6.3`
+
+## 部署
+
+1. 先备份现有 Worker/D1 配置；不要删除原 D1。
+2. 部署 `server/little-phone-cloudflare/` 到原有 Worker 环境，继续绑定原 D1/媒体桶/secrets。
+3. 运行后端回归测试，确认 `/health` 返回 `0.7.1-little-phone`。
+4. 构建并安装 Android APK。由于 `versionCode=70310`，可覆盖已安装过较低 versionCode 的历史包。
+5. 真机打开后先确认纸条、普通信、未来信、来电、待办、状态、日记、日常册、纪念日仍能读取，再检查新版 UI。
+
+## 本地验证
+
+```bash
+node --check server/little-phone-cloudflare/worker.js
+node --check server/little-phone-cloudflare/test.mjs
+node server/little-phone-cloudflare/test.mjs
+node --check mcp/server.js
+python -m py_compile server/health-bridge/app.py
+```
+
+前端内联 JS 也必须提取后执行 `node --check`。Android 网络排查统一看 Logcat tag `LittlePhoneHTTP`，会记录 endpoint、真实 URL、HTTP code、response 前缀与 JSON parse error，但不会记录 token。
+
+Android 构建：
 
 ```bash
 cd android
 ./build.sh
 ```
 
-预期输出：`android/LittlePhone-v0.7.1.apk`。
+## 数据安全
 
-## 回归检查
-
-```bash
-node server/little-phone-cloudflare/test.mjs
-node --check server/little-phone-cloudflare/worker.js
-node --check mcp/server.js
-python -m py_compile server/health-bridge/app.py
-```
-
-真机优先回归：
-
-- 新导航顺序与中间放大的首页入口
-- 日记进入时默认展示封面
-- 首页耳机线、音乐胶囊、完整月历和天气留言
-- 状态页设置入口与背景切换
-- `remember_about_user / list_daddy_memories / confirm_daddy_memory / correct_daddy_memory`
-- `open_little_phone_app` 是否从 pending 被 Android 消费并回报 completed
-- 普通信 / 未来信分区、首尾循环与锁定正文不泄漏
-- user / daddy 独立身份字体与身份色
-
-## 交付
-
-- ZIP：`little-phone-v0.7.1.zip`
-- Branch：`main`
-- Commit：`Upgrade little-phone to v0.7.1`
+本版本没有“清空 D1”步骤，也没有用新空表替换 v0.6.3 真实数据。Worker 的 schema 初始化继续采用幂等建表/补字段方式；正常删除接口只删除用户明确指定的单条记录。

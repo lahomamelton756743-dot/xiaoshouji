@@ -1,18 +1,20 @@
-Little Phone v0.7.1 — rebuilt from stable v0.6.3
+小手机 v0.7.1
 
-This build deliberately keeps the v0.6.3 Cloudflare data-loading/cache/auth path intact, while layering the new v0.7.1 information architecture and visuals on top.
+Baseline: Rebuilt from stable v0.6.3
+ZIP: little-phone-v0.7.1.zip
+Branch: main
+Commit: Rebuild little-phone v0.7.1 from stable v0.6.3
 
-Key changes:
-- Bottom navigation: 日记 / 留痕 / 首页 / 信箱 / 状态, with a larger center 首页.
-- 首页: relationship headline, moon+sparrow emblem, weather message, paired avatars, thin hollow-heart link, frameless music display with heart waveform, full-month marked calendar, todos.
-- 留痕: 纸条 + {display_name}记得, full-width call history, dailybook river.
-- 信箱: normal/future letters separated, circular carousel, stronger sealed/opened visual distinction, letter-style FROM/DATE header.
-- 状态: Xiaomi Health, footprints, phone status; layered Settings houses reminders, permissions, gate, connection and backgrounds.
-- Per-person identity color/font remain independent. Authored content follows its author presentation.
-- MCP memory tools include read/write/update/confirm/correct.
-- HTTP requests log to Logcat tag LittlePhoneHTTP for URL/status/body-prefix diagnostics.
+Android:
+- versionName: 0.7.1
+- versionCode: 70310
 
 Data safety:
-- no D1 reset
-- no schema wipe
-- existing 0.6.3 remote loading/cache/auth flow retained
+- Keep existing D1 and historical data.
+- Keep stable v0.6.3 bootstrap/cache/API authentication path.
+- Do not deploy an empty replacement database.
+
+Backend:
+- Canonical: server/little-phone-cloudflare
+- MCP: canonical Worker /mcp
+- Legacy local/Render MCP: deprecated explicitly; no silent fallback.

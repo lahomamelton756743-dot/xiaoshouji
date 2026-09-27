@@ -22,6 +22,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.View;
@@ -51,12 +52,13 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.7.1 Web/PWA 外壳。
+ * 小手机 v0.7.1 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
  */
 public class LittlePhoneActivity extends Activity {
+    private static final String HTTP_TAG = "LittlePhoneHTTP";
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private static final int FILE_CHOOSER_REQUEST = 9040;
@@ -444,7 +446,7 @@ public class LittlePhoneActivity extends Activity {
             if (!saveProfileV2(who, name, avatarDataUrl, identityColor)) return false;
             try {
                 String font = identityFont == null ? "" : identityFont.trim().toLowerCase(java.util.Locale.ROOT);
-                if (!("clean".equals(font) || "rounded".equals(font) || "cheese".equals(font) || "italic".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
+                if (!("clean".equals(font) || "rounded".equals(font) || "cheese".equals(font) || "serif".equals(font) || "kai".equals(font) || "mono".equals(font))) return false;
                 String key = "daddy".equalsIgnoreCase(who) ? AppPrefs.KEY_COMPANION_IDENTITY_FONT : AppPrefs.KEY_USER_IDENTITY_FONT;
                 AppPrefs.get(LittlePhoneActivity.this).edit().putString(key, font).apply();
                 emit("littlephone-profile-changed", getProfile());
@@ -504,6 +506,11 @@ public class LittlePhoneActivity extends Activity {
                 else o.put("notifications", true);
                 String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
                 o.put("notification_listener", enabled != null && enabled.contains(getPackageName()));
+                o.put("background", CompanionService.isRunning());
+                try {
+                    PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                    o.put("battery_optimization", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(getPackageName())));
+                } catch (Exception ignored) { o.put("battery_optimization", false); }
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
@@ -524,6 +531,12 @@ public class LittlePhoneActivity extends Activity {
                         Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())); startActivity(i);
                     } else if ("accessibility".equals(key)) {
                         startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                    } else if ("background".equals(key)) {
+                        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
+                        startActivity(i);
+                    } else if ("battery_optimization".equals(key)) {
+                        if (Build.VERSION.SDK_INT >= 23) startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                        else startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())));
                     }
                 } catch (Exception ignored) { }
             });
@@ -691,14 +704,17 @@ public class LittlePhoneActivity extends Activity {
             new Thread(() -> {
                 int status = 0;
                 String response = "";
+                String endpoint = path == null ? "" : path.trim();
+                String realUrl = "";
                 try {
                     String base = AppPrefs.server(LittlePhoneActivity.this);
                     String token = AppPrefs.token(LittlePhoneActivity.this);
                     if (base.isEmpty() || token.isEmpty()) throw new IllegalStateException("not_connected");
-                    String safePath = path == null ? "" : path.trim();
+                    String safePath = endpoint;
                     if (!safePath.startsWith("/")) safePath = "/" + safePath;
                     URL url = new URL(base + safePath);
-                    Log.d("LittlePhoneHTTP", (method == null ? "GET" : method.trim().toUpperCase()) + " " + url);
+                    realUrl = url.toString();
+                    Log.d(HTTP_TAG, "endpoint=" + endpoint + " url=" + realUrl + " method=" + (method == null ? "GET" : method));
                     HttpURLConnection c = (HttpURLConnection) url.openConnection();
                     c.setRequestMethod((method == null ? "GET" : method.trim().toUpperCase()));
                     c.setConnectTimeout(7000);
@@ -716,13 +732,20 @@ public class LittlePhoneActivity extends Activity {
                     status = c.getResponseCode();
                     InputStream in = status >= 200 && status < 400 ? c.getInputStream() : c.getErrorStream();
                     if (in != null) response = readAll(in);
-                    String preview = response == null ? "" : response.replace('\n',' ');
-                    if (preview.length() > 240) preview = preview.substring(0, 240) + "…";
-                    Log.d("LittlePhoneHTTP", "HTTP " + status + " " + safePath + " bytes=" + (response == null ? 0 : response.length()) + " body=" + preview);
+                    String prefix = response == null ? "" : response.replace("\n", " ").replace("\r", " ");
+                    if (prefix.length() > 320) prefix = prefix.substring(0, 320);
+                    Log.d(HTTP_TAG, "endpoint=" + endpoint + " url=" + realUrl + " code=" + status + " response=" + prefix);
+                    if (response != null && !response.trim().isEmpty()) {
+                        try { new JSONObject(response); }
+                        catch (Exception parseObjectError) {
+                            try { new JSONArray(response); }
+                            catch (Exception parseArrayError) { Log.e(HTTP_TAG, "JSON parse error endpoint=" + endpoint + " url=" + realUrl + " code=" + status + " error=" + parseArrayError.getMessage()); }
+                        }
+                    }
                     c.disconnect();
                 } catch (Exception e) {
-                    Log.e("LittlePhoneHTTP", "request failed " + method + " " + path, e);
                     status = 599;
+                    Log.e(HTTP_TAG, "endpoint=" + endpoint + " url=" + realUrl + " code=599 error=" + e.getMessage(), e);
                     try {
                         JSONObject err = new JSONObject();
                         err.put("ok", false);

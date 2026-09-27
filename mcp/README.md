@@ -1,9 +1,9 @@
-# Legacy local MCP
+# MCP（v0.7.1）
 
-此目录保留旧掌心窗时期的本地 MCP 代码，仅用于历史兼容/参考。
+小手机 v0.7.1 的正式 MCP 入口已经统一到 Cloudflare Worker：
 
-小手机 v0.7.1 的正式 MCP 入口是 Cloudflare Worker：
+`https://<你的 Worker 域名>/mcp`
 
-`<little-phone-backend>/mcp`
+`server/little-phone-cloudflare/worker.js` 同时提供 API、MCP `tools/list` / `tools/call` 和 Android command queue。
 
-正式 ChatGPT 插件必须使用公网 HTTPS MCP，不能依赖 localhost、桌面客户端或本地文件系统。本目录不会作为 v0.7.1 移动端插件入口。
+本目录只保留一个明确的 deprecated 启动入口，用来防止旧部署脚本静默回退历史后端。它不会代理请求，也不会推断或请求旧 Render 地址。

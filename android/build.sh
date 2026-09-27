@@ -1,7 +1,14 @@
 #!/bin/bash
 set -e
 
-export JAVA_HOME=${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}
+if [ -z "${JAVA_HOME:-}" ]; then
+  for candidate in /usr/lib/jvm/java-21-openjdk-amd64 /usr/lib/jvm/java-17-openjdk-amd64; do
+    if [ -d "$candidate" ]; then
+      export JAVA_HOME="$candidate"
+      break
+    fi
+  done
+fi
 export ANDROID_HOME=${ANDROID_HOME:-$HOME/android-sdk}
 PLATFORM=$ANDROID_HOME/platforms/android-34/android.jar
 BUILD_TOOLS=$ANDROID_HOME/build-tools/34.0.0

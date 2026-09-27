@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
-set -e
-
-cd mcp
-
-corepack enable || true
-
-if [ -f pnpm-lock.yaml ]; then
-  pnpm install --frozen-lockfile
-  pnpm start
-elif [ -f package-lock.json ]; then
-  npm ci
-  npm start
-else
-  npm install
-  npm start
-fi
+set -euo pipefail
+cat >&2 <<'MSG'
+DEPRECATED: little-phone v0.7.1 no longer starts a local MCP/Render gateway.
+Deploy server/little-phone-cloudflare and use its public HTTPS /mcp endpoint.
+MSG
+exit 2

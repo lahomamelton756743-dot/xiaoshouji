@@ -11,7 +11,7 @@ try:
 except Exception:
     MiHealthClient = None
 
-APP_VERSION = "0.7.3-final-compat"
+APP_VERSION = "0.7.4-final-compat"
 TOKEN_FILE = Path(os.getenv("MI_FITNESS_TOKEN_FILE", "token.json"))
 TARGET_UID = os.getenv("MI_FITNESS_TARGET_UID", "").strip()
 LITTLE_PHONE_URL = os.getenv(

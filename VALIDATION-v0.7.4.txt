@@ -1,0 +1,29 @@
+little-phone v0.7.4 validation
+
+[PASS] Worker JS syntax: node --check worker.js
+[PASS] Worker regression suite: test.mjs
+[PASS] Health Bridge Python syntax: py_compile app.py
+[PASS] Front-end inline JS syntax: extracted script + node --check
+[PASS] Front-end CSS structural check: style braces balanced
+[PASS] Settings navigation: delegated data-settings-section handler + openSettingsSection()
+[PASS] Background settings: native pickBackground(page) bridge + WebView event + restore-all-default action
+[PASS] Diary: left/right tap dispatches page-turn; legacy bottom pager hidden
+[PASS] Music waveform: 58 vertical bars; center bars form heart; no sweeping light layer
+[PASS] Xiaomi status card: sleep duration / score / steps / latest heart-rate fields
+[PASS] Xiaomi live refresh path remains enabled
+[PASS] Android health timeout path retained
+[PASS] Safe deploy workflow: existing D1 only; no d1 create; keep_vars = true
+[PASS] No token.json / .env secret file included
+[PASS] Android versionCode bumped to 70340 for installation over v0.7.3
+
+Worker regression cases passed:
+mail_two_seen, paper_reply, capsule_lock, dailybook_update, profiles, memories,
+unlock_request, popup_isolated, diaries, bootstrap, todos, dates, cycle, deletes,
+visit_once, failed_visit_no_trace, snapshot_expiry, mcp, command_guard, statuses,
+calls, delayed_call, health_bridge_contract, health_daily, memory_alias_crud,
+oauth21, inline_dailybook_image, screenshot_disabled.
+
+Not locally proven in this container:
+- Android APK compile/sign because Android SDK platform/build-tools may be unavailable here.
+- Real-device WebView layering/animation smoothness and system album picker require GitHub Actions APK + phone test.
+- True beat synchronization is intentionally not implemented; waveform only animates while media is playing.

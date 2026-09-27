@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.7.3 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
+ * 小手机 v0.7.4 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -65,7 +65,9 @@ public class LittlePhoneActivity extends Activity {
     private static final int LOCATION_PERMISSION_REQUEST = 9041;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 9042;
     private static final int AVATAR_PICK_REQUEST = 9043;
+    private static final int BACKGROUND_PICK_REQUEST = 9044;
     private String avatarPickWho = "";
+    private String backgroundPickPage = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,6 +169,17 @@ public class LittlePhoneActivity extends Activity {
                 avatarPickWho = "";
             }
         }
+        if (requestCode == BACKGROUND_PICK_REQUEST) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                final Uri uri = data.getData();
+                final String page = backgroundPickPage == null || backgroundPickPage.isEmpty() ? "global" : backgroundPickPage;
+                backgroundPickPage = "";
+                new Thread(() -> saveBackgroundFromUri(page, uri), "littlephone-background").start();
+            } else {
+                backgroundPickPage = "";
+            }
+            return;
+        }
     }
 
     private void saveAvatarFromUri(String who, Uri uri) {
@@ -202,6 +215,56 @@ public class LittlePhoneActivity extends Activity {
             });
         } catch (Exception e) {
             runOnUiThread(() -> Toast.makeText(this, "头像没有换成功，请换一张照片再试", Toast.LENGTH_SHORT).show());
+        }
+    }
+
+
+    private void saveBackgroundFromUri(String page, Uri uri) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream probe = getContentResolver().openInputStream(uri)) {
+                BitmapFactory.decodeStream(probe, null, bounds);
+            }
+            int sample = 1;
+            int maxDim = Math.max(bounds.outWidth, bounds.outHeight);
+            while (maxDim / sample > 2200) sample *= 2;
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = Math.max(1, sample);
+            Bitmap src;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                src = BitmapFactory.decodeStream(in, null, opts);
+            }
+            if (src == null) throw new IllegalStateException("image_decode_failed");
+
+            int width = src.getWidth();
+            int height = src.getHeight();
+            int targetLong = Math.min(1200, Math.max(width, height));
+            float scale = Math.min(1f, targetLong / (float) Math.max(width, height));
+            int outW = Math.max(1, Math.round(width * scale));
+            int outH = Math.max(1, Math.round(height * scale));
+            Bitmap out = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(out);
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            canvas.drawBitmap(src, new Rect(0, 0, width, height), new Rect(0, 0, outW, outH), paint);
+
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            out.compress(Bitmap.CompressFormat.JPEG, 72, bytes);
+            String dataUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP);
+            final String safePage = page != null && page.matches("global|diary|traces|home|mail|status") ? page : "global";
+            runOnUiThread(() -> {
+                try {
+                    JSONObject payload = new JSONObject();
+                    payload.put("page", safePage);
+                    payload.put("data_url", dataUrl);
+                    emit("littlephone-background-picked", payload.toString());
+                    Toast.makeText(this, "背景图片已经选好", Toast.LENGTH_SHORT).show();
+                } catch (Exception ignored) { }
+            });
+            src.recycle();
+            out.recycle();
+        } catch (Exception e) {
+            runOnUiThread(() -> Toast.makeText(this, "背景没有换成功，请换一张图片再试", Toast.LENGTH_SHORT).show());
         }
     }
 
@@ -476,6 +539,24 @@ public class LittlePhoneActivity extends Activity {
                     i.setType("image/*");
                     i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivityForResult(i, AVATAR_PICK_REQUEST);
+                } catch (Exception e) {
+                    Toast.makeText(LittlePhoneActivity.this, "没有可用的相册选择器", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+
+        @JavascriptInterface
+        public void pickBackground(String page) {
+            String key = page == null ? "global" : page.trim().toLowerCase(Locale.ROOT);
+            backgroundPickPage = key.matches("global|diary|traces|home|mail|status") ? key : "global";
+            runOnUiThread(() -> {
+                try {
+                    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    i.addCategory(Intent.CATEGORY_OPENABLE);
+                    i.setType("image/*");
+                    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivityForResult(i, BACKGROUND_PICK_REQUEST);
                 } catch (Exception e) {
                     Toast.makeText(LittlePhoneActivity.this, "没有可用的相册选择器", Toast.LENGTH_SHORT).show();
                 }

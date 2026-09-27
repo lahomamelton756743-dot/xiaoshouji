@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.7.2 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
+ * 小手机 v0.7.3 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -717,8 +717,13 @@ public class LittlePhoneActivity extends Activity {
                     Log.d(HTTP_TAG, "endpoint=" + endpoint + " url=" + realUrl + " method=" + (method == null ? "GET" : method));
                     HttpURLConnection c = (HttpURLConnection) url.openConnection();
                     c.setRequestMethod((method == null ? "GET" : method.trim().toUpperCase()));
-                    c.setConnectTimeout(7000);
-                    c.setReadTimeout(10000);
+                    // Xiaomi Health Bridge may need to wake a free Render instance before
+                    // Cloudflare can return. Keep normal little-phone requests snappy, but
+                    // give health requests enough time for that cold start instead of
+                    // incorrectly surfacing it as "not connected" after 10 seconds.
+                    boolean longHealthRequest = safePath.startsWith("/api/littlephone/health/");
+                    c.setConnectTimeout(longHealthRequest ? 12000 : 7000);
+                    c.setReadTimeout(longHealthRequest ? 75000 : 10000);
                     c.setUseCaches(false);
                     c.setRequestProperty("Authorization", "Bearer " + token);
                     c.setRequestProperty("Accept", "application/json");

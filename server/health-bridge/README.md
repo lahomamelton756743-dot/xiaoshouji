@@ -1,4 +1,4 @@
-# 小米运动健康 Bridge · v0.7.2
+# 小米运动健康 Bridge · v0.7.3
 
 这个目录把小米运动健康数据接到现有“小手机”Cloudflare 后端。Android 和 ChatGPT MCP **不直接持有小米 token**。
 
@@ -53,7 +53,7 @@ uvicorn app:app --host 0.0.0.0 --port 8788
 
 若设置了 `HEALTH_BRIDGE_TOKEN`，调用带日期的 `/health`、`/query` 和 `/sync` 时需带 `X-Bridge-Token`。
 
-同步到 Cloudflare 时，v0.7.2 会同时更新“最新摘要”和按日期保存的 `lp_health_daily`。这是一张新增表，不改写旧健康摘要表，也不清理历史 D1 数据。
+同步到 Cloudflare 时，v0.7.3 会同时更新“最新摘要”和按日期保存的 `lp_health_daily`。这是一张新增表，不改写旧健康摘要表，也不清理历史 D1 数据。
 
 建议用定时任务每天早晨和 App 需要刷新时调用 `/sync`。小米 token 过期时 Bridge 会把 Cloudflare 健康源标成未连接，避免继续把旧数据冒充当前数据。
 
@@ -65,7 +65,7 @@ uvicorn app:app --host 0.0.0.0 --port 8788
 - 二维码登录/重新授权在 Bridge 服务器侧完成。
 
 
-## Cloudflare 主动刷新（v0.7.2）
+## Cloudflare 主动刷新（v0.7.3）
 
 如果希望 ChatGPT 在查询某一天时主动向 Bridge 拉取，而不是只读定时同步的数据，在 Cloudflare Worker 中额外配置：
 

@@ -1,0 +1,26 @@
+little-phone v0.7.3 validation
+
+[PASS] Worker JS syntax: node --check worker.js
+[PASS] Worker regression suite: test.mjs
+[PASS] Health Bridge Python syntax: py_compile app.py
+[PASS] Front-end inline JS syntax: extracted script + node --check
+[PASS] Settings code path: delegated [data-settings-section] click handler + openSettingsSection() + dynamic detail rebinding are present
+[PASS] Diary code path: left/right half tap dispatches stepJournalAnimated(); legacy bottom pager is hidden/removed from interaction
+[PASS] Xiaomi health UI path: entering Status calls POST /api/littlephone/health/refresh; manual refresh remains available
+[PASS] Xiaomi health display: missing deep/light/REM values render as “暂无细分”, not fake 0
+[PASS] Android health timeout: /api/littlephone/health/* uses 75s read timeout, normal requests remain 10s
+[PASS] Safe deploy workflow: only existing D1 lookup; no d1 create; keep_vars = true
+[PASS] No token.json / .env secret file included in package
+
+Worker regression cases passed:
+mail_two_seen, paper_reply, capsule_lock, dailybook_update, profiles, memories,
+unlock_request, popup_isolated, diaries, bootstrap, todos, dates, cycle, deletes,
+visit_once, failed_visit_no_trace, snapshot_expiry, mcp, command_guard, statuses,
+calls, delayed_call, health_bridge_contract, health_daily, memory_alias_crud,
+oauth21, inline_dailybook_image, screenshot_disabled.
+
+Not locally proven in this container:
+- Android APK compile/sign, because Android SDK platform 34 / build-tools 34.0.0 are not installed here.
+- Real-device touch layering, WebView animation smoothness, QQ Music metadata timing and Render cold-start timing require the GitHub Actions APK + phone test.
+- Chromium visual harness is blocked by this environment's browser navigation policy, so screenshots are not treated as validation evidence.
+- True beat-synchronized waveform is not implemented because Android MediaSession exposes playback metadata/state, not raw audio amplitude; v0.7.3 animation follows play/pause state and uses a flowing highlight.

@@ -1,0 +1,95 @@
+name: 部署小手机后端 v0.7.2（保留现有 D1）
+
+on:
+  workflow_dispatch:
+    inputs:
+      worker_name:
+        description: "Worker 名称"
+        required: true
+        default: "little-phone-backend"
+      d1_database_name:
+        description: "现有 D1 数据库名称（必须已存在，不会自动新建）"
+        required: true
+        default: "little-phone-v051"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: 拉取仓库
+        uses: actions/checkout@v4
+
+      - name: 设置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 检查目录
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f server/little-phone-cloudflare/worker.js || (echo "缺少 server/little-phone-cloudflare/worker.js" >&2; exit 2)
+          test -f server/little-phone-cloudflare/package.json || (echo "缺少 server/little-phone-cloudflare/package.json" >&2; exit 2)
+
+      - name: 检查 Cloudflare Secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo "缺少 GitHub Secret: CLOUDFLARE_API_TOKEN" >&2; exit 2)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo "缺少 GitHub Secret: CLOUDFLARE_ACCOUNT_ID" >&2; exit 2)
+
+      - name: 安装 Wrangler
+        working-directory: server/little-phone-cloudflare
+        run: npm install
+
+      - name: 检查 Worker JS 语法
+        working-directory: server/little-phone-cloudflare
+        run: node --check worker.js
+
+      - name: 只查找现有 D1（绝不新建）
+        id: d1
+        working-directory: server/little-phone-cloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME="${{ inputs.d1_database_name }}"
+          npx wrangler d1 list --json > d1-list.json
+          ID=$(node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("d1-list.json","utf8")); const n=process.argv[1]; const x=a.find(v=>v.name===n); process.stdout.write(x ? (x.uuid||x.id||"") : "")' "$NAME")
+          if [ -z "$ID" ]; then
+            echo "错误：D1 不存在：$NAME" >&2
+            echo "为保护历史数据，本工作流不会创建新 D1。" >&2
+            exit 2
+          fi
+          echo "已找到现有 D1：$NAME"
+          echo "database_id=$ID" >> "$GITHUB_OUTPUT"
+
+      - name: 生成安全 wrangler.toml
+        working-directory: server/little-phone-cloudflare
+        shell: bash
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "${{ inputs.worker_name }}"
+          main = "worker.js"
+          compatibility_date = "2026-09-01"
+          keep_vars = true
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "${{ inputs.d1_database_name }}"
+          database_id = "${{ steps.d1.outputs.database_id }}"
+          TOML
+
+      - name: 部署 Worker v0.7.2
+        working-directory: server/little-phone-cloudflare
+        run: npx wrangler deploy --config wrangler.toml
+
+      - name: 完成
+        run: |
+          echo "v0.7.2 Cloudflare Worker 已部署。"
+          echo "Worker: ${{ inputs.worker_name }}"
+          echo "D1: ${{ inputs.d1_database_name }}（沿用现有数据库，未创建新库）"
+          echo "Dashboard 中现有 Variables/Secrets 已通过 keep_vars 保留。"

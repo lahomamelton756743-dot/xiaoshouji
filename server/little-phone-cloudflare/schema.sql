@@ -172,6 +172,19 @@ CREATE TABLE IF NOT EXISTS lp_health_summary (
   error TEXT NOT NULL DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS lp_health_daily (
+  health_date TEXT PRIMARY KEY,
+  connected INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'not_connected',
+  sleep_json TEXT NOT NULL DEFAULT 'null',
+  steps_json TEXT NOT NULL DEFAULT 'null',
+  heart_rate_json TEXT NOT NULL DEFAULT 'null',
+  cycle_json TEXT NOT NULL DEFAULT 'null',
+  updated_at TEXT NOT NULL DEFAULT '',
+  error TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_lp_health_daily_updated ON lp_health_daily(updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS lp_profiles (
   actor TEXT PRIMARY KEY,
   display_name TEXT NOT NULL DEFAULT '',

@@ -15,3 +15,8 @@ database_id = "把你现有 D1 database_id 填在这里"
 
 # Token 不写在这个文件里。部署前执行：
 # npx wrangler secret put LINJIAN_TOKEN
+
+# 可选：小米健康主动刷新。Bridge URL 可以作为普通变量配置；Bridge Token 必须用 secret。
+# [vars]
+# XIAOMI_HEALTH_BRIDGE_URL = "https://your-health-bridge.example.com"
+# npx wrangler secret put XIAOMI_HEALTH_BRIDGE_TOKEN

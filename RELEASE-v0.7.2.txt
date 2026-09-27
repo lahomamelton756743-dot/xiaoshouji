@@ -1,0 +1,24 @@
+小手机 v0.7.2
+
+Stable lineage: v0.6.3 -> rebuilt v0.7.1 -> v0.7.2
+ZIP: little-phone-v0.7.2.zip
+Branch: main
+Commit: Build little-phone v0.7.2 with Xiaomi health and UI refinements
+
+Android:
+- versionName: 0.7.2
+- versionCode: 70320
+- target APK: LittlePhone-v0.7.2.apk
+
+Data safety:
+- Keep existing D1 and all historical data.
+- Keep stable bootstrap/cache/API authentication path.
+- No empty replacement database.
+- Only additive D1 feature table: lp_health_daily.
+
+Backend:
+- Canonical: server/little-phone-cloudflare
+- MCP: canonical Worker /mcp
+- Memory aliases: list/create/update/confirm/correct/delete_memory
+- Xiaomi health: get_health_summary/get_sleep/get_heart_rate/get_steps/refresh_health_data
+- Legacy local/Render MCP: deprecated explicitly; no silent fallback.

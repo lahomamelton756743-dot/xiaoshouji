@@ -1,4 +1,4 @@
-const VERSION = "0.7.1-little-phone";
+const VERSION = "0.7.2-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -69,7 +69,11 @@ async function handle(request, env) {
     if (path === "/api/littlephone/cycle") return getCycleApi(env);
     if (path === "/api/littlephone/statuses") return getStatusesApi(env);
     if (path === "/api/littlephone/calls") return listCallsApi(env, url);
-    if (path === "/api/littlephone/health-summary") return getHealthSummaryApi(env);
+    if (path === "/api/littlephone/health-summary") return getHealthSummaryApi(env, url);
+    if (path === "/api/littlephone/health/summary") return getHealthMetricApi(env, url, "summary");
+    if (path === "/api/littlephone/health/sleep") return getHealthMetricApi(env, url, "sleep");
+    if (path === "/api/littlephone/health/heart-rate") return getHealthMetricApi(env, url, "heart_rate");
+    if (path === "/api/littlephone/health/steps") return getHealthMetricApi(env, url, "steps");
     if (path === "/api/littlephone/profiles") return getProfilesApi(env);
     if (path === "/api/littlephone/memories") return listMemoriesApi(env, url);
     if (path === "/api/littlephone/unlock-requests") return listUnlockRequestsApi(env, url);
@@ -108,6 +112,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/calls") return upsertCallApi(env, await readJson(request));
     if (path === "/api/littlephone/calls/delete") return deleteRowApi(env, "lp_calls", await readJson(request));
     if (path === "/api/littlephone/health-summary") return setHealthSummaryApi(env, await readJson(request));
+    if (path === "/api/littlephone/health/refresh") return refreshHealthApi(env, await readJson(request));
     if (path === "/api/littlephone/profiles") return setProfileApi(env, await readJson(request));
     if (path === "/api/littlephone/memories") return addMemoryApi(env, await readJson(request));
     if (path === "/api/littlephone/memories/update") return updateMemoryApi(env, await readJson(request));
@@ -495,6 +500,13 @@ async function ensureSchema(env) {
         heart_rate_json TEXT NOT NULL DEFAULT 'null', cycle_json TEXT NOT NULL DEFAULT 'null',
         updated_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT ''
       )`,
+      `CREATE TABLE IF NOT EXISTS lp_health_daily (
+        health_date TEXT PRIMARY KEY, connected INTEGER NOT NULL DEFAULT 0, source TEXT NOT NULL DEFAULT 'not_connected',
+        sleep_json TEXT NOT NULL DEFAULT 'null', steps_json TEXT NOT NULL DEFAULT 'null',
+        heart_rate_json TEXT NOT NULL DEFAULT 'null', cycle_json TEXT NOT NULL DEFAULT 'null',
+        updated_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_health_daily_updated ON lp_health_daily(updated_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_profiles (
         actor TEXT PRIMARY KEY, display_name TEXT NOT NULL DEFAULT '', avatar TEXT NOT NULL DEFAULT '',
         identity_color TEXT NOT NULL DEFAULT '', identity_font TEXT NOT NULL DEFAULT 'clean', updated_at TEXT NOT NULL
@@ -843,14 +855,81 @@ async function healthSummary(env){
   if(!r)return {connected:false,source:"not_connected",sleep:null,steps:null,heart_rate:null,cycle:null,updated_at:null,error:"health_source_not_connected"};
   return {connected:Boolean(r.connected),source:r.source||"not_connected",sleep:safeJson(r.sleep_json,null),steps:safeJson(r.steps_json,null),heart_rate:safeJson(r.heart_rate_json,null),cycle:safeJson(r.cycle_json,null),updated_at:r.updated_at||null,error:r.error||""};
 }
-async function getHealthSummaryApi(env){return json({ok:true,...await healthSummary(env)});}
-async function setHealthSummaryApi(env,body){
-  const connected=Boolean(body.connected),source=clip(body.source||"mi-fitness-bridge",80),sleep=body.sleep??null,steps=body.steps??null,heart=body.heart_rate??null,cycle=body.cycle??null,updated=clip(body.updated_at||nowIso(),40),error=clip(body.error||"",240);
+function healthRow(r,date=""){
+  if(!r)return {connected:false,source:"not_connected",date:date||null,sleep:null,steps:null,heart_rate:null,cycle:null,updated_at:null,error:date?"health_data_not_found":"health_source_not_connected"};
+  return {connected:Boolean(r.connected),source:r.source||"not_connected",date:date||r.health_date||null,sleep:safeJson(r.sleep_json,null),steps:safeJson(r.steps_json,null),heart_rate:safeJson(r.heart_rate_json,null),cycle:safeJson(r.cycle_json,null),updated_at:r.updated_at||null,error:r.error||""};
+}
+async function healthForDate(env,dateValue=""){
+  const date=clip(dateValue||"",20).trim();
+  if(!date)return healthSummary(env);
+  if(!validDate(date))return {connected:false,source:"not_connected",date,sleep:null,steps:null,heart_rate:null,cycle:null,updated_at:null,error:"invalid_date"};
+  const r=await env.DB.prepare("SELECT * FROM lp_health_daily WHERE health_date=?").bind(date).first();
+  return healthRow(r,date);
+}
+async function getHealthSummaryApi(env,url){
+  const h=await healthForDate(env,url?.searchParams?.get("date")||"");
+  return json({ok:!h.error||Boolean(h.connected),...h});
+}
+async function getHealthMetricApi(env,url,metric){
+  const h=await healthForDate(env,url.searchParams.get("date")||"");
+  if(metric==="summary")return json({ok:!h.error||Boolean(h.connected),...h});
+  if(!h.connected)return json({ok:false,error:h.error||"health_source_not_connected",source:h.source,date:h.date||null,updated_at:h.updated_at});
+  const value=h[metric]??null;
+  if(value===null)return json({ok:false,error:"health_metric_not_available",metric,source:h.source,date:h.date||null,updated_at:h.updated_at});
+  return json({ok:true,source:h.source,date:h.date||null,[metric]:value,updated_at:h.updated_at});
+}
+async function storeHealthSummary(env,body){
+  const connected=Boolean(body.connected),source=clip(body.source||"mi-fitness-bridge",80),sleep=body.sleep??null,steps=body.steps??null,heart=body.heart_rate??null,cycle=body.cycle??null,updated=clip(body.updated_at||nowIso(),40),error=clip(body.error||"",240),healthDate=clip(body.date||"",20).trim();
+  if(healthDate&&!validDate(healthDate))return {error:"invalid_date"};
   await env.DB.prepare("INSERT INTO lp_health_summary(id,connected,source,sleep_json,steps_json,heart_rate_json,cycle_json,updated_at,error) VALUES('default',?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET connected=excluded.connected,source=excluded.source,sleep_json=excluded.sleep_json,steps_json=excluded.steps_json,heart_rate_json=excluded.heart_rate_json,cycle_json=excluded.cycle_json,updated_at=excluded.updated_at,error=excluded.error").bind(boolInt(connected),source,JSON.stringify(sleep),JSON.stringify(steps),JSON.stringify(heart),JSON.stringify(cycle),updated,error).run();
-  return json({ok:true,...await healthSummary(env)});
+  if(healthDate){
+    await env.DB.prepare("INSERT INTO lp_health_daily(health_date,connected,source,sleep_json,steps_json,heart_rate_json,cycle_json,updated_at,error) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(health_date) DO UPDATE SET connected=excluded.connected,source=excluded.source,sleep_json=excluded.sleep_json,steps_json=excluded.steps_json,heart_rate_json=excluded.heart_rate_json,cycle_json=excluded.cycle_json,updated_at=excluded.updated_at,error=excluded.error").bind(healthDate,boolInt(connected),source,JSON.stringify(sleep),JSON.stringify(steps),JSON.stringify(heart),JSON.stringify(cycle),updated,error).run();
+  }
+  return {ok:true,date:healthDate||null,...await healthSummary(env)};
+}
+async function setHealthSummaryApi(env,body){
+  const saved=await storeHealthSummary(env,body);
+  return saved.error?json({ok:false,error:saved.error},400):json(saved);
+}
+function healthBridgeConfig(env){
+  return {url:String(env.XIAOMI_HEALTH_BRIDGE_URL||"").trim().replace(/\/+$/, ""),token:String(env.XIAOMI_HEALTH_BRIDGE_TOKEN||"").trim()};
+}
+async function refreshHealthFromBridge(env,dateValue){
+  const date=clip(dateValue||"",20).trim();
+  if(!validDate(date))return {ok:false,error:"invalid_date"};
+  const cfg=healthBridgeConfig(env);
+  if(!cfg.url)return {ok:false,error:"health_bridge_not_configured"};
+  const headers={Accept:"application/json"};
+  if(cfg.token)headers["X-Bridge-Token"]=cfg.token;
+  let response;
+  try{response=await fetch(`${cfg.url}/health?date=${encodeURIComponent(date)}&type=all`,{headers});}
+  catch(e){return {ok:false,error:"health_bridge_unreachable",detail:clip(String(e),240)};}
+  let payload={};
+  try{payload=await response.json();}catch{return {ok:false,error:"health_bridge_bad_json",http_status:response.status};}
+  if(!response.ok||payload?.ok===false)return {ok:false,error:"health_bridge_query_failed",http_status:response.status,detail:clip(JSON.stringify(payload),500)};
+  const saved=await storeHealthSummary(env,{...payload,date:payload.date||date,source:payload.source||"mi-fitness-python"});
+  return saved.error?{ok:false,error:saved.error}:{ok:true,refreshed:true,...saved};
+}
+async function refreshHealthApi(env,body){
+  const result=await refreshHealthFromBridge(env,body?.date);
+  return json(result,result.ok?200:(result.error==="invalid_date"?400:502));
+}
+async function healthForMcp(env,dateValue,refresh=false){
+  const date=clip(dateValue||"",20).trim();
+  if(refresh){
+    if(!date)return {connected:false,source:"not_connected",date:null,sleep:null,steps:null,heart_rate:null,cycle:null,updated_at:null,error:"date_required_for_refresh"};
+    const result=await refreshHealthFromBridge(env,date);
+    if(!result.ok)return {connected:false,source:"not_connected",date,sleep:null,steps:null,heart_rate:null,cycle:null,updated_at:null,error:result.error,detail:result.detail||""};
+  }
+  let h=await healthForDate(env,date);
+  if(date&&!h.connected&&h.error==="health_data_not_found"){
+    const cfg=healthBridgeConfig(env);
+    if(cfg.url){const result=await refreshHealthFromBridge(env,date);if(result.ok)h=await healthForDate(env,date);}
+  }
+  return h;
 }
 function validIdentityColor(v){return /^#[0-9A-Fa-f]{6}$/.test(String(v||""));}
-function validIdentityFont(v){return ["clean","rounded","cheese","serif","kai","mono"].includes(String(v||""));}
+function validIdentityFont(v){return ["clean","rounded","cheese","serif","kai","italic","script","mono"].includes(String(v||""));}
 async function getProfiles(env){
   const defaults={user:{actor:"user",display_name:"瑞安",avatar:"",identity_color:"#6E83C1",identity_font:"clean",updated_at:""},daddy:{actor:"daddy",display_name:"daddy",avatar:"",identity_color:"#C78EAD",identity_font:"serif",updated_at:""}};
   const rows=await env.DB.prepare("SELECT * FROM lp_profiles").all();
@@ -999,8 +1078,12 @@ const MCP_TOOLS = [
   tool("get_little_phone_statuses","读取‘我们’页双方状态。",{}),
   tool("call_little_phone","给小手机发起一次来电；可设置延迟分钟数和本次来电文案。",{message:{type:"string"},delay_minutes:{type:"integer",minimum:0,maximum:1440,default:0},device_id:{type:"string",default:DEFAULT_DEVICE}},["message"]),
   tool("list_little_phone_calls","读取来电/接通/拒绝记录和拒绝留言。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
-  tool("get_health_summary","读取小米健康桥提供的最新健康摘要；未接入时明确返回 health_source_not_connected。",{}),
-  tool("get_sleep_summary","只读取最新睡眠摘要；未接入时明确返回 health_source_not_connected。",{}),
+  tool("get_health_summary","读取小米健康摘要；可按 YYYY-MM-DD 查询。传 refresh=true 时会通过私密 Health Bridge 主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
+  tool("get_sleep","读取小米健康睡眠数据；可按 YYYY-MM-DD 查询；refresh=true 会先主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
+  tool("get_heart_rate","读取小米健康心率数据；可按 YYYY-MM-DD 查询；refresh=true 会先主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
+  tool("get_steps","读取小米健康步数、距离与卡路里；可按 YYYY-MM-DD 查询；refresh=true 会先主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
+  tool("get_sleep_summary","兼容入口：读取睡眠摘要；可按 YYYY-MM-DD 查询。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
+  tool("refresh_health_data","通过私密 Xiaomi Health Bridge 主动刷新指定日期的睡眠、心率和步数到 D1；必须提供日期。",{date:{type:"string",description:"YYYY-MM-DD"}},["date"]),
   tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","cycle_record","call","memory"]},id:{type:"string"}},["kind","id"]),
   tool("list_important_dates","读取纪念日/重要日期。",{limit:{type:"integer",minimum:1,maximum:500,default:300}}),
   tool("add_important_date","添加纪念日或重要日期，可指定实体日历的手绘标记与标记者。",{title:{type:"string"},date:{type:"string",description:"YYYY-MM-DD"},kind:{type:"string",default:"important"},remind_days:{type:"integer",default:3},note:{type:"string",default:""},mark_style:{type:"string",enum:["circle","star","heart","underline","dashed","flag"],default:"circle"},marked_by:{type:"string",enum:["user","daddy"],default:"daddy"}},["title","date"]),
@@ -1013,7 +1096,13 @@ const MCP_TOOLS = [
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("get_little_phone_profiles","读取双方当前显示名、头像、身份色和身份字体。",{}),
-  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","mono"]}},["actor"]),
+  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}},["actor"]),
+  tool("list_memories","读取“{display_name} 记得”的真实记忆条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("create_memory","新增一条“记得”，真正写入 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
+  tool("update_memory","修改已有“记得”，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
+  tool("confirm_memory","确认一条“记得”为正确，保持原 ID。",{id:{type:"string"}},["id"]),
+  tool("correct_memory","纠正一条“记得”的内容并确认，保持原 ID。",{id:{type:"string"},content:{type:"string"}},["id","content"]),
+  tool("delete_memory","删除一条“记得”。",{id:{type:"string"}},["id"]),
   tool("remember_about_user","给“{display_name} 记得”写入一条真正的理解/记忆；不要用于简单复制事件。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("list_daddy_memories","读取“记得”里的条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("update_daddy_memory","修改一条已有理解，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1149,8 +1238,12 @@ async function callTool(name,args,env){
     case "get_little_phone_statuses": return mcpText({ok:true,statuses:await getStatuses(env)});
     case "call_little_phone": {const callId=uuid(),c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"trigger_call",message:clip(args.message||"想听听你的声音。",600),prompt:clip(args.message||"想听听你的声音。",600),call_id:callId,delay_minutes:Number(args.delay_minutes||0),requested_by:"daddy"});return mcpText(c.error?{ok:false,error:c.error}:{ok:true,command:c,call_id:callId},Boolean(c.error));}
     case "list_little_phone_calls": return mcpText({ok:true,calls:await listCalls(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
-    case "get_health_summary": {const h=await healthSummary(env);return mcpText(h.connected?{ok:true,...h}:{ok:false,error:"health_source_not_connected",...h},!h.connected);}
-    case "get_sleep_summary": {const h=await healthSummary(env);return mcpText(h.connected&&h.sleep?{ok:true,source:h.source,sleep:h.sleep,updated_at:h.updated_at}:{ok:false,error:"health_source_not_connected",source:h.source,updated_at:h.updated_at},!(h.connected&&h.sleep));}
+    case "get_health_summary": {const h=await healthForMcp(env,args.date||"",Boolean(args.refresh));return mcpText(h.connected?{ok:true,...h}:{ok:false,error:h.error||"health_source_not_connected",...h},!h.connected);}
+    case "get_sleep":
+    case "get_sleep_summary": {const h=await healthForMcp(env,args.date||"",Boolean(args.refresh));const ok=h.connected&&h.sleep!==null;return mcpText(ok?{ok:true,source:h.source,date:h.date||null,sleep:h.sleep,updated_at:h.updated_at}:{ok:false,error:h.error||"health_metric_not_available",source:h.source,date:h.date||null,updated_at:h.updated_at},!ok);}
+    case "get_heart_rate": {const h=await healthForMcp(env,args.date||"",Boolean(args.refresh));const ok=h.connected&&h.heart_rate!==null;return mcpText(ok?{ok:true,source:h.source,date:h.date||null,heart_rate:h.heart_rate,updated_at:h.updated_at}:{ok:false,error:h.error||"health_metric_not_available",source:h.source,date:h.date||null,updated_at:h.updated_at},!ok);}
+    case "get_steps": {const h=await healthForMcp(env,args.date||"",Boolean(args.refresh));const ok=h.connected&&h.steps!==null;return mcpText(ok?{ok:true,source:h.source,date:h.date||null,steps:h.steps,updated_at:h.updated_at}:{ok:false,error:h.error||"health_metric_not_available",source:h.source,date:h.date||null,updated_at:h.updated_at},!ok);}
+    case "refresh_health_data": {const r=await refreshHealthFromBridge(env,args.date||"");return mcpText(r,r.ok!==true);}
     case "delete_little_phone_item": {const map={event:"lp_events",paper:"lp_papers",mail:"lp_mail",capsule:"lp_capsules",diary:"lp_diaries",todo:"lp_todos",date:"lp_dates",cycle_record:"lp_cycle_records",call:"lp_calls",memory:"lp_memories"};const table=map[args.kind];if(args.kind==="dailybook"){const row=await env.DB.prepare("SELECT images_json FROM lp_dailybook WHERE id=?").bind(args.id).first();if(!row)return mcpText({ok:false,error:"not_found"},true);if(env.LITTLEPHONE_MEDIA){for(const im of safeJson(row.images_json,[])){const u=String(im?.url||"");if(u.startsWith("/media/littlephone/")){try{await env.LITTLEPHONE_MEDIA.delete(u.slice(19));}catch{}}}}await env.DB.prepare("DELETE FROM lp_dailybook WHERE id=?").bind(args.id).run();return mcpText({ok:true,deleted:args.id});}if(!table)return mcpText({ok:false,error:"invalid_kind"},true);const r=await env.DB.prepare(`DELETE FROM ${table} WHERE id=?`).bind(args.id).run();return mcpText({ok:Number(r.meta?.changes??0)>0,deleted:args.id},Number(r.meta?.changes??0)<1);}
     case "list_important_dates": return mcpText({ok:true,dates:await listDates(env,Math.max(1,Math.min(500,Number(args.limit||300))))});
     case "add_important_date": {const title=clip(args.title||"",120),date=clip(args.date||"",20);if(!title||!validDate(date))return mcpText({ok:false,error:"title_and_date_required"},true);const markStyle=["circle","star","heart","underline","dashed","flag"].includes(String(args.mark_style||""))?String(args.mark_style):"circle",markedBy=args.marked_by==="user"?"user":"daddy",now=nowIso(),item={id:uuid(),title,date,kind:clip(args.kind||"important",40),remind_days:Math.max(0,Math.min(60,Number(args.remind_days??3)||0)),note:clip(args.note||"",500),mark_style:markStyle,marked_by:markedBy,created_at:now,updated_at:now};if(item.kind==="relationship_start")await env.DB.prepare("UPDATE lp_dates SET kind='important',updated_at=? WHERE kind='relationship_start'").bind(now).run();await env.DB.prepare("INSERT INTO lp_dates(id,title,event_date,kind,remind_days,note,mark_style,marked_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(item.id,item.title,item.date,item.kind,item.remind_days,item.note,item.mark_style,item.marked_by,item.created_at,item.updated_at).run();return mcpText({ok:true,date:item});}
@@ -1165,13 +1258,19 @@ async function callTool(name,args,env){
     case "get_little_phone_profiles": return mcpText({ok:true,profiles:await getProfiles(env)});
     case "set_little_phone_profile": {const x=await setProfile(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
     case "remember_about_user":
+    case "create_memory":
     case "create_little_phone_memory": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "list_memories":
     case "list_daddy_memories":
     case "list_little_phone_memories": return mcpText({ok:true,memories:await listMemories(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
+    case "update_memory":
     case "update_daddy_memory":
     case "update_little_phone_memory": {const x=await updateMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "confirm_memory":
     case "confirm_little_phone_memory": {const x=await updateMemory(env,{id:args.id,confirmed:true,confidence:"remembered"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "correct_memory":
     case "correct_little_phone_memory": {const x=await updateMemory(env,{id:args.id,content:args.content,confirmed:true,confidence:"remembered"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "delete_memory":
     case "delete_little_phone_memory": {const r=await env.DB.prepare("DELETE FROM lp_memories WHERE id=?").bind(args.id).run();const ok=Number(r.meta?.changes??0)>0;return mcpText({ok,deleted:args.id},!ok);}
     case "list_little_phone_unlock_requests": return mcpText({ok:true,requests:await listUnlockRequests(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "respond_little_phone_unlock_request": {const x=await respondUnlockRequest(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,...x},Boolean(x.error));}

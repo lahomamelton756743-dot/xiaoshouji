@@ -331,7 +331,7 @@ async def health(
 
 @app.get("/probe")
 async def probe(x_bridge_token: str | None = Header(default=None)) -> dict[str, Any]:
-    """Safe diagnostic: no credentials, only relative ids/notes and shared/latest keys."""
+    """Relationship diagnostic: compare Xiaomi 'relatives' vs 'family members'."""
     require_bridge_token(x_bridge_token)
     if MiHealthClient is None:
         raise HTTPException(status_code=500, detail="mi_fitness_not_installed")
@@ -339,26 +339,80 @@ async def probe(x_bridge_token: str | None = Header(default=None)) -> dict[str, 
         raise HTTPException(status_code=500, detail="mi_fitness_token_file_missing")
     try:
         async with MiHealthClient.from_token(str(TOKEN_FILE)) as client:
-            uid, relatives, auto_uid = await resolve_relative(client)
-            shared: list[str] = []
+            relatives = []
+            relatives_error = ""
             try:
-                shared = list(await client.get_shared_data_types(uid))
+                relatives = list(await client.get_relatives())
             except Exception as exc:
-                shared = [f"ERROR:{str(exc)[:120]}"]
-            latest, available = await latest_snapshot(client, uid)
-            return {
+                relatives_error = str(exc)[:240]
+
+            family = []
+            family_error = ""
+            try:
+                family = list(await client.get_family_members())
+            except Exception as exc:
+                family_error = str(exc)[:240]
+
+            has_invite: Any = None
+            invite_error = ""
+            try:
+                has_invite = await client.has_new_invite()
+            except Exception as exc:
+                invite_error = str(exc)[:240]
+
+            verified_target: Any = None
+            verify_error = ""
+            if TARGET_UID:
+                try:
+                    verified_target = jsonable(await client.verify_user(TARGET_UID))
+                except Exception as exc:
+                    verify_error = str(exc)[:240]
+
+            result: dict[str, Any] = {
                 "ok": True,
-                "resolved_relative_uid": uid,
-                "auto_resolved": auto_uid,
+                "target_uid_configured": bool(TARGET_UID),
+                "relatives_count": len(relatives),
                 "relatives": [
-                    {"relative_uid": _uid_of(m), "note": _note_of(m)} for m in relatives
+                    {"relative_uid": _uid_of(m), "note": _note_of(m), "raw": jsonable(m)}
+                    for m in relatives
                 ],
-                "shared_data_types": shared,
-                "latest_available_keys": available,
-                "latest_has_sleep": getattr(latest, "sleep", None) is not None,
-                "latest_has_steps": getattr(latest, "steps", None) is not None,
-                "latest_has_heart_rate": getattr(latest, "heart_rate", None) is not None,
+                "relatives_error": relatives_error,
+                "family_count": len(family),
+                "family_members": [jsonable(m) for m in family],
+                "family_error": family_error,
+                "has_new_invite": jsonable(has_invite),
+                "invite_error": invite_error,
+                "verified_target": verified_target,
+                "verify_error": verify_error,
             }
+
+            # Only query health if the actual relative API returns a usable relative_uid.
+            if relatives:
+                try:
+                    uid, _, auto_uid = await resolve_relative(client)
+                    shared: list[str] = []
+                    try:
+                        shared = list(await client.get_shared_data_types(uid))
+                    except Exception as exc:
+                        shared = [f"ERROR:{str(exc)[:120]}"]
+                    latest, available = await latest_snapshot(client, uid)
+                    result.update({
+                        "resolved_relative_uid": uid,
+                        "auto_resolved": auto_uid,
+                        "shared_data_types": shared,
+                        "latest_available_keys": available,
+                        "latest_has_sleep": getattr(latest, "sleep", None) is not None,
+                        "latest_has_steps": getattr(latest, "steps", None) is not None,
+                        "latest_has_heart_rate": getattr(latest, "heart_rate", None) is not None,
+                    })
+                except Exception as exc:
+                    result["relative_health_probe_error"] = str(exc)[:400]
+            else:
+                result["diagnosis"] = (
+                    "token_authenticated_but_relatives_api_returned_zero; "
+                    "check family_members/has_new_invite. Health queries require a real relative_uid."
+                )
+            return result
     except HTTPException:
         raise
     except Exception as exc:

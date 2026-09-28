@@ -1,7 +1,7 @@
 little-phone v0.7.6
 
 versionName: 0.7.6
-versionCode: 70360
+versionCode: 70361
 APK: LittlePhone-v0.7.6.apk
 
 Changes:
@@ -11,3 +11,5 @@ Changes:
 - GPT memory gains explicit HTTP aliases and MCP read/write/edit/confirm/delete tools.
 - Paper box shows one fixed-size note thread at a time, newest first.
 - Normal mail / future mail cards use fixed preview heights and rotate one item at a time.
+
+Device hotfix: restore paper/mail behavior, visible backgrounds, ice/pearl/lilac glass, distinct previous-page turn.

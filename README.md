@@ -21,8 +21,16 @@ Deployment values:
 - Worker: little-phone-backend
 - D1: little-phone-v051
 - versionName: 0.7.6
-- versionCode: 70352
+- versionCode: 70361
 - APK: LittlePhone-v0.7.6.apk
 
 Suggested commit:
 `Build little-phone v0.7.6 diary health and GPT decoration rework`
+
+
+### v0.7.6 device hotfix
+- Restored v0.7.5 paper-box full-list interaction and v0.7.5 mailbox behavior.
+- Fixed local backgrounds so they sit behind every page instead of only peeking out below Settings.
+- Ice-blue / pearl-white / faint pink-lilac liquid glass; green cast removed.
+- Previous diary turn is now a distinct incoming-left animation, opposite the next-page turn.
+- GPT-memory tools remain backed by lp_memories; ChatGPT plugin release is refreshed separately so the tools are discoverable.

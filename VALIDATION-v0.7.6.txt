@@ -10,7 +10,9 @@ PASS: GPT memory MCP tools exist and CRUD was exercised: get_gpt_memories / writ
 PASS: diary cover and default water background assets included.
 PASS: paper box renders one fixed-size thread at a time, newest first.
 PASS: normal/future mail previews have fixed heights; carousel/auto-rotation retained.
-PASS: Android versionName 0.7.6 / versionCode 70360.
+PASS: Android versionName 0.7.6 / versionCode 70361.
 PASS: build.sh output target LittlePhone-v0.7.6.apk.
 
 Not claimed: local Android APK build/install, because this environment does not provide the project Android SDK build environment used by GitHub Actions.
+
+Device hotfix validation is rerun after these changes.

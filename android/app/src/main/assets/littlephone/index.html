@@ -915,6 +915,104 @@ body.diaryMode:not(.hasCustomBackground) .aurora{background-image:linear-gradien
   .journalCover076,.bookPage,.journalLeaf{width:100%!important;aspect-ratio:1086 / 1448!important;height:auto!important;min-height:0!important}
   .backgroundItem{border-radius:25px!important}.glassControl{border-radius:24px!important}
 }
+
+/* =========================================================
+   v0.7.6 hotfix3 — full-height diary, vertical page lock,
+   and truly adjustable neutral glass opacity
+   ========================================================= */
+/* Lock the app shell to the viewport width. Internal horizontal scrollers
+   (the timeline river) still scroll themselves, but the page itself never
+   acquires a sideways scrollbar or sideways rubber-band movement. */
+html,body{
+  width:100%!important;max-width:100%!important;overflow-x:hidden!important;
+  overscroll-behavior-x:none!important
+}
+.shell,main{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important}
+#page-diary,#page-traces,#page-mail,#page-status{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  overflow-x:hidden!important;overscroll-behavior-x:none!important
+}
+#page-traces .riverScroller{overflow-x:auto!important;overflow-y:hidden!important;max-width:100%!important}
+
+/* The diary is part of the page, not a floating card. Its bottom edge stops
+   exactly above the fixed navigation bar, including Android safe-area insets. */
+body.diaryMode .shell{padding-bottom:calc(118px + env(safe-area-inset-bottom))!important}
+#page-diary{
+  width:calc(100% + 36px)!important;max-width:none!important;
+  margin:-4px -18px 0!important;padding:0!important;
+  height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 109px)!important;
+  min-height:0!important;max-height:none!important;overflow:hidden!important;
+  background:
+    linear-gradient(90deg,transparent 0 47px,rgba(184,137,153,.13) 47px 48px,transparent 48px),
+    repeating-linear-gradient(180deg,transparent 0 33px,rgba(102,126,167,.060) 33px 34px),
+    radial-gradient(circle at 94% 7%,rgba(181,170,222,.08),transparent 24%),
+    linear-gradient(108deg,rgba(255,254,250,.93),rgba(251,249,246,.90) 66%,rgba(247,244,241,.88))!important
+}
+.journalIntegratedHead{
+  height:68px!important;min-height:68px!important;padding:5px 20px 8px 26px!important;
+  flex:0 0 68px!important
+}
+.bookStage{
+  width:100%!important;height:calc(100% - 68px)!important;min-height:0!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;perspective:1450px!important
+}
+.journalCover076,.bookPage,.journalLeaf{
+  width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;
+  aspect-ratio:auto!important;margin:0!important;border-radius:0!important;box-shadow:none!important
+}
+.journalCover076 img{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  object-fit:cover!important;object-position:center!important
+}
+.journalLeaf{padding:20px 22px 86px 40px!important;overflow:hidden!important}
+.journalLeaf .journalScroll{
+  height:calc(100% - 118px)!important;min-height:0!important;max-height:none!important;
+  overflow-y:auto!important;overflow-x:hidden!important;padding:0 22px 28px 0!important;
+  overscroll-behavior-y:contain!important
+}
+.journalRail{top:118px!important;bottom:76px!important}
+.journalFolio{bottom:56px!important}.bookStage:after{bottom:58px!important}
+@media(max-width:420px){
+  #page-diary{margin-left:-18px!important;margin-right:-18px!important;padding-left:0!important;padding-right:0!important}
+  .journalIntegratedHead{padding-left:24px!important;padding-right:18px!important}
+  .journalLeaf{padding:18px 17px 82px 34px!important}
+}
+
+/* Going to an earlier diary page now uses the same physical closing motion as
+   returning to the cover, instead of the old opposite-side page swing. */
+.bookPage.turnPrevIn076{
+  transform-origin:left center!important;
+  animation:journalCoverBackIn .60s cubic-bezier(.14,.78,.14,1) both!important
+}
+
+/* Let the opacity control actually own the surface opacity. hotfix2 had a
+   fixed neutral base layered underneath it, so slider changes were visually
+   swallowed. The neutral hue protection stays, but the alpha now scales
+   directly and strongly from almost-clear to milky glass. */
+.glass,.glass.heroGlass,.glass.contentGlass,.glass.navGlass,
+.softBtn,.iconBtn,.statusSleepHero,.statusScoreHero,.statusHealthMetric,.statusSleepPanel,.statusMini,.hintBox,.healthMetric,.healthRow{
+  background:linear-gradient(135deg,
+    rgba(var(--glass-neutral-tone),var(--glass-neutral-tone),var(--glass-neutral-tone),calc(var(--glass-alpha) * 1.00)),
+    rgba(255,255,255,calc(var(--glass-alpha) * .76)) 48%,
+    rgba(249,243,253,calc(var(--glass-alpha) * .56)))!important;
+  backdrop-filter:blur(var(--glass-blur)) saturate(55%) brightness(1.10)!important;
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(55%) brightness(1.10)!important
+}
+.glass:before{
+  opacity:calc(.16 + var(--glass-alpha) * 1.55)!important;
+  background:linear-gradient(145deg,
+    rgba(255,255,255,calc(.05 + var(--glass-alpha) * .42)),
+    rgba(224,240,255,calc(.025 + var(--glass-alpha) * .20)) 48%,
+    rgba(239,225,250,calc(.02 + var(--glass-alpha) * .16)))!important
+}
+.glass:after{opacity:calc(.12 + var(--glass-alpha) * 1.10)!important}
+.backgroundItem,.glassControl{
+  background:linear-gradient(145deg,
+    rgba(255,255,255,calc(var(--glass-alpha) * .88)),
+    rgba(238,247,255,calc(var(--glass-alpha) * .50)) 56%,
+    rgba(247,235,251,calc(var(--glass-alpha) * .40)))!important
+}
+
 </style>
 </head>
 <body>

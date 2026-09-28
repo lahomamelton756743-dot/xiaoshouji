@@ -1,0 +1,11 @@
+Little Phone v0.7.6 hotfix3
+
+Changes
+- Diary open pages now fill the usable screen area and stop above the bottom navigation.
+- Earlier-page diary turn uses the same physical motion as closing back to the cover.
+- Diary cover and open page share the same full-height stage.
+- Non-home top-level pages are width-locked so the app only scrolls vertically; the Time River keeps its own horizontal scroll.
+- Glass opacity slider now directly controls neutral glass surface opacity instead of being masked by a fixed base layer.
+
+Android versionCode: 70363
+versionName: 0.7.6

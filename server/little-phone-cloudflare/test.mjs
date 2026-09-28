@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.7.4-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.equal(r.data.version, '0.7.5-little-phone'); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -274,7 +274,7 @@ ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Conte
 assert.equal(ox.status,200); oj=await ox.json(); const accessToken=oj.access_token, refreshToken=oj.refresh_token; assert.ok(accessToken); assert.ok(refreshToken); assert.equal(oj.token_type,'Bearer');
 
 ox = await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:92,method:'tools/list',params:{}})}),env);
-assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.result.tools.some(t=>t.name==='list_little_phone_papers'));
+assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.result.tools.some(t=>t.name==='list_little_phone_papers')); assert.ok(oj.result.tools.some(t=>t.name==='get_gpt_profile')); assert.ok(oj.result.tools.some(t=>t.name==='set_gpt_profile')); assert.ok(oj.result.tools.some(t=>t.name==='list_little_phone_memories')); assert.ok(oj.result.tools.some(t=>t.name==='create_little_phone_memory'));
 
 const refreshForm=new URLSearchParams({grant_type:'refresh_token',client_id:oauthClient,refresh_token:refreshToken});
 ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:refreshForm.toString()}),env);
@@ -282,5 +282,5 @@ assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); ass
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.7.4');
+console.log('PASS little-phone backend v0.7.5');
 console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,memories:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,health_daily:true,memory_alias_crud:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

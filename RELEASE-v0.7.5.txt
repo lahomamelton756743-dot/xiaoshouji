@@ -1,0 +1,14 @@
+little-phone v0.7.5
+
+Base: clean rebuild from v0.7.4
+versionName: 0.7.5
+versionCode: 70350
+APK: LittlePhone-v0.7.5.apk
+
+Changes:
+- approved pale/airy front-end decoration pass
+- more transparent local-only custom backgrounds
+- status page removes bottom GPT/user status cards
+- Xiaomi health displays sleep-at and wake-at when bridge returns them
+- explicit MCP get_gpt_profile / set_gpt_profile aliases
+- existing GPT memory CRUD remains backed by lp_memories

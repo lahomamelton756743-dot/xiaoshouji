@@ -1,0 +1,11 @@
+little-phone v0.7.5 validation
+
+PASS: Cloudflare worker JavaScript syntax
+PASS: local MCP JavaScript syntax
+PASS: health bridge Python syntax
+PASS: front-end embedded JavaScript syntax
+PASS: backend automated regression suite
+PASS: MCP tool discovery includes get_gpt_profile/set_gpt_profile and memory CRUD
+PASS: Android versionName 0.7.5 / versionCode 70350
+PASS: build.sh output target LittlePhone-v0.7.5.apk
+BLOCKED IN THIS ENVIRONMENT: full APK compile; Android SDK platform 34 is not installed here.

@@ -1,6 +1,6 @@
-# MCP（v0.7.4）
+# MCP（v0.7.5）
 
-小手机 v0.7.4 的正式 MCP 入口已经统一到 Cloudflare Worker：
+小手机 v0.7.5 的正式 MCP 入口已经统一到 Cloudflare Worker：
 
 `https://<你的 Worker 域名>/mcp`
 

@@ -1,4 +1,4 @@
-const VERSION = "0.7.4-little-phone";
+const VERSION = "0.7.5-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -1096,6 +1096,8 @@ const MCP_TOOLS = [
   tool("lock_little_phone_app","在授权前提下给一个 App 设置应用门禁。",{package:{type:"string"},app:{type:"string",default:""},duration_minutes:{type:"number",default:30},message:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("unlock_little_phone_app","解除一个 App 的应用门禁。",{package:{type:"string"},device_id:{type:"string",default:DEFAULT_DEVICE}},["package"]),
   tool("get_little_phone_profiles","读取双方当前显示名、头像、身份色和身份字体。",{}),
+  tool("get_gpt_profile","读取 GPT 当前头像、显示名、身份色和身份字体。",{}),
+  tool("set_gpt_profile","修改 GPT 的头像、显示名、身份色或身份字体。",{display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}}),
   tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}},["actor"]),
   tool("list_memories","读取“{display_name} 记得”的真实记忆条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("create_memory","新增一条“记得”，真正写入 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
@@ -1256,6 +1258,8 @@ async function callTool(name,args,env){
     case "lock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"lock_app",package:args.package,app:args.app||"",duration_minutes:Number(args.duration_minutes||30),message:args.message||"",requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "unlock_little_phone_app": {const c=await queueGenericCommand(env,{device_id:args.device_id||DEFAULT_DEVICE,action:"unlock_app",package:args.package,requested_by:"daddy"});return mcpText({ok:true,command:c});}
     case "get_little_phone_profiles": return mcpText({ok:true,profiles:await getProfiles(env)});
+    case "get_gpt_profile": {const profiles=await getProfiles(env);return mcpText({ok:true,profile:profiles.daddy||profiles.gpt||null});}
+    case "set_gpt_profile": {const x=await setProfile(env,{...args,actor:"daddy"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
     case "set_little_phone_profile": {const x=await setProfile(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
     case "remember_about_user":
     case "create_memory":

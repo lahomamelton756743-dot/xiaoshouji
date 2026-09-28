@@ -1,0 +1,13 @@
+little-phone v0.7.6
+
+versionName: 0.7.6
+versionCode: 70360
+APK: LittlePhone-v0.7.6.apk
+
+Changes:
+- Ice-blue / pearl-white / faint pink-lilac liquid glass, removing green cast.
+- New default water-ripple background; custom backgrounds remain local-only and visible through glass.
+- New full-page diary cover asset; diary pages remain integrated with internal scroll and keyword search.
+- GPT memory gains explicit HTTP aliases and MCP read/write/edit/confirm/delete tools.
+- Paper box shows one fixed-size note thread at a time, newest first.
+- Normal mail / future mail cards use fixed preview heights and rotate one item at a time.

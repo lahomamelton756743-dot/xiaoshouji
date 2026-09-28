@@ -1,4 +1,4 @@
-const VERSION = "0.7.5-little-phone";
+const VERSION = "0.7.6-little-phone";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -76,6 +76,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/health/steps") return getHealthMetricApi(env, url, "steps");
     if (path === "/api/littlephone/profiles") return getProfilesApi(env);
     if (path === "/api/littlephone/memories") return listMemoriesApi(env, url);
+    if (path === "/api/littlephone/gpt-memories") return listMemoriesApi(env, url);
     if (path === "/api/littlephone/unlock-requests") return listUnlockRequestsApi(env, url);
     if (path === "/api/mail") return listMailApi(env, url);
     if (path === "/api/capsules") return listCapsulesApi(env, url);
@@ -117,6 +118,9 @@ async function handle(request, env) {
     if (path === "/api/littlephone/memories") return addMemoryApi(env, await readJson(request));
     if (path === "/api/littlephone/memories/update") return updateMemoryApi(env, await readJson(request));
     if (path === "/api/littlephone/memories/delete") return deleteRowApi(env, "lp_memories", await readJson(request));
+    if (path === "/api/littlephone/gpt-memories") return addMemoryApi(env, await readJson(request));
+    if (path === "/api/littlephone/gpt-memories/update") return updateMemoryApi(env, await readJson(request));
+    if (path === "/api/littlephone/gpt-memories/delete") return deleteRowApi(env, "lp_memories", await readJson(request));
     if (path === "/api/littlephone/unlock-requests/respond") return respondUnlockRequestApi(env, await readJson(request));
     if (path === "/api/littlephone/command") return queueGenericCommandApi(env, await readJson(request));
     if (path === "/api/appgate/unlock_request") return addUnlockRequestApi(env, await readJson(request));
@@ -1099,6 +1103,11 @@ const MCP_TOOLS = [
   tool("get_gpt_profile","读取 GPT 当前头像、显示名、身份色和身份字体。",{}),
   tool("set_gpt_profile","修改 GPT 的头像、显示名、身份色或身份字体。",{display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}}),
   tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}},["actor"]),
+  tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("write_gpt_memory","写入一条 GPT 记得，保存到 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
+  tool("edit_gpt_memory","修改一条 GPT 记得，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
+  tool("confirm_gpt_memory","确认一条 GPT 记得为正确。",{id:{type:"string"}},["id"]),
+  tool("delete_gpt_memory","删除一条 GPT 记得。",{id:{type:"string"}},["id"]),
   tool("list_memories","读取“{display_name} 记得”的真实记忆条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("create_memory","新增一条“记得”，真正写入 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("update_memory","修改已有“记得”，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1262,18 +1271,23 @@ async function callTool(name,args,env){
     case "set_gpt_profile": {const x=await setProfile(env,{...args,actor:"daddy"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
     case "set_little_phone_profile": {const x=await setProfile(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
     case "remember_about_user":
+    case "write_gpt_memory":
     case "create_memory":
     case "create_little_phone_memory": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "get_gpt_memories":
     case "list_memories":
     case "list_daddy_memories":
     case "list_little_phone_memories": return mcpText({ok:true,memories:await listMemories(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
+    case "edit_gpt_memory":
     case "update_memory":
     case "update_daddy_memory":
     case "update_little_phone_memory": {const x=await updateMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "confirm_gpt_memory":
     case "confirm_memory":
     case "confirm_little_phone_memory": {const x=await updateMemory(env,{id:args.id,confirmed:true,confidence:"remembered"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
     case "correct_memory":
     case "correct_little_phone_memory": {const x=await updateMemory(env,{id:args.id,content:args.content,confirmed:true,confidence:"remembered"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "delete_gpt_memory":
     case "delete_memory":
     case "delete_little_phone_memory": {const r=await env.DB.prepare("DELETE FROM lp_memories WHERE id=?").bind(args.id).run();const ok=Number(r.meta?.changes??0)>0;return mcpText({ok,deleted:args.id},!ok);}
     case "list_little_phone_unlock_requests": return mcpText({ok:true,requests:await listUnlockRequests(env,Math.max(1,Math.min(300,Number(args.limit||80))))});

@@ -1,8 +1,8 @@
-# 小手机 v0.7.5 Plus
+# 小手机 v0.7.6
 
 Base: v0.7.4. This release keeps the existing Cloudflare Worker + D1 + Xiaomi Health Bridge architecture and existing data.
 
-## v0.7.5 Plus
+## v0.7.6
 - Home: compresses the Together header and uses a raster calligraphy asset so Android WebView shows an actual script word instead of a plain italic fallback.
 - Home: keeps the right flower behind the relationship-day number; GPT pendant is anchored inside the listening card next to the GPT portrait.
 - Diary: removes the separate cover completely. The Diary page itself is lined paper and opens directly on the newest entry.
@@ -20,9 +20,9 @@ Base: v0.7.4. This release keeps the existing Cloudflare Worker + D1 + Xiaomi He
 Deployment values:
 - Worker: little-phone-backend
 - D1: little-phone-v051
-- versionName: 0.7.5-plus
+- versionName: 0.7.6
 - versionCode: 70352
-- APK: LittlePhone-v0.7.5-plus.apk
+- APK: LittlePhone-v0.7.6.apk
 
 Suggested commit:
-`Build little-phone v0.7.5 Plus diary health and GPT decoration rework`
+`Build little-phone v0.7.6 diary health and GPT decoration rework`

@@ -744,6 +744,29 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
 .statusPhoneCard,.statusFootGrid,.statusHealthWide,.statusHead{position:relative!important;z-index:2!important}
 @media(max-width:420px){.statusNightDecor{height:112px}.gptNightWindowStatus{width:96px!important;left:12px!important}}
 
+/* =========================================================
+   v0.7.5 PLUS build 2 — device-review fixes
+   ========================================================= */
+:root{--glass-alpha:.05;--glass-blur:20px;--glass-highlight:.40;--glass-tone:255}
+.shell{padding-top:6px!important}
+@media(max-width:520px){.shell{padding-top:4px!important}}
+.aurora{background-image:linear-gradient(154deg,rgba(238,247,255,.18),rgba(241,247,255,.10) 42%,rgba(244,239,249,.10) 72%,rgba(237,245,255,.14)),var(--custom-bg)!important;background-position:center,center!important;background-size:cover,cover!important;background-repeat:no-repeat!important}
+body:not(.hasCustomBackground) .aurora{background-image:linear-gradient(154deg,#edf8ff 0%,#f1f7ff 42%,#f5f0fa 72%,#eef4ff 100%)!important}
+body.hasCustomBackground .aurora{filter:brightness(.96) saturate(1.04)!important}
+.glass,.glass.heroGlass,.glass.contentGlass,.glass.navGlass{background:rgba(var(--glass-tone),var(--glass-tone),var(--glass-tone),var(--glass-alpha))!important;backdrop-filter:blur(var(--glass-blur)) saturate(200%)!important;-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(200%)!important;border:1px solid rgba(255,255,255,var(--glass-highlight))!important;box-shadow:inset 1px 1px 4px rgba(255,255,255,.20),0 8px 32px rgba(0,0,0,.05)!important}
+.glass:before{opacity:.18!important}.glass:after{opacity:.05!important}
+.softBtn,.iconBtn,.statusSleepHero,.statusScoreHero,.statusHealthMetric,.statusSleepPanel,.statusMini{background:rgba(var(--glass-tone),var(--glass-tone),var(--glass-tone),calc(var(--glass-alpha) + .035))!important;backdrop-filter:blur(var(--glass-blur)) saturate(185%)!important;-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(185%)!important;border-color:rgba(255,255,255,var(--glass-highlight))!important}
+#page-home{margin-top:-2px!important}.homeFlourishLayer{height:48px!important;top:-6px!important;opacity:.17!important}.togetherVisual{min-height:52px!important;grid-template-columns:minmax(0,1fr) 80px!important;grid-template-rows:36px 15px!important;margin:0 0 3px!important;padding:0 0 0 2px!important}.togetherScript{width:min(230px,67vw)!important;height:40px!important;align-self:start!important}.togetherPoem{margin:-1px 0 0 35px!important;font-size:8.7px!important;line-height:1.1!important}.togetherDays{font-size:43px!important;line-height:.82!important;padding:0!important;z-index:8!important}.togetherCaption{font-size:8px!important;margin:-2px 0 0 0!important;z-index:8!important}.togetherVisual:after{right:-12px!important;top:-11px!important;width:88px!important;height:70px!important;opacity:.12!important;z-index:2!important}.weatherHero{margin-top:0!important}
+.gptPendantHome{display:none!important}.weatherHero .heroOrb{overflow:visible!important}.gptPendantBird{position:absolute;right:-7px;bottom:-14px;width:43px;height:auto;pointer-events:none;z-index:9;transform:rotate(7deg);transform-origin:50% 8%;filter:drop-shadow(0 4px 7px rgba(28,37,67,.13));opacity:.94}
+@media(max-width:420px){.gptPendantBird{width:39px;right:-5px;bottom:-13px}.togetherScript{width:min(218px,66vw)!important;height:38px!important}.togetherVisual{grid-template-columns:minmax(0,1fr) 74px!important;grid-template-rows:35px 14px!important}.togetherDays{font-size:40px!important}}
+.heartWaveV74 .waveBar{stroke-linecap:round!important}.heartWaveV74 .sideBar{stroke-width:2.5!important;opacity:.58}.heartWaveV74 .heartBar{stroke-width:3.15!important;opacity:.78}.musicHeartTrack{padding-top:7px!important}
+body.diaryMode .aurora{background-image:linear-gradient(108deg,rgba(255,254,250,.96),rgba(251,249,246,.94) 67%,rgba(247,244,241,.93))!important;filter:none!important}
+#page-diary{margin-top:-4px!important;background:transparent!important;min-height:calc(100dvh - 8px)!important}.journalIntegratedHead{min-height:66px!important;padding-top:2px!important;padding-bottom:7px!important}.journalScriptHeading{font-size:34px!important}.journalIntegratedSub{font-size:9.5px!important}.journalSearchBtn{width:34px;height:34px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;font-size:22px;color:#596580;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 1px 1px 3px rgba(255,255,255,.28);margin:0 4px 2px 10px}
+.bookStage{min-height:calc(100dvh - 132px)!important;padding-bottom:calc(86px + env(safe-area-inset-bottom))!important}.bookPage,.journalLeaf{height:calc(100dvh - 142px)!important;min-height:500px!important;padding:20px 22px 86px 40px!important;overflow:hidden!important}.journalLeaf .journalScroll{height:auto!important;min-height:0!important;max-height:calc(100dvh - 300px)!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0 22px 28px 0!important;margin:0!important;overscroll-behavior:contain!important;scrollbar-width:none!important}.journalLeaf .journalScroll::-webkit-scrollbar{display:none!important}.journalRail{display:block!important;position:absolute!important;right:13px!important;top:142px!important;bottom:92px!important;width:4px!important;border-radius:8px!important;background:rgba(102,119,159,.09)!important;z-index:7!important}.journalThumb{display:block!important;width:4px!important;min-height:30px!important;border-radius:8px!important;background:linear-gradient(180deg,rgba(104,133,199,.54),rgba(183,145,193,.46))!important;transition:transform .06s linear,height .15s ease,opacity .15s ease!important}.journalEndActions{padding:24px 0 4px!important;margin-right:0!important}.journalFolio{bottom:68px!important;right:21px!important}.bookStage:after{right:-5px!important;bottom:72px!important;width:128px!important;height:78px!important;opacity:.88!important;z-index:6!important}.journalGhost.turnPrev{transform-origin:left center!important;animation:plusTurnPrevFixed .50s cubic-bezier(.22,.72,.18,1) forwards!important}@keyframes plusTurnPrevFixed{0%{transform:perspective(1300px) rotateY(0);opacity:1}70%{transform:perspective(1300px) rotateY(72deg) translateX(-3px);opacity:.86}100%{transform:perspective(1300px) rotateY(94deg) translateX(-7px);opacity:0}}
+.journalSearchModalCard{max-height:78vh}.journalSearchResults{display:grid;gap:8px;max-height:52vh;overflow:auto;padding:2px}.journalSearchHit{display:grid;gap:4px;text-align:left;padding:12px 13px;border-radius:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.28);color:#39455f}.journalSearchHit b{font-family:"Songti SC","STSong",serif;font-size:15px}.journalSearchHit small{font-size:9px;color:#8d95a6}.journalSearchHit span{font-size:11px;line-height:1.5;color:#6f788d}.journalSearchEmpty{padding:28px;text-align:center;color:#8e95a5}
+.statusNightDecor,.gptNightWindowStatus{display:none!important}
+.appearancePanel{position:relative;overflow:visible!important;padding-bottom:142px!important}.appearanceSectionTitle{font-family:"Songti SC","STSong",serif;font-size:18px;color:#34415d;margin:18px 0 9px}.glassControlPanel{display:grid;gap:12px}.glassControl{display:grid;gap:7px;padding:11px 12px;border-radius:19px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.20)}.glassControl>span{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#59657d}.glassControl em{font-style:normal;color:#7883a0;font-variant-numeric:tabular-nums}.glassControl input{width:100%;accent-color:#7186d3}.glassReset{margin-top:10px}.appearanceNightNook{position:absolute;left:12px;bottom:8px;height:122px;width:220px;pointer-events:none}.appearanceNightNook img{position:absolute;left:0;bottom:0;width:86px;height:auto;filter:drop-shadow(0 7px 10px rgba(31,39,66,.12))}.appearanceNightNook:before{content:"";position:absolute;left:24px;bottom:8px;width:84px;height:34px;border-radius:50%;background:radial-gradient(ellipse,rgba(239,192,104,.16),transparent 70%);filter:blur(7px)}.appearanceNightNook span{position:absolute;left:96px;bottom:32px;font-family:"Songti SC","STSong",serif;font-size:10px;color:#848ca0;white-space:nowrap}
+
 </style>
 </head>
 <body>
@@ -762,6 +785,7 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
           <div class="journalScriptHeading">日记<span>♡</span></div>
           <div class="journalIntegratedSub">一篇一页。轻触左边往前、右边往后。</div>
         </div>
+        <button class="journalSearchBtn" id="journalSearchButton" type="button" aria-label="搜索日记">⌕</button>
       </div>
       <div class="bookStage" id="journalBook"></div>
       <div class="journalTurnLegend"><span>‹ 往前</span><div class="journalPageNo" id="journalPageNo">—</div><span>往后 ›</span></div>
@@ -789,7 +813,7 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
         </div>
 
         <div class="glass hero heroGlass weatherHero">
-          <div class="heroOrb" aria-label="团雀与月亮的双人徽记"><img class="heroEmblemAsset" src="小手机-v0.6.1-团雀月亮双人徽记.png" alt="" onload="this.parentElement.classList.add('hasAsset')" onerror="this.style.display='none'"><span class="heroMoon"></span><span class="heroBird"></span><i class="heroStar s1"></i><i class="heroStar s2"></i></div>
+          <div class="heroOrb" aria-label="团雀与月亮的双人徽记"><img class="heroEmblemAsset" src="小手机-v0.6.1-团雀月亮双人徽记.png" alt="" onload="this.parentElement.classList.add('hasAsset')" onerror="this.style.display='none'"><span class="heroMoon"></span><span class="heroBird"></span><i class="heroStar s1"></i><i class="heroStar s2"></i><img class="gptPendantBird" src="gpt-pendant.png" alt="" aria-hidden="true"></div>
           <div class="heroDate" id="heroDate">9月27日 · 星期日</div>
           <div class="heroClock" id="heroClock">12:35</div>
           <div class="heroPlace" id="heroPlace">家</div>
@@ -797,7 +821,6 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
         </div>
 
         <div class="glass bondHome heroGlass" id="usHeroV2">
-          <img class="gptPendantHome" src="gpt-pendant.png" alt="" aria-hidden="true">
           <div class="pairListenTop">
             <div class="pairCluster" aria-label="我们">
               <div class="avatarWrap"><button class="avatarButton" data-avatar="daddy"><span class="avatar" data-avatar-view="daddy">G</span></button><div class="avatarName identityDaddy" id="daddyNameUs">daddy</div></div>
@@ -814,65 +837,65 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
           </div>
           <div class="musicHeartTrack idle" id="musicCapsule">
             <svg class="heartWaveV74" viewBox="0 0 420 96" preserveAspectRatio="none" aria-hidden="true">
-              <line class="waveBar sideBar" style="--i:0" x1="10" y1="39.2" x2="10" y2="56.8"/>
-              <line class="waveBar sideBar" style="--i:1" x1="18" y1="35.8" x2="18" y2="60.2"/>
-              <line class="waveBar sideBar" style="--i:2" x1="26" y1="38.0" x2="26" y2="58.0"/>
-              <line class="waveBar sideBar" style="--i:3" x1="34" y1="35.2" x2="34" y2="60.8"/>
-              <line class="waveBar sideBar" style="--i:4" x1="42" y1="33.3" x2="42" y2="62.7"/>
-              <line class="waveBar sideBar" style="--i:5" x1="50" y1="38.4" x2="50" y2="57.6"/>
-              <line class="waveBar sideBar" style="--i:6" x1="58" y1="31.8" x2="58" y2="64.2"/>
-              <line class="waveBar sideBar" style="--i:7" x1="66" y1="33.0" x2="66" y2="63.0"/>
-              <line class="waveBar sideBar" style="--i:8" x1="74" y1="35.1" x2="74" y2="60.9"/>
-              <line class="waveBar sideBar" style="--i:9" x1="82" y1="30.5" x2="82" y2="65.5"/>
-              <line class="waveBar sideBar" style="--i:10" x1="90" y1="34.9" x2="90" y2="61.1"/>
-              <line class="waveBar sideBar" style="--i:11" x1="98" y1="33.1" x2="98" y2="62.9"/>
-              <line class="waveBar sideBar" style="--i:12" x1="106" y1="31.8" x2="106" y2="64.2"/>
-              <line class="waveBar sideBar" style="--i:13" x1="114" y1="38.2" x2="114" y2="57.8"/>
-              <line class="waveBar sideBar" style="--i:14" x1="122" y1="33.4" x2="122" y2="62.6"/>
-              <line class="waveBar sideBar" style="--i:15" x1="130" y1="35.1" x2="130" y2="60.9"/>
-              <line class="waveBar sideBar" style="--i:16" x1="138" y1="38.2" x2="138" y2="57.8"/>
-              <line class="waveBar sideBar" style="--i:17" x1="146" y1="35.8" x2="146" y2="60.2"/>
-              <line class="waveBar sideBar" style="--i:18" x1="154" y1="39.1" x2="154" y2="56.9"/>
-              <line class="waveBar heartBar" style="--i:19" x1="162" y1="33.9" x2="162" y2="58.0"/>
-              <line class="waveBar heartBar" style="--i:20" x1="167" y1="33.2" x2="167" y2="60.7"/>
-              <line class="waveBar heartBar" style="--i:21" x1="172" y1="31.3" x2="172" y2="63.4"/>
-              <line class="waveBar heartBar" style="--i:22" x1="177" y1="27.0" x2="177" y2="66.1"/>
-              <line class="waveBar heartBar" style="--i:23" x1="182" y1="21.1" x2="182" y2="68.8"/>
-              <line class="waveBar heartBar" style="--i:24" x1="187" y1="17.9" x2="187" y2="71.5"/>
-              <line class="waveBar heartBar" style="--i:25" x1="192" y1="20.4" x2="192" y2="74.2"/>
-              <line class="waveBar heartBar" style="--i:26" x1="197" y1="25.4" x2="197" y2="77.0"/>
-              <line class="waveBar heartBar" style="--i:27" x1="202" y1="28.8" x2="202" y2="79.7"/>
-              <line class="waveBar heartBar" style="--i:28" x1="207" y1="29.9" x2="207" y2="82.4"/>
-              <line class="waveBar heartBar" style="--i:29" x1="212" y1="29.9" x2="212" y2="82.9"/>
-              <line class="waveBar heartBar" style="--i:30" x1="217" y1="29.2" x2="217" y2="80.2"/>
-              <line class="waveBar heartBar" style="--i:31" x1="222" y1="26.3" x2="222" y2="77.5"/>
-              <line class="waveBar heartBar" style="--i:32" x1="227" y1="21.3" x2="227" y2="74.8"/>
-              <line class="waveBar heartBar" style="--i:33" x1="232" y1="18.0" x2="232" y2="72.1"/>
-              <line class="waveBar heartBar" style="--i:34" x1="237" y1="20.1" x2="237" y2="69.4"/>
-              <line class="waveBar heartBar" style="--i:35" x1="242" y1="25.9" x2="242" y2="66.7"/>
-              <line class="waveBar heartBar" style="--i:36" x1="247" y1="30.6" x2="247" y2="64.0"/>
-              <line class="waveBar heartBar" style="--i:37" x1="252" y1="32.9" x2="252" y2="61.2"/>
-              <line class="waveBar heartBar" style="--i:38" x1="257" y1="33.8" x2="257" y2="58.5"/>
-              <line class="waveBar sideBar" style="--i:39" x1="266" y1="39.1" x2="266" y2="56.9"/>
-              <line class="waveBar sideBar" style="--i:40" x1="274" y1="35.8" x2="274" y2="60.2"/>
-              <line class="waveBar sideBar" style="--i:41" x1="282" y1="38.2" x2="282" y2="57.8"/>
-              <line class="waveBar sideBar" style="--i:42" x1="290" y1="35.1" x2="290" y2="60.9"/>
-              <line class="waveBar sideBar" style="--i:43" x1="298" y1="33.4" x2="298" y2="62.6"/>
-              <line class="waveBar sideBar" style="--i:44" x1="306" y1="38.2" x2="306" y2="57.8"/>
-              <line class="waveBar sideBar" style="--i:45" x1="314" y1="31.8" x2="314" y2="64.2"/>
-              <line class="waveBar sideBar" style="--i:46" x1="322" y1="33.1" x2="322" y2="62.9"/>
-              <line class="waveBar sideBar" style="--i:47" x1="330" y1="34.9" x2="330" y2="61.1"/>
-              <line class="waveBar sideBar" style="--i:48" x1="338" y1="30.5" x2="338" y2="65.5"/>
-              <line class="waveBar sideBar" style="--i:49" x1="346" y1="35.1" x2="346" y2="60.9"/>
-              <line class="waveBar sideBar" style="--i:50" x1="354" y1="33.0" x2="354" y2="63.0"/>
-              <line class="waveBar sideBar" style="--i:51" x1="362" y1="31.8" x2="362" y2="64.2"/>
-              <line class="waveBar sideBar" style="--i:52" x1="370" y1="38.4" x2="370" y2="57.6"/>
-              <line class="waveBar sideBar" style="--i:53" x1="378" y1="33.3" x2="378" y2="62.7"/>
-              <line class="waveBar sideBar" style="--i:54" x1="386" y1="35.2" x2="386" y2="60.8"/>
-              <line class="waveBar sideBar" style="--i:55" x1="394" y1="38.0" x2="394" y2="58.0"/>
-              <line class="waveBar sideBar" style="--i:56" x1="402" y1="35.8" x2="402" y2="60.2"/>
-              <line class="waveBar sideBar" style="--i:57" x1="410" y1="39.2" x2="410" y2="56.8"/>
-              <circle class="waveHeartDot" cx="210" cy="32" r="2.5"/>
+              <line class="waveBar sideBar" style="--i:0" x1="10" y1="42.0" x2="10" y2="54.0"/>
+              <line class="waveBar sideBar" style="--i:1" x1="18" y1="36.0" x2="18" y2="60.0"/>
+              <line class="waveBar sideBar" style="--i:2" x1="26" y1="40.0" x2="26" y2="56.0"/>
+              <line class="waveBar sideBar" style="--i:3" x1="34" y1="32.5" x2="34" y2="63.5"/>
+              <line class="waveBar sideBar" style="--i:4" x1="42" y1="38.0" x2="42" y2="58.0"/>
+              <line class="waveBar sideBar" style="--i:5" x1="50" y1="30.0" x2="50" y2="66.0"/>
+              <line class="waveBar sideBar" style="--i:6" x1="58" y1="39.5" x2="58" y2="56.5"/>
+              <line class="waveBar sideBar" style="--i:7" x1="66" y1="34.0" x2="66" y2="62.0"/>
+              <line class="waveBar sideBar" style="--i:8" x1="74" y1="27.0" x2="74" y2="69.0"/>
+              <line class="waveBar sideBar" style="--i:9" x1="82" y1="39.0" x2="82" y2="57.0"/>
+              <line class="waveBar sideBar" style="--i:10" x1="90" y1="31.0" x2="90" y2="65.0"/>
+              <line class="waveBar sideBar" style="--i:11" x1="98" y1="36.5" x2="98" y2="59.5"/>
+              <line class="waveBar sideBar" style="--i:12" x1="106" y1="28.5" x2="106" y2="67.5"/>
+              <line class="waveBar sideBar" style="--i:13" x1="114" y1="40.5" x2="114" y2="55.5"/>
+              <line class="waveBar sideBar" style="--i:14" x1="122" y1="33.5" x2="122" y2="62.5"/>
+              <line class="waveBar sideBar" style="--i:15" x1="130" y1="37.5" x2="130" y2="58.5"/>
+              <line class="waveBar sideBar" style="--i:16" x1="138" y1="31.0" x2="138" y2="65.0"/>
+              <line class="waveBar sideBar" style="--i:17" x1="146" y1="39.5" x2="146" y2="56.5"/>
+              <line class="waveBar sideBar" style="--i:18" x1="154" y1="35.0" x2="154" y2="61.0"/>
+              <line class="waveBar heartBar" style="--i:19" x1="162" y1="38" x2="162" y2="53"/>
+              <line class="waveBar heartBar" style="--i:20" x1="167" y1="32" x2="167" y2="56"/>
+              <line class="waveBar heartBar" style="--i:21" x1="172" y1="27" x2="172" y2="59"/>
+              <line class="waveBar heartBar" style="--i:22" x1="177" y1="23" x2="177" y2="63"/>
+              <line class="waveBar heartBar" style="--i:23" x1="182" y1="20" x2="182" y2="67"/>
+              <line class="waveBar heartBar" style="--i:24" x1="187" y1="19" x2="187" y2="71"/>
+              <line class="waveBar heartBar" style="--i:25" x1="192" y1="20" x2="192" y2="75"/>
+              <line class="waveBar heartBar" style="--i:26" x1="197" y1="23" x2="197" y2="79"/>
+              <line class="waveBar heartBar" style="--i:27" x1="202" y1="28" x2="202" y2="83"/>
+              <line class="waveBar heartBar" style="--i:28" x1="207" y1="34" x2="207" y2="87"/>
+              <line class="waveBar heartBar" style="--i:29" x1="212" y1="38" x2="212" y2="91"/>
+              <line class="waveBar heartBar" style="--i:30" x1="217" y1="34" x2="217" y2="87"/>
+              <line class="waveBar heartBar" style="--i:31" x1="222" y1="28" x2="222" y2="83"/>
+              <line class="waveBar heartBar" style="--i:32" x1="227" y1="23" x2="227" y2="79"/>
+              <line class="waveBar heartBar" style="--i:33" x1="232" y1="20" x2="232" y2="75"/>
+              <line class="waveBar heartBar" style="--i:34" x1="237" y1="19" x2="237" y2="71"/>
+              <line class="waveBar heartBar" style="--i:35" x1="242" y1="20" x2="242" y2="67"/>
+              <line class="waveBar heartBar" style="--i:36" x1="247" y1="23" x2="247" y2="63"/>
+              <line class="waveBar heartBar" style="--i:37" x1="252" y1="27" x2="252" y2="59"/>
+              <line class="waveBar heartBar" style="--i:38" x1="257" y1="32" x2="257" y2="56"/>
+              <line class="waveBar heartBar" style="--i:39" x1="262" y1="38" x2="262" y2="53"/>
+              <line class="waveBar sideBar" style="--i:40" x1="266" y1="40.5" x2="266" y2="55.5"/>
+              <line class="waveBar sideBar" style="--i:41" x1="274" y1="34.0" x2="274" y2="62.0"/>
+              <line class="waveBar sideBar" style="--i:42" x1="282" y1="38.0" x2="282" y2="58.0"/>
+              <line class="waveBar sideBar" style="--i:43" x1="290" y1="29.0" x2="290" y2="67.0"/>
+              <line class="waveBar sideBar" style="--i:44" x1="298" y1="39.5" x2="298" y2="56.5"/>
+              <line class="waveBar sideBar" style="--i:45" x1="306" y1="31.0" x2="306" y2="65.0"/>
+              <line class="waveBar sideBar" style="--i:46" x1="314" y1="37.0" x2="314" y2="59.0"/>
+              <line class="waveBar sideBar" style="--i:47" x1="322" y1="27.5" x2="322" y2="68.5"/>
+              <line class="waveBar sideBar" style="--i:48" x1="330" y1="38.5" x2="330" y2="57.5"/>
+              <line class="waveBar sideBar" style="--i:49" x1="338" y1="32.5" x2="338" y2="63.5"/>
+              <line class="waveBar sideBar" style="--i:50" x1="346" y1="36.0" x2="346" y2="60.0"/>
+              <line class="waveBar sideBar" style="--i:51" x1="354" y1="30.0" x2="354" y2="66.0"/>
+              <line class="waveBar sideBar" style="--i:52" x1="362" y1="40.0" x2="362" y2="56.0"/>
+              <line class="waveBar sideBar" style="--i:53" x1="370" y1="33.5" x2="370" y2="62.5"/>
+              <line class="waveBar sideBar" style="--i:54" x1="378" y1="37.5" x2="378" y2="58.5"/>
+              <line class="waveBar sideBar" style="--i:55" x1="386" y1="31.5" x2="386" y2="64.5"/>
+              <line class="waveBar sideBar" style="--i:56" x1="394" y1="39.0" x2="394" y2="57.0"/>
+              <line class="waveBar sideBar" style="--i:57" x1="402" y1="34.5" x2="402" y2="61.5"/>
+              <line class="waveBar sideBar" style="--i:58" x1="410" y1="41.5" x2="410" y2="54.5"/>
             </svg>
           </div>
         </div>
@@ -926,7 +949,6 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
         <div class="glass footCard"><div class="cardLabel" id="daddyFootTitle">daddy 的足迹</div><div class="footList" id="daddyFootprints"></div></div>
       </div>
       <div class="glass homeStatusWide statusPhoneCard" id="statusShortcut"><div class="row"><div class="cardLabel" style="margin:0">手机状态</div><div class="meta" id="homeStatusMeta">本机摘要</div></div><div class="statusGrid"><div class="statusMini">电量<b id="homeBattery">—</b></div><div class="statusMini">网络<b id="homeNetwork">—</b></div><div class="statusMini">屏幕时间<b id="homeScreen">—</b></div><div class="statusMini">解锁次数<b id="homeUnlock">—</b></div></div><div class="topApps"><div class="topAppsTitle">今日 App 使用时间前五名</div><div id="homeTopApps"></div></div></div>
-      <div class="statusNightDecor" aria-hidden="true"><img class="gptNightWindowStatus" src="gpt-night-window.png" alt=""><span class="statusNightStar s1">✦</span><span class="statusNightStar s2">·</span></div>
     </section>
 
     <section class="page" id="page-settings">
@@ -963,6 +985,7 @@ body.hasCustomBackground .glass,body.hasCustomBackground .contentGlass,body.hasC
 <div class="modal" id="profileModal"><div class="modalCard"><div class="modalHead"><div class="modalTitle">编辑资料</div><button class="close" id="profileClose">×</button></div><div class="profilePreview"><span class="avatar" id="profileAvatarPreview">瑞</span><div style="flex:1"><input class="field" id="profileName" placeholder="名字"><button class="softBtn" id="profileChoosePhoto">更换头像</button></div></div><div class="profileColorRow"><span>我的身份色</span><input type="color" id="profileColor" value="#6E83C1"></div><div class="profileColorRow"><span>我的身份字体</span><select class="field profileFontSelect" id="profileFont"><option value="clean">清爽黑体</option><option value="rounded">柔和圆体</option><option value="cheese">奶酪感 · 系统圆润体</option><option value="serif">文艺宋体</option><option value="kai">手写感 · 楷体 / cursive</option><option value="italic">轻斜体</option><option value="script">花体感 · cursive</option><option value="mono">等宽小字</option></select></div><div class="meta" style="margin-bottom:12px">身份色与身份字体只用于本人写下的纸条、信、状态、日常册等内容；系统按钮和日期保持统一 UI。“奶酪感”使用 Android/WebView 的系统圆润字体；没有捆绑独立商业奶酪字体资源。</div><button class="submit" id="profileSave">保存</button></div></div>
 <div class="modal" id="dateModal"><div class="modalCard dateModalCard"><div class="modalHead"><div><div class="modalTitle" id="dateModalTitle">纪念日与重要日期</div><div class="meta" id="dateModalSub">“在一起第 N 天”从这里的起始纪念日计算。</div></div><button class="close" id="dateClose">×</button></div><div class="dateManageOnly" id="dateManageOnly"><div class="calendarHead"><button class="softBtn" id="datePrev">‹</button><div class="dateTitle" id="dateMonthTitle"></div><button class="softBtn" id="dateNext">›</button></div><div class="glass monthGrid" id="dateCalendar"></div></div><div class="editHint" id="dateEditHint">添加一个新日期</div><div class="dateQuickDate" id="dateQuickDate"></div><div class="dateAdvanced"><div class="miniForm"><input class="field" id="dateTitle" placeholder="名称"><input class="field" id="dateValue" type="date"></div><div class="miniForm"><select class="field" id="dateKind"><option value="important">重要日期</option><option value="relationship_start">在一起起始日</option><option value="anniversary">纪念日</option></select><input class="field" id="dateRemind" type="number" min="0" max="60" value="3" placeholder="提前几天提醒"></div></div><div class="dateMarkEditor"><select class="field" id="dateMarkStyle"><option value="circle">○ 纪念</option><option value="star">★ 重要</option><option value="heart">♡ 心意</option><option value="underline">— 记住</option><option value="dashed">◌ 未来</option><option value="flag">⚑ 特别</option></select><select class="field" id="dateMarkedBy"><option value="user">由我标记</option><option value="daddy">由对方标记</option></select></div><input class="field" id="dateNote" placeholder="备注（可选）"><button class="submit" id="dateAdd">添加日期</button><div class="dateManageOnly" id="dateListWrap"><div style="height:12px"></div><div id="dateList"></div></div></div></div>
 <div class="modal" id="cycleModal"><div class="modalCard"><div class="modalHead"><div><div class="modalTitle">周期记录</div><div class="meta">只记录你主动填写的周期信息。</div></div><button class="close" id="cycleClose">×</button></div><div class="calendarHead"><button class="softBtn" id="cyclePrev">‹</button><div class="dateTitle" id="cycleMonthTitle"></div><button class="softBtn" id="cycleNext">›</button></div><div class="glass monthGrid" id="cycleCalendar"></div><div class="hintBox" id="cycleSummary">还没有设置。</div><label class="toggleRow field"><span>开启周期提醒</span><input type="checkbox" id="cycleEnabled"></label><label class="meta">上次开始日期</label><input class="field" type="date" id="cycleLast"><div class="miniForm"><div><label class="meta">周期长度</label><input class="field" type="number" id="cycleLength" min="15" max="60" value="30"></div><div><label class="meta">经期长度</label><input class="field" type="number" id="periodLength" min="1" max="14" value="6"></div></div><label class="meta">提前几天提醒</label><input class="field" type="number" id="cycleRemind" min="0" max="14" value="3"><button class="submit" id="cycleSave">保存周期设置</button><div class="subSection">历史记录</div><div class="miniForm"><input class="field" type="date" id="recordStart"><input class="field" type="date" id="recordEnd"></div><input class="field" id="recordNote" placeholder="备注"><button class="softBtn" id="recordAdd">添加一次记录</button><div id="cycleRecords" style="margin-top:12px"></div></div></div>
+<div class="modal" id="journalSearchModal"><div class="modalCard journalSearchModalCard"><div class="modalHead"><div><div class="modalTitle">搜索日记</div><div class="meta">按标题、正文、日期或作者查找。</div></div><button class="close" id="journalSearchClose">×</button></div><input class="field" id="journalSearchInput" placeholder="输入关键词"><div class="journalSearchResults" id="journalSearchResults"></div></div></div>
 <div class="modal" id="healthModal"><div class="modalCard"><div class="modalHead"><div><div class="modalTitle">小米健康</div><div class="meta">睡眠、心率、步数 · 读取小米健康云端</div></div><button class="close" id="healthClose">×</button></div><div class="paperToolbar"><button class="softBtn healthRefreshInline" id="healthRefreshButton">刷新最新数据</button></div><div class="healthRows" id="healthDetails"></div></div></div>
 <div class="modal" id="statusModal"><div class="modalCard"><div class="modalHead"><div class="modalTitle" id="statusModalTitle">编辑状态</div><button class="close" id="statusClose">×</button></div><textarea class="field" id="statusTextInput" placeholder="写一句现在的状态"></textarea><div class="statusEditorChoices"><button class="statusChip" data-presence="online">在线</button><button class="statusChip" data-presence="away">稍后回来</button><button class="statusChip" data-presence="quiet">安静中</button></div><button class="submit" id="statusSave">保存状态</button></div></div>
 <input id="avatarDaddyInput" type="file" accept="image/*" hidden><input id="avatarRyanInput" type="file" accept="image/*" hidden>
@@ -1027,6 +1050,8 @@ function go(page,push=true){
   const navPage=(page==='settings'||page==='settings-detail')?'status':page;
   $$('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===navPage));
   document.body.classList.toggle('settingsMode',page==='settings'||page==='settings-detail');
+  document.body.classList.toggle('diaryMode',page==='diary');
+  document.body.dataset.page=page;
   if(!same)window.scrollTo({top:0,behavior:'smooth'});
   applyPageBackground();
   if(page==='home'){renderHome();requestAnimationFrame(triggerPairBump)}
@@ -1252,6 +1277,9 @@ function renderHealth(){
     });
   }
 }
+function journalSorted(){return [...(state.diaries||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))}
+function renderJournalSearch(){const q=String($('#journalSearchInput')?.value||'').trim().toLowerCase(),root=$('#journalSearchResults');if(!root)return;const list=journalSorted();const hits=!q?list.slice().reverse().slice(0,30):list.filter(d=>[d.title,d.content,d.date,actorName(d.author||'daddy')].some(v=>String(v||'').toLowerCase().includes(q))).reverse().slice(0,50);root.innerHTML=hits.length?hits.map(d=>`<button class="journalSearchHit" type="button" data-journal-search-id="${esc(d.id)}"><b>${esc(d.title||'今天')}</b><small>${esc(d.date||'')} · ${esc(actorName(d.author||'daddy'))}</small><span>${esc(String(d.content||'').replace(/\s+/g,' ').slice(0,76))}</span></button>`).join(''):'<div class="journalSearchEmpty">没有找到包含这个关键词的日记。</div>';$$('[data-journal-search-id]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.journalSearchId,asc=journalSorted(),i=asc.findIndex(x=>String(x.id)===String(id));if(i>=0){state.journalIndex=i;renderJournal();hide('#journalSearchModal');requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}))}})}
+function openJournalSearch(){const input=$('#journalSearchInput');if(input)input.value='';renderJournalSearch();show('#journalSearchModal');setTimeout(()=>input?.focus(),80)}
 function renderJournal(){
   const root=$('#journalBook'),list=[...(state.diaries||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
   if(!root)return;
@@ -1270,13 +1298,16 @@ function renderJournal(){
       <div class="journalText authoredText ${side}">${esc(d.content||'')}</div>
       <div class="itemActions journalEndActions"><button class="softBtn" id="journalEdit">编辑</button><button class="dangerBtn" id="journalDelete">删除这一篇</button></div>
     </div>
+    <div class="journalRail" aria-hidden="true"><i class="journalThumb" id="journalThumb"></i></div>
     <div class="journalFolio">${state.journalIndex+1} / ${list.length}</div>
   </article>`;
   if($('#journalPageNo'))$('#journalPageNo').textContent=`${state.journalIndex+1} / ${list.length}`;
   $('#journalEdit').onclick=()=>openCompose('diary-edit',d);
   $('#journalDelete').onclick=()=>deleteItem('/api/littlephone/diaries/delete',d.id,'这篇日记',()=>{state.journalIndex=Math.max(0,Math.min(state.journalIndex-1,list.length-2))});
   bindJournalTurn();
+  bindJournalScroll();
 }
+function bindJournalScroll(){const sc=$('#journalScroll'),thumb=$('#journalThumb');if(!sc||!thumb)return;const sync=()=>{const max=Math.max(1,sc.scrollHeight-sc.clientHeight),ratio=Math.min(1,sc.clientHeight/Math.max(sc.scrollHeight,1)),rail=Math.max(50,sc.clientHeight-10),h=Math.max(30,rail*ratio),top=(sc.scrollTop/max)*Math.max(0,rail-h);thumb.style.height=h+'px';thumb.style.transform=`translateY(${top}px)`;thumb.style.opacity=sc.scrollHeight>sc.clientHeight+4?'1':'.22'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(sync)}
 function bindJournalTurn(){const root=$('#journalBook');if(!root)return;root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a'))return;const r=root.getBoundingClientRect();const dir=e.clientX<r.left+r.width*.5?-1:1;stepJournalAnimated(dir)}}
 function stepJournalAnimated(delta){
   if(state.journalAnimating)return;
@@ -1387,13 +1418,30 @@ function renderUs(){renderStatuses();renderHealth();renderFootprints();renderNat
 
 function renderHomeCalendar(){const view=monthContext(state.homeMonthOffset||0),root=$('#homeDateCalendar');if(!root)return;$('#homeDateMonthTitle').textContent=`${view.getFullYear()}年 ${view.getMonth()+1}月`;root.innerHTML=calendarCells(view,(ds)=>{const hits=state.dates.filter(x=>{if(x.kind==='anniversary'||x.kind==='relationship_start')return x.date?.slice(5)===ds.slice(5);return x.date===ds});if(!hits.length)return{};const h=hits[0],style=h.mark_style||'circle',actor=h.marked_by==='daddy'?'daddy':'user',symbol={star:'★',heart:'♡',flag:'⚑'}[style]||'';return{cls:`mark mark-${style} mark-${actor}`,title:hits.map(x=>x.title||x.note||'标记').join('、'),symbol,style:`--mark-color:${identityColor(actor)}`}});$$('#homeDateCalendar [data-cal-date]').forEach(cell=>cell.onclick=()=>openDateQuick(cell.dataset.calDate))}
 const BG_KEY='lp_v072_backgrounds';const BG_KEYS=['global','diary','traces','home','mail','status'];
+const GLASS_KEY='lp_v075_glass_prefs';
+const glassPrefs={alpha:.05,blur:20,highlight:.40,tone:255};
+function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(.01,Math.min(.30,Number(v.alpha??.05)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??20)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.40)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
+function applyGlassPrefs(save=true){const r=document.documentElement.style;r.setProperty('--glass-alpha',String(glassPrefs.alpha));r.setProperty('--glass-blur',glassPrefs.blur+'px');r.setProperty('--glass-highlight',String(glassPrefs.highlight));r.setProperty('--glass-tone',String(glassPrefs.tone));if(save)localDataSet(GLASS_KEY,JSON.stringify(glassPrefs))}
+function bindGlassControls(){for(const key of ['alpha','blur','highlight','tone']){const el=$(`[data-glass-control="${key}"]`),out=$(`[data-glass-value="${key}"]`);if(!el)continue;const update=()=>{glassPrefs[key]=Number(el.value);applyGlassPrefs(true);if(out)out.textContent=key==='blur'?`${glassPrefs[key]}px`:key==='tone'?String(Math.round(glassPrefs[key])):Number(glassPrefs[key]).toFixed(2)};el.oninput=update;update()}}
+
 function loadBackgrounds(){const legacy=parse(localDataGet('lp_v071_backgrounds')||'{}',{})||{};state.backgrounds={};for(const k of BG_KEYS){const direct=localDataGet(`lp_bg_${k}`);if(direct)state.backgrounds[k]=direct;else if(legacy[k]){state.backgrounds[k]=legacy[k];localDataSet(`lp_bg_${k}`,legacy[k])}}}
 function saveBackgrounds(changedKey){if(changedKey){const value=state.backgrounds?.[changedKey]||'';localDataSet(`lp_bg_${changedKey}`,value)}else{for(const k of BG_KEYS)localDataSet(`lp_bg_${k}`,state.backgrounds?.[k]||'')}localDataSet(BG_KEY,JSON.stringify(Object.fromEntries(BG_KEYS.map(k=>[k,!!state.backgrounds?.[k]]))));applyPageBackground()}
 function backgroundPageKey(){if(state.page==='settings'||state.page==='settings-detail'||state.page==='status')return'status';return state.page}
 function applyPageBackground(){if(!state.backgrounds||!Object.keys(state.backgrounds).length)loadBackgrounds();const key=backgroundPageKey(),src=state.backgrounds?.[key]||state.backgrounds?.global||'';document.documentElement.style.setProperty('--custom-bg',src?`url(${JSON.stringify(src)})`:'none');document.body.classList.toggle('hasCustomBackground',!!src)}
 function compressBackground(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.72);if(data.length>1600000)data=c.toDataURL('image/jpeg',.56);cb(data)};img.src=r.result};r.readAsDataURL(file)}
 
-function renderAppearanceSettings(){loadBackgrounds();const body=$('#settingsDetailBody'),labels={global:'全局背景',diary:'日记',traces:'留痕',home:'首页',mail:'信箱',status:'状态'};body.innerHTML=`<div class="glass settingsPanel"><div class="settingsToolbar"><div class="hintBox">背景按页面单独保存，页面背景优先于全局背景。Android App 会直接打开系统相册；图片压缩后只保存在小手机本地，不上传 D1。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div></div>`;const reset=$('#bgResetAll');if(reset)reset.onclick=()=>{for(const k of BG_KEYS){delete state.backgrounds[k];localDataSet(`lp_bg_${k}`,'')}saveBackgrounds();renderAppearanceSettings();toast('已经恢复全部默认背景')};$$('[data-bg-clear]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgClear;delete state.backgrounds[k];saveBackgrounds(k);renderAppearanceSettings();toast(`${labels[k]}背景已清除`)});$$('[data-bg-pick]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgPick;if(hasNative()&&window.LittlePhoneNative.pickBackground){window.LittlePhoneNative.pickBackground(k)}else{$(`[data-bg-input="${k}"]`)?.click()}});$$('[data-bg-input]').forEach(inp=>inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;compressBackground(f,data=>{const k=inp.dataset.bgInput;state.backgrounds[k]=data;saveBackgrounds(k);renderAppearanceSettings();toast(`${labels[k]}背景已保存`)});inp.value=''})}
+function renderAppearanceSettings(){
+  loadBackgrounds();loadGlassPrefs();
+  const body=$('#settingsDetailBody'),labels={global:'全局背景',diary:'日记',traces:'留痕',home:'首页',mail:'信箱',status:'状态'};
+  const slider=(key,label,min,max,step,value)=>`<label class="glassControl"><span><b>${label}</b><em data-glass-value="${key}">${key==='blur'?value+'px':key==='tone'?Math.round(value):Number(value).toFixed(2)}</em></span><input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-glass-control="${key}"></label>`;
+  body.innerHTML=`<div class="glass settingsPanel appearancePanel"><div class="settingsToolbar"><div class="hintBox">背景与玻璃参数只保存在这台手机，不上传后端。页面背景优先于全局背景。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="appearanceSectionTitle">玻璃质感</div><div class="glassControlPanel">${slider('alpha','玻璃透明度',.01,.30,.01,glassPrefs.alpha)}${slider('blur','背景模糊度',0,40,1,glassPrefs.blur)}${slider('highlight','边缘高光强度',0,.8,.05,glassPrefs.highlight)}${slider('tone','玻璃底色',0,255,1,glassPrefs.tone)}</div><button class="softBtn glassReset" type="button" id="glassReset">恢复玻璃默认值</button><div class="appearanceSectionTitle">背景设置</div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div><div class="appearanceNightNook" aria-hidden="true"><img src="gpt-night-window.png" alt=""><span>深夜也留一盏灯。</span></div></div>`;
+  bindGlassControls();
+  $('#glassReset').onclick=()=>{Object.assign(glassPrefs,{alpha:.05,blur:20,highlight:.40,tone:255});applyGlassPrefs(true);renderAppearanceSettings();toast('玻璃参数已恢复默认')};
+  const reset=$('#bgResetAll');if(reset)reset.onclick=()=>{for(const k of BG_KEYS){delete state.backgrounds[k];localDataSet(`lp_bg_${k}`,'')}saveBackgrounds();renderAppearanceSettings();toast('已经恢复全部默认背景')};
+  $$('[data-bg-clear]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgClear;delete state.backgrounds[k];saveBackgrounds(k);renderAppearanceSettings();toast(`${labels[k]}背景已清除`)});
+  $$('[data-bg-pick]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgPick;if(hasNative()&&window.LittlePhoneNative.pickBackground){window.LittlePhoneNative.pickBackground(k)}else{$(`[data-bg-input="${k}"]`)?.click()}});
+  $$('[data-bg-input]').forEach(inp=>inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;compressBackground(f,data=>{const k=inp.dataset.bgInput;state.backgrounds[k]=data;saveBackgrounds(k);renderAppearanceSettings();toast(`${labels[k]}背景已保存`)});inp.value=''})
+}
 function openSettingsSection(section){state.settingsSection=section||'';go('settings-detail')}
 function renderSettingsDetail(section){const body=$('#settingsDetailBody'),title=$('#settingsDetailTitle');if(!body||!title)return;const names={reminders:'来电与提醒',permissions:'设备权限',gate:'应用门禁',connection:'连接设置',appearance:'外观与背景'};title.textContent=names[section]||'设置';if(section==='reminders'){body.innerHTML='<div class="glass settingsPanel"><div id="reminderForm"></div><div class="paperToolbar"><button class="softBtn" id="testNotification">测试通知</button><button class="softBtn" id="testPopup">测试弹窗</button></div></div>';renderReminderForm();$('#testNotification').onclick=()=>{if(!hasNative()||!window.LittlePhoneNative.testReminder)return toast('只在 Android App 内可测试');toast(window.LittlePhoneNative.testReminder('notification','这是一条小手机测试提醒。')?'测试通知已发送':'测试通知没有发送成功')};$('#testPopup').onclick=()=>{if(!hasNative()||!window.LittlePhoneNative.testReminder)return toast('只在 Android App 内可测试');toast(window.LittlePhoneNative.testReminder('popup','这是小手机的测试弹窗。')?'测试弹窗已打开':'测试弹窗没有打开成功')};return}if(section==='permissions'){body.innerHTML='<div class="glass settingsPanel"><div id="permissionGroup"></div><div class="paperToolbar"><button class="softBtn" id="previewSnapshot">预览本次可读内容</button><button class="softBtn" id="refreshWeatherButton">刷新天气</button></div><pre class="glass contentGlass" id="previewBody" style="display:none;white-space:pre-wrap;padding:14px;border-radius:22px;font-size:10px;line-height:1.5;max-height:260px;overflow:auto"></pre></div>';readNative();renderPolicy();$('#refreshWeatherButton').onclick=()=>{if(hasNative()&&window.LittlePhoneNative.refreshWeather){window.LittlePhoneNative.refreshWeather();toast('正在刷新天气')}else toast('请在 Android App 内刷新')};$('#previewSnapshot').onclick=()=>{if(!hasNative()||!window.LittlePhoneNative.previewVisitSnapshot)return toast('只在 Android App 内可预览');const snap=parse(window.LittlePhoneNative.previewVisitSnapshot(),{});$('#previewBody').textContent=JSON.stringify(snap,null,2);$('#previewBody').style.display='block'};return}if(section==='gate'){body.innerHTML='<div class="glass settingsPanel"><div class="paperToolbar"><button class="softBtn" id="gatePermissions">系统权限</button><button class="softBtn" id="gateRefresh">刷新状态</button></div><select class="field" id="gateInstalled"><option value="">选择手机里的 App</option></select><div class="miniForm"><input class="field" id="gateMinutes" type="number" min="1" value="30"><button class="softBtn" id="gateAddLock">添加并锁定</button></div><div class="hintBox">这里只保留小手机自己的门禁界面。紧急解锁在锁定页长按 5 秒，不需要口令。</div><div class="gateApps" id="gateApps"></div></div>';renderGate();$('#gatePermissions').onclick=()=>{if(hasNative()&&window.LittlePhoneNative.openNativeSettings)window.LittlePhoneNative.openNativeSettings();else if(hasNative()&&window.LittlePhoneNative.requestCapability)window.LittlePhoneNative.requestCapability('accessibility');else toast('请在 Android App 内打开')};$('#gateRefresh').onclick=()=>{readNative();renderGate();toast('门禁状态已刷新')};$('#gateAddLock').onclick=()=>{const sel=$('#gateInstalled'),pkg=sel?.value||'',opt=sel?.selectedOptions?.[0],app=opt?.dataset?.label||opt?.textContent?.split(' · ')[0]||pkg,minutes=Math.max(1,Number($('#gateMinutes')?.value||30));if(!pkg)return toast('先选择一个 App');if(!hasNative()||!window.LittlePhoneNative.appGateAction)return toast('请在 Android App 内使用门禁');const added=parse(window.LittlePhoneNative.appGateAction(JSON.stringify({action:'add_locked_app',package:pkg,app})),{});if(!added.ok)return toast('没有添加成功');const locked=parse(window.LittlePhoneNative.appGateAction(JSON.stringify({action:'lock_app',package:pkg,app,duration_minutes:minutes})),{});toast(locked.ok?`已锁定 ${minutes} 分钟`:'已经添加，但没有锁定成功');readNative();renderGate()};return}if(section==='connection'){body.innerHTML=`<div class="glass settingsPanel"><div class="hintBox">小手机只使用当前 Cloudflare Worker 地址与 Token，不会静默回退旧 Render。</div><div class="settingRow"><div><div class="sTitle">当前连接</div><div class="sSub">${esc(state.conn.server||'未设置')}</div></div><span class="tinyBadge">${state.conn.connected?'已保存':'未连接'}</span></div><button class="submit" id="openConnectionNative">打开连接配置</button></div>`;$('#openConnectionNative').onclick=()=>hasNative()?window.LittlePhoneNative.openConnectionSettings():toast('请在 Android App 内设置');return}if(section==='appearance'){renderAppearanceSettings();return}body.innerHTML='<div class="glass settingsPanel"><div class="hintBox">这个设置项暂时没有内容。</div></div>'}
 function openProfile(who){state.profileEditing=who;state.profileAvatarDraft='';const name=who==='daddy'?(state.profile.daddy_name||state.native.companion_name||'daddy'):(state.profile.ryan_name||state.native.user_name||'瑞安');$('#profileName').value=name;$('#profileColor').value=identityColor(who==='daddy'?'daddy':'user');$('#profileFont').value=identityFontId(who==='daddy'?'daddy':'user');const src=getAvatarSrc(who);$('#profileAvatarPreview').innerHTML=src?`<img src="${src}" alt="">`:esc(name?.[0]||'?');show('#profileModal')}
@@ -1405,9 +1453,9 @@ function renderVisitRecords(){const visits=state.events.filter(e=>e.type==='visi
 function saveAvatar(who,file){if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const size=256,c=document.createElement('canvas'),ctx=c.getContext('2d');c.width=size;c.height=size;const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);const data=c.toDataURL('image/jpeg',.72);state.profileAvatarDraft=data;$('#profileAvatarPreview').innerHTML=`<img src="${data}" alt="">`;toast('选好了，记得点保存')};img.src=r.result};r.readAsDataURL(file)}
 $$('[data-avatar]').forEach(b=>b.onclick=()=>openProfile(b.dataset.avatar));$('#avatarDaddyInput').onchange=e=>saveAvatar('daddy',e.target.files?.[0]);$('#avatarRyanInput').onchange=e=>saveAvatar('ryan',e.target.files?.[0]);
 $$('[data-compose]').forEach(b=>b.onclick=()=>openCompose(b.dataset.compose));
-for(const [btn,modal] of [['#composerClose','#composerModal'],['#paperClose','#paperModal'],['#detailClose','#detailModal'],['#todoClose','#todoModal'],['#profileClose','#profileModal'],['#dateClose','#dateModal'],['#cycleClose','#cycleModal'],['#healthClose','#healthModal'],['#statusClose','#statusModal']]){const el=$(btn);if(el)el.onclick=()=>hide(modal)};
+for(const [btn,modal] of [['#composerClose','#composerModal'],['#paperClose','#paperModal'],['#detailClose','#detailModal'],['#todoClose','#todoModal'],['#profileClose','#profileModal'],['#dateClose','#dateModal'],['#cycleClose','#cycleModal'],['#healthClose','#healthModal'],['#statusClose','#statusModal'],['#journalSearchClose','#journalSearchModal']]){const el=$(btn);if(el)el.onclick=()=>hide(modal)};
 $('#paperShortcut').onclick=e=>{if(e.target.closest('#paperWriteInline'))return;renderPaperBox();show('#paperModal');addLocalTrace(`${actorName('user')}打开纸条箱`,'','paper_box')};$('#paperWriteInline').onclick=e=>{e.stopPropagation();openCompose('paper')};$('#paperWriteButton').onclick=()=>openCompose('paper');$('#paperShuffleButton').onclick=()=>{selectPaper(true);renderTraceHub();toast('换了一张纸条')};$('#todoAllButton').onclick=()=>{renderTodoModal();show('#todoModal')};$('#callRecordsButton').onclick=openCallRecords;$('#rememberShortcut').onclick=openMemoryRecords;$('#mailAllButton').onclick=openMailArchive;$('#mailPrevCard').onclick=()=>{const n=unifiedMailItems().length;if(n){state.mailCarouselIndex=(state.mailCarouselIndex-1+n)%n;renderMail()}};$('#mailNextCard').onclick=()=>{const n=unifiedMailItems().length;if(n){state.mailCarouselIndex=(state.mailCarouselIndex+1)%n;renderMail()}};$('#capsulePrevCard').onclick=()=>{const n=(state.capsules||[]).length;if(n){state.capsuleCarouselIndex=(state.capsuleCarouselIndex-1+n)%n;renderCapsules()}};$('#capsuleNextCard').onclick=()=>{const n=(state.capsules||[]).length;if(n){state.capsuleCarouselIndex=(state.capsuleCarouselIndex+1)%n;renderCapsules()}};$('#capsuleAllButton').onclick=openCapsuleArchive;
-$('#daysTogether').onclick=()=>{setDateModalMode(false);resetDateForm();renderDates();show('#dateModal')};$('#healthButton').onclick=()=>{renderHealthDetails();show('#healthModal');refreshHealthLive(false).catch(()=>{})};$('#healthRefreshButton').onclick=()=>refreshHealthLive(true).catch(()=>{});$('#statusSettingsButton').onclick=()=>go('settings');$('#settingsBack').onclick=()=>go('status');$('#settingsDetailBack').onclick=()=>go('settings');
+if($('#journalSearchButton'))$('#journalSearchButton').onclick=openJournalSearch;if($('#journalSearchInput'))$('#journalSearchInput').oninput=renderJournalSearch;$('#daysTogether').onclick=()=>{setDateModalMode(false);resetDateForm();renderDates();show('#dateModal')};$('#healthButton').onclick=()=>{renderHealthDetails();show('#healthModal');refreshHealthLive(false).catch(()=>{})};$('#healthRefreshButton').onclick=()=>refreshHealthLive(true).catch(()=>{});$('#statusSettingsButton').onclick=()=>go('settings');$('#settingsBack').onclick=()=>go('status');$('#settingsDetailBack').onclick=()=>go('settings');
 // v0.7.5: delegate settings navigation so taps survive page rerenders/WebView quirks.
 document.addEventListener('click',e=>{const row=e.target.closest('[data-settings-section]');if(!row)return;e.preventDefault();e.stopPropagation();openSettingsSection(row.dataset.settingsSection)});
 if($('#mailSearch'))$('#mailSearch').oninput=e=>{state.mailSearch=e.target.value;renderMail()};$('#profileChoosePhoto').onclick=()=>{if(hasNative()&&window.LittlePhoneNative.pickAvatar){window.LittlePhoneNative.pickAvatar(state.profileEditing)}else $(state.profileEditing==='daddy'?'#avatarDaddyInput':'#avatarRyanInput').click()};$('#profileSave').onclick=saveProfile;$('#dateAdd').onclick=addDate;$('#datePrev').onclick=()=>{state.dateMonthOffset--;renderDates()};$('#dateNext').onclick=()=>{state.dateMonthOffset++;renderDates()};$('#homeDatePrev').onclick=()=>{state.homeMonthOffset--;renderHomeCalendar()};$('#homeDateNext').onclick=()=>{state.homeMonthOffset++;renderHomeCalendar()};$('#cycleSave').onclick=saveCycle;$('#recordAdd').onclick=addCycleRecord;$('#cyclePrev').onclick=()=>{state.cycleMonthOffset--;renderCycle()};$('#cycleNext').onclick=()=>{state.cycleMonthOffset++;renderCycle()};
@@ -1419,7 +1467,7 @@ $$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)hide('#'+
 document.addEventListener('visibilitychange',()=>{if(document.hidden){state.hiddenAt=Date.now()}else if(state.hiddenAt&&Date.now()-state.hiddenAt>=600000){selectPaper(true);renderTraceHub();state.hiddenAt=0}});setInterval(()=>{const changed=Number(localStorage.getItem('lp_v051_paper_changed')||0);if(state.papers.length&&Date.now()-changed>=600000){selectPaper(true);renderTraceHub()}},60000);
 function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings-detail'){go('settings',false);return true}if(state.page==='settings'){go('status',false);return true}if(state.navHistory.length){const prev=state.navHistory.pop();go(prev,false);return true}if(state.page!=='home'){go('home',false);return true}return false}
 window.addEventListener('littlephone-connection-changed',()=>{readNative();loadRemote().then(logOpenOnce)});window.addEventListener('littlephone-profile-changed',()=>{readNative();if($('#profileModal').classList.contains('show')){const src=getAvatarSrc(state.profileEditing),name=state.profileEditing==='daddy'?(state.profile.daddy_name||'daddy'):(state.profile.ryan_name||'瑞安');$('#profileAvatarPreview').innerHTML=src?`<img src="${src}" alt="">`:esc(name?.[0]||'?')}});window.addEventListener('littlephone-permission-changed',()=>readNative());window.addEventListener('littlephone-weather-updated',()=>readNative());window.addEventListener('littlephone-background-picked',e=>{const d=e.detail||{},k=String(d.page||'global'),data=String(d.data_url||'');if(!BG_KEYS.includes(k)||!data)return;state.backgrounds[k]=data;saveBackgrounds(k);if(state.page==='settings-detail'&&state.settingsSection==='appearance')renderAppearanceSettings();toast('背景已经换好')});window.LittlePhone={refreshNative:()=>{readNative();loadRemote().then(logOpenOnce)},go,handleBack};
-mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();tick();setInterval(tick,1000);calcDays();applyAvatars();go('home',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
+mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();loadGlassPrefs();tick();setInterval(tick,1000);calcDays();applyAvatars();go('home',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
 })();
 </script>
 </body>

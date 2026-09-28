@@ -21,7 +21,7 @@ Deployment values:
 - Worker: little-phone-backend
 - D1: little-phone-v051
 - versionName: 0.7.5-plus
-- versionCode: 70351
+- versionCode: 70352
 - APK: LittlePhone-v0.7.5-plus.apk
 
 Suggested commit:

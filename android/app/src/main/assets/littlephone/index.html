@@ -1013,6 +1013,86 @@ body.diaryMode .shell{padding-bottom:calc(118px + env(safe-area-inset-bottom))!i
     rgba(247,235,251,calc(var(--glass-alpha) * .40)))!important
 }
 
+
+/* =========================================================
+   v0.7.6 hotfix4 — diary page/cover parity, pen attached per page,
+   and stronger glass transparency response
+   ========================================================= */
+/* The decorative pen belongs to each physical page/cover, not to the whole
+   stage. This removes the "stuck to viewport" feeling while turning pages. */
+.bookStage:after{display:none!important;content:none!important}
+.journalCover076,.bookPage,.journalLeaf,.journalPhysicalPage{
+  position:relative!important;width:100%!important;height:100%!important;
+  min-height:0!important;max-height:none!important;margin:0!important;
+  border-radius:0!important;box-sizing:border-box!important
+}
+.journalCover076 img{
+  width:100%!important;height:100%!important;object-fit:cover!important;
+  object-position:center center!important
+}
+.journalLeaf.journalPhysicalPage{
+  padding:18px 22px 84px 34px!important;
+  background:
+    linear-gradient(90deg,transparent 0 38px,rgba(206,122,138,.18) 38px 39px,transparent 39px),
+    repeating-linear-gradient(180deg,transparent 0 33px,rgba(98,123,166,.095) 33px 34px),
+    linear-gradient(110deg,rgba(255,254,249,.98),rgba(252,249,244,.96) 68%,rgba(247,242,235,.94))!important;
+  border-top:1px solid rgba(255,255,255,.76)!important;
+  border-bottom:1px solid rgba(130,122,128,.08)!important;
+  box-shadow:none!important
+}
+.journalLeaf.journalPhysicalPage .journalPaperMeta,
+.journalLeaf.journalPhysicalPage .journalTitle,
+.journalLeaf.journalPhysicalPage .journalScroll,
+.journalLeaf.journalPhysicalPage .journalFolio,
+.journalLeaf.journalPhysicalPage .journalRail{position:relative;z-index:2}
+.journalLeaf.journalPhysicalPage .journalTitle{font-size:30px!important;margin:12px 0 10px!important}
+.journalLeaf.journalPhysicalPage .journalText{font-size:16px!important;line-height:2.1!important}
+.journalLeaf.journalPhysicalPage .journalScroll{
+  height:calc(100% - 106px)!important;max-height:none!important;
+  padding:0 18px 24px 0!important
+}
+.journalLeaf.journalPhysicalPage .journalRail{top:118px!important;bottom:72px!important;right:10px!important}
+.journalLeaf.journalPhysicalPage .journalFolio{right:22px!important;bottom:18px!important;left:auto!important;text-align:right!important}
+.journalLeaf.journalPhysicalPage:after{right:0!important;bottom:0!important;opacity:.34!important}
+.journalDecorPen{
+  position:absolute;pointer-events:none;background:url('gpt-pen-bookmark.png') right bottom/contain no-repeat;
+  filter:drop-shadow(0 8px 12px rgba(41,48,78,.12));z-index:5;transform-origin:right bottom
+}
+.journalCoverPen{right:-4px;bottom:10px;width:126px;height:84px;opacity:.92;transform:rotate(-1deg)}
+.journalPagePen{right:-2px;bottom:14px;width:128px;height:86px;opacity:.94;transform:rotate(-2deg)}
+@media(max-width:520px){
+  .journalLeaf.journalPhysicalPage{padding:16px 18px 82px 30px!important}
+  .journalLeaf.journalPhysicalPage .journalTitle{font-size:27px!important}
+  .journalLeaf.journalPhysicalPage .journalText{font-size:15px!important;line-height:2.02!important}
+  .journalCoverPen{width:114px;height:76px;right:-2px;bottom:10px}
+  .journalPagePen{width:116px;height:78px;right:-1px;bottom:13px}
+}
+
+/* Make the glass-opacity slider visibly affect the UI instead of changing only
+   a barely perceptible base layer. */
+.glass,.glass.heroGlass,.glass.contentGlass,.glass.navGlass,
+.softBtn,.iconBtn,.statusSleepHero,.statusScoreHero,.statusHealthMetric,.statusSleepPanel,.statusMini,.hintBox,.healthMetric,.healthRow{
+  background:linear-gradient(135deg,
+    rgba(var(--glass-neutral-tone),var(--glass-neutral-tone),var(--glass-neutral-tone),calc(.010 + var(--glass-alpha) * 2.20)),
+    rgba(255,255,255,calc(.008 + var(--glass-alpha) * 1.52)) 48%,
+    rgba(249,243,253,calc(.006 + var(--glass-alpha) * 1.10)))!important;
+  box-shadow:0 18px 42px rgba(78,98,143,.08),inset 0 1px 0 rgba(255,255,255,calc(.18 + var(--glass-alpha) * 1.25))!important
+}
+.glass:before{
+  opacity:calc(.05 + var(--glass-alpha) * 2.15)!important;
+  background:linear-gradient(145deg,
+    rgba(255,255,255,calc(.02 + var(--glass-alpha) * .88)),
+    rgba(224,240,255,calc(.012 + var(--glass-alpha) * .42)) 48%,
+    rgba(239,225,250,calc(.010 + var(--glass-alpha) * .34)))!important
+}
+.glass:after{opacity:calc(.04 + var(--glass-alpha) * 1.80)!important;filter:blur(calc(5px + var(--glass-alpha) * 26px))!important}
+.backgroundItem,.glassControl{
+  background:linear-gradient(145deg,
+    rgba(255,255,255,calc(.012 + var(--glass-alpha) * 1.65)),
+    rgba(238,247,255,calc(.008 + var(--glass-alpha) * .96)) 56%,
+    rgba(247,235,251,calc(.006 + var(--glass-alpha) * .74)))!important
+}
+
 </style>
 </head>
 <body>
@@ -1530,7 +1610,7 @@ function renderJournal(){
   const root=$('#journalBook'),list=journalSorted();
   if(!root)return;
   if(state.journalCoverOpen){
-    root.innerHTML=`<article class="journalCover076" aria-label="日记封面"><img src="diary-cover-v076.png" alt="日记封面"><div class="journalCoverHint">轻触右侧翻开</div></article>`;
+    root.innerHTML=`<article class="journalCover076" aria-label="日记封面"><img src="diary-cover-v076.png" alt="日记封面"><div class="journalDecorPen journalCoverPen" aria-hidden="true"></div><div class="journalCoverHint">轻触右侧翻开</div></article>`;
     if($('#journalPageNo'))$('#journalPageNo').textContent='封面';
     bindJournalTurn();
     return;
@@ -1543,7 +1623,8 @@ function renderJournal(){
   }
   if(state.journalIndex<0||state.journalIndex>=list.length)state.journalIndex=0;
   const d=list[state.journalIndex],side=authorSide(d.author||'daddy');
-  root.innerHTML=`<article class="bookPage journalLeaf">
+  root.innerHTML=`<article class="bookPage journalLeaf journalPhysicalPage">
+    <div class="journalDecorPen journalPagePen" aria-hidden="true"></div>
     <div class="journalPaperMeta"><span>${esc(d.date||'')}</span><span>${esc(actorName(d.author||'daddy'))}</span></div>
     <div class="journalTitle">${esc(d.title||'今天')}</div>
     <div class="journalScroll" id="journalScroll">
@@ -1674,7 +1755,7 @@ function renderHomeCalendar(){const view=monthContext(state.homeMonthOffset||0),
 const BG_KEY='lp_v072_backgrounds';const BG_KEYS=['global','diary','traces','home','mail','status'];
 const GLASS_KEY='lp_v075_glass_prefs';
 const glassPrefs={alpha:.05,blur:20,highlight:.40,tone:255};
-function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(.01,Math.min(.30,Number(v.alpha??.05)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??20)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.40)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
+function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(0,Math.min(.45,Number(v.alpha??.05)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??20)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.40)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
 function applyGlassPrefs(save=true){const r=document.documentElement.style,safeTone=Math.round(238+(Math.max(0,Math.min(255,glassPrefs.tone))/255)*17);r.setProperty('--glass-alpha',String(glassPrefs.alpha));r.setProperty('--glass-blur',glassPrefs.blur+'px');r.setProperty('--glass-highlight',String(glassPrefs.highlight));r.setProperty('--glass-tone',String(glassPrefs.tone));r.setProperty('--glass-neutral-tone',String(safeTone));if(save)localDataSet(GLASS_KEY,JSON.stringify(glassPrefs))}
 function bindGlassControls(){for(const key of ['alpha','blur','highlight','tone']){const el=$(`[data-glass-control="${key}"]`),out=$(`[data-glass-value="${key}"]`);if(!el)continue;const update=()=>{glassPrefs[key]=Number(el.value);applyGlassPrefs(true);if(out)out.textContent=key==='blur'?`${glassPrefs[key]}px`:key==='tone'?String(Math.round(glassPrefs[key])):Number(glassPrefs[key]).toFixed(2)};el.oninput=update;update()}}
 
@@ -1688,7 +1769,7 @@ function renderAppearanceSettings(){
   loadBackgrounds();loadGlassPrefs();
   const body=$('#settingsDetailBody'),labels={global:'全局背景',diary:'日记',traces:'留痕',home:'首页',mail:'信箱',status:'状态'};
   const slider=(key,label,min,max,step,value)=>`<label class="glassControl"><span><b>${label}</b><em data-glass-value="${key}">${key==='blur'?value+'px':key==='tone'?Math.round(value):Number(value).toFixed(2)}</em></span><input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-glass-control="${key}"></label>`;
-  body.innerHTML=`<div class="glass settingsPanel appearancePanel"><div class="settingsToolbar"><div class="hintBox">背景与玻璃参数只保存在这台手机，不上传后端。页面背景优先于全局背景。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="appearanceSectionTitle">玻璃质感</div><div class="glassControlPanel">${slider('alpha','玻璃透明度',.01,.30,.01,glassPrefs.alpha)}${slider('blur','背景模糊度',0,40,1,glassPrefs.blur)}${slider('highlight','边缘高光强度',0,.8,.05,glassPrefs.highlight)}${slider('tone','玻璃底色',0,255,1,glassPrefs.tone)}</div><button class="softBtn glassReset" type="button" id="glassReset">恢复玻璃默认值</button><div class="appearanceSectionTitle">背景设置</div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div><div class="appearanceNightNook" aria-hidden="true"><img src="gpt-night-window.png" alt=""><span>深夜也留一盏灯。</span></div></div>`;
+  body.innerHTML=`<div class="glass settingsPanel appearancePanel"><div class="settingsToolbar"><div class="hintBox">背景与玻璃参数只保存在这台手机，不上传后端。页面背景优先于全局背景。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="appearanceSectionTitle">玻璃质感</div><div class="glassControlPanel">${slider('alpha','玻璃透明度',0,.45,.01,glassPrefs.alpha)}${slider('blur','背景模糊度',0,40,1,glassPrefs.blur)}${slider('highlight','边缘高光强度',0,.8,.05,glassPrefs.highlight)}${slider('tone','玻璃底色',0,255,1,glassPrefs.tone)}</div><button class="softBtn glassReset" type="button" id="glassReset">恢复玻璃默认值</button><div class="appearanceSectionTitle">背景设置</div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div><div class="appearanceNightNook" aria-hidden="true"><img src="gpt-night-window.png" alt=""><span>深夜也留一盏灯。</span></div></div>`;
   bindGlassControls();
   $('#glassReset').onclick=()=>{Object.assign(glassPrefs,{alpha:.05,blur:20,highlight:.40,tone:255});applyGlassPrefs(true);renderAppearanceSettings();toast('玻璃参数已恢复默认')};
   const reset=$('#bgResetAll');if(reset)reset.onclick=()=>{for(const k of BG_KEYS){delete state.backgrounds[k];localDataSet(`lp_bg_${k}`,'')}saveBackgrounds();renderAppearanceSettings();toast('已经恢复全部默认背景')};

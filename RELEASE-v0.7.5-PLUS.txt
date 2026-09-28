@@ -1,0 +1,14 @@
+Little Phone v0.7.5 Plus
+
+Front-end rework based on the v0.7.5 hotfix / v0.7.4 visual base:
+- Home header compressed; Together uses a raster calligraphy asset so Android WebView no longer falls back to a plain italic font.
+- Decorative flowers stay behind the relationship day count instead of covering it.
+- GPT pendant is integrated into the listening card near the GPT avatar, not pasted onto the outside edge.
+- Diary has no separate cover. The entire Diary page is the diary paper; opening Diary lands on the newest entry.
+- Diary left/right page-turn animations use opposite physical directions correctly.
+- GPT pen/bookmark is used as a bottom-right page-edge decoration.
+- Xiaomi Health dashboard is larger and shows available sleep duration, score, steps, heart rate, distance, calories, sleep time, wake time, progress bars, and a light data-scale visualization.
+- GPT night window has its own footer decoration space on Status so it cannot be hidden behind the phone-status card.
+- The removed bottom pair-status cards stay removed.
+- GPT memory/profile MCP work from v0.7.5 is retained.
+- Custom backgrounds remain phone-local only.

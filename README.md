@@ -1,8 +1,15 @@
-# 小手机 v0.7.5
+# 小手机 v0.7.5 Plus
 
 Base: v0.7.4. This release keeps the existing Cloudflare Worker + D1 + Xiaomi Health Bridge architecture and existing data.
 
-## v0.7.5
+## v0.7.5 Plus
+- Home: compresses the Together header and uses a raster calligraphy asset so Android WebView shows an actual script word instead of a plain italic fallback.
+- Home: keeps the right flower behind the relationship-day number; GPT pendant is anchored inside the listening card next to the GPT portrait.
+- Diary: removes the separate cover completely. The Diary page itself is lined paper and opens directly on the newest entry.
+- Diary: left-edge previous-page and right-edge next-page animations now turn in opposite physical directions.
+- Status: Xiaomi Health is a larger dashboard with sleep duration, score, steps, heart rate, distance, calories, sleep time, wake time, progress bars and a light data-scale chart.
+- Status: the GPT night window gets a dedicated footer nook and is no longer clipped behind the phone-status card.
+- The GPT pen/bookmark remains a page-edge decoration on Diary; the original GPT asset colors are not altered.
 - Front-end: paler, quieter stationery decoration; stronger transparent glass; Together script treatment.
 - Status: removes the bottom GPT/user status cards.
 - Xiaomi Health: displays sleep duration, score, steps, heart rate, and sleep/wake clock times when the bridge returns them.
@@ -13,9 +20,9 @@ Base: v0.7.4. This release keeps the existing Cloudflare Worker + D1 + Xiaomi He
 Deployment values:
 - Worker: little-phone-backend
 - D1: little-phone-v051
-- versionName: 0.7.5
-- versionCode: 70350
-- APK: LittlePhone-v0.7.5.apk
+- versionName: 0.7.5-plus
+- versionCode: 70351
+- APK: LittlePhone-v0.7.5-plus.apk
 
 Suggested commit:
-`Build little-phone v0.7.5 from v0.7.4 frontend health memory profile fixes`
+`Build little-phone v0.7.5 Plus diary health and GPT decoration rework`

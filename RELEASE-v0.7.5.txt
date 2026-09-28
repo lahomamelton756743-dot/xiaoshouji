@@ -12,3 +12,10 @@ Changes:
 - Xiaomi health displays sleep-at and wake-at when bridge returns them
 - explicit MCP get_gpt_profile / set_gpt_profile aliases
 - existing GPT memory CRUD remains backed by lp_memories
+
+v0.7.5 UI hotfix (2026-09-28)
+- Compact the Together header so the calligraphic word stays fully visible and the top decoration sits beneath the day counter.
+- Integrate the diary paper into the page instead of presenting it as a floating book card.
+- Correct reverse/previous journal page-turn animation.
+- Expand Xiaomi Health with sleep/wake clocks and a compact metric-driven bar visualization.
+- Add the original GPT signature assets without recoloring: pendant on Home, pen/bookmark on Diary, night window on Status.

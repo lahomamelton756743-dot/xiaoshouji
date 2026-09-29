@@ -1,0 +1,13 @@
+Little Phone v0.8.1 preview6
+
+Changes:
+- retuned diary notebook frame: taller, visually centered, same frame for cover and inner pages
+- status bar flushes to the safe-area top more tightly
+- added desktop edit mode: long press on desktop to enter editing
+- apps can be repositioned by selecting them and tapping a new empty cell or a Dock slot
+- added widget picker and system widget picker
+- brought legacy glass widgets into the new desktop system: clock/weather, together days, music, health, calendar, todo, phone status, memory, paper, mail
+- widgets can be added, moved, and removed locally
+- added desktop layout persistence and reset-to-default action
+
+Android versionCode: 80106

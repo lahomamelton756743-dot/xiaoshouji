@@ -1658,6 +1658,35 @@ body.hasCustomBackground .statusHealthWide{
   -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(112%) contrast(1.015)!important
 }
 
+
+/* =========================================================
+   v0.7.6 hotfix10 — merge Traces + Mail into the second “我们” nav page
+   ========================================================= */
+.nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.nav .homeNav{grid-column:auto!important}
+#page-us{padding-bottom:8px;overflow-x:hidden}
+.usHubHeader{display:grid;gap:14px;margin:0 4px 18px;padding:2px 4px 0}
+.usHubTitle{font-family:"Songti SC","STSong",serif;font-size:42px;line-height:1.05;color:#283650;letter-spacing:-.045em}
+.usHubTitle span{font-family:serif;font-size:28px;font-weight:400;color:#8f82c4;margin-left:7px;vertical-align:5px}
+.usHubTabs{display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(112,131,170,.13);padding:0 2px 9px}
+.usHubTabs i{font-style:normal;color:rgba(105,117,151,.34);font-size:16px}
+.usHubTab{position:relative;padding:3px 3px 7px;border:0;background:transparent;color:#8b92a3;font-family:"Songti SC","STSong",serif;font-size:18px;line-height:1.2}
+.usHubTab:after{content:"";position:absolute;left:4px;right:4px;bottom:-10px;height:2px;border-radius:2px;background:transparent;transition:.2s ease}
+.usHubTab.active{color:#34425f;font-weight:650}
+.usHubTab.active:after{background:linear-gradient(90deg,rgba(102,132,199,.78),rgba(188,145,202,.62))}
+.usHubPanel{display:none!important;animation:usHubFade .22s ease both}
+.usHubPanel.active{display:block!important}
+.usHubIntro{font-size:11px;line-height:1.55;color:#8b93a4;margin:0 2px 12px}
+.usHubPanelTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 12px}
+.usHubPanelTop .usHubIntro{margin:0;max-width:52%}
+#page-us #page-traces:before,#page-us #page-traces:after,#page-us #page-mail:before,#page-us #page-mail:after{display:none!important;content:none!important}
+#page-us #page-traces,#page-us #page-mail{width:100%;max-width:none;margin:0;padding:0;background:transparent!important}
+@keyframes usHubFade{from{opacity:.42;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(max-width:420px){
+  .usHubHeader{margin-left:2px;margin-right:2px}.usHubTitle{font-size:39px}.usHubTab{font-size:17px}
+  .usHubPanelTop{align-items:flex-start;flex-direction:column}.usHubPanelTop .usHubIntro{max-width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -1682,8 +1711,17 @@ body.hasCustomBackground .statusHealthWide{
       <div class="journalTurnLegend"><span>‹ 往前</span><div class="journalPageNo" id="journalPageNo">—</div><span>往后 ›</span></div>
     </section>
 
-    <section class="page" id="page-traces">
-      <div class="sectionHead"><div><h2>留痕</h2><p>纸条、来电与长期留下来的日常。</p></div></div>
+    <section class="page" id="page-us">
+      <div class="usHubHeader">
+        <div class="usHubTitle">我们<span>♡</span></div>
+        <div class="usHubTabs" role="tablist" aria-label="我们">
+          <button class="usHubTab active" type="button" data-us-tab="traces" role="tab" aria-selected="true">留痕</button>
+          <i aria-hidden="true">丨</i>
+          <button class="usHubTab" type="button" data-us-tab="mail" role="tab" aria-selected="false">信箱</button>
+        </div>
+      </div>
+      <div class="usHubPanel active" id="page-traces" data-us-panel="traces">
+        <div class="usHubIntro">纸条、来电与长期留下来的日常。</div>
       <div class="traceTopGrid">
         <div class="glass traceMini tap tracePaperCard" id="paperShortcut"><div class="row"><div class="cardLabel" style="margin:0">纸条</div><button class="softBtn" id="paperWriteInline">写一张</button></div><div class="cardText" id="randomPaper">纸条箱还是空的。</div><div class="meta" id="randomPaperMeta">点开纸条箱</div></div>
         <div class="glass traceMini tap rememberCard" id="rememberShortcut"><div class="row"><div class="cardLabel editorialTitle" style="margin:0" id="rememberTitle">daddy 记得</div><span class="rememberMark">⌁</span></div><div class="cardText authoredText daddy" id="rememberText">还没有写下新的理解。</div><div class="meta" id="rememberMeta">只放真正留下来的理解</div></div>
@@ -1691,6 +1729,13 @@ body.hasCustomBackground .statusHealthWide{
       <div class="glass callTraceWide" id="callTraceCard"><div class="row"><div><div class="cardLabel" style="margin:0" id="callTraceTitle">daddy 的来电</div><div class="meta">近期来电一行一条，点开看全部。</div></div><button class="softBtn" id="callRecordsButton">全部</button></div><div class="callMiniList" id="callRecordsMini"></div></div>
       <div class="sectionHead" style="margin-top:22px"><div><h2 style="font-size:24px">日常册</h2><p>横着走过我们的时间河。</p></div><button class="softBtn" data-compose="dailybook">写一页</button></div>
       <div class="glass riverShell heroGlass"><div class="riverHint">左右滑动 · 点气泡展开</div><div class="riverScroller" id="riverScroller"><div class="riverTrack" id="riverTrack"></div></div></div>
+      </div>
+      <div class="usHubPanel" id="page-mail" data-us-panel="mail">
+      <div class="usHubPanelTop"><div class="usHubIntro">普通信留在这里，未来信单独收好。</div><div class="row" style="gap:7px"><button class="softBtn" data-compose="capsule">写未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
+      <div class="glass mailWindow heroGlass normalMailWindow"><div class="mailSectionEyebrow">普通信</div><div id="mailList"></div><div class="mailPager"><button class="softBtn" id="mailPrevCard">‹</button><button class="softBtn" id="mailAllButton">按日期查看全部</button><button class="softBtn" id="mailNextCard">›</button></div></div>
+      <div class="mailSectionHead"><div><b class="editorialTitle">未来信</b><small>无论是否已经解锁，都一直放在这里。</small></div></div>
+      <div class="glass mailWindow futureMailWindow"><div id="capsuleList"></div><div class="mailPager"><button class="softBtn" id="capsulePrevCard">‹</button><button class="softBtn" id="capsuleAllButton">查看全部未来信</button><button class="softBtn" id="capsuleNextCard">›</button></div></div>
+      </div>
     </section>
 
     <section class="page active" id="page-home">
@@ -1803,12 +1848,6 @@ body.hasCustomBackground .statusHealthWide{
       </div>
     </section>
 
-    <section class="page" id="page-mail">
-      <div class="sectionHead"><div><h2 class="editorialTitle">信箱</h2><p>普通信留在信箱里，未来信单独收好。</p></div><div class="row" style="gap:7px"><button class="softBtn" data-compose="capsule">写未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
-      <div class="glass mailWindow heroGlass normalMailWindow"><div class="mailSectionEyebrow">普通信</div><div id="mailList"></div><div class="mailPager"><button class="softBtn" id="mailPrevCard">‹</button><button class="softBtn" id="mailAllButton">按日期查看全部</button><button class="softBtn" id="mailNextCard">›</button></div></div>
-      <div class="mailSectionHead"><div><b class="editorialTitle">未来信</b><small>无论是否已经解锁，都一直放在这里。</small></div></div>
-      <div class="glass mailWindow futureMailWindow"><div id="capsuleList"></div><div class="mailPager"><button class="softBtn" id="capsulePrevCard">‹</button><button class="softBtn" id="capsuleAllButton">查看全部未来信</button><button class="softBtn" id="capsuleNextCard">›</button></div></div>
-    </section>
 
     <section class="page" id="page-status">
       <div class="sectionHead statusHead"><div><h2>状态</h2><p>健康、足迹和手机今天的样子。</p></div><button class="iconBtn settingsIcon" id="statusSettingsButton" aria-label="设置">⚙</button></div>
@@ -1862,9 +1901,8 @@ body.hasCustomBackground .statusHealthWide{
 
 <div class="navWrap"><nav class="glass nav navGlass" id="nav">
   <button data-page="diary"><span class="ico">⌑</span><span>日记</span></button>
-  <button data-page="traces"><span class="ico">♢</span><span>留痕</span></button>
+  <button data-page="us"><span class="ico">♢</span><span>我们</span></button>
   <button data-page="home" class="active homeNav"><span class="ico">⌂</span><span>首页</span></button>
-  <button data-page="mail"><span class="ico">▢</span><span>信箱</span></button>
   <button data-page="status"><span class="ico">◌</span><span>状态</span></button>
 </nav></div>
 
@@ -1886,8 +1924,8 @@ body.hasCustomBackground .statusHealthWide{
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={page:'home',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0};
-const pageMeta={home:['小手机 · 首页',''],traces:['小手机 · 留痕',''],mail:['小手机 · 信箱',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],settings:['状态 · 设置',''],"settings-detail":['设置','']};
+const state={page:'home',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces'};
+const pageMeta={home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],settings:['状态 · 设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -1931,7 +1969,17 @@ function tick(){const d=new Date(),wd='日一二三四五六'[d.getDay()];$('#he
 function ago(iso){if(!iso)return'';const t=new Date(iso).getTime();if(!Number.isFinite(t))return'';const s=Math.max(0,Math.floor((Date.now()-t)/1000));if(s<60)return'刚刚';if(s<3600)return`${Math.floor(s/60)} 分钟前`;if(s<86400)return`${Math.floor(s/3600)} 小时前`;return`${Math.floor(s/86400)} 天前`}
 function fmt(iso){if(!iso)return'';const d=new Date(iso);return Number.isNaN(d.getTime())?iso:d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
 function dayLabel(iso){const d=new Date(iso);if(Number.isNaN(+d))return iso||'某一天';const now=new Date();if(d.toDateString()===now.toDateString())return'今天';const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return'昨天';return`${d.getMonth()+1}月${d.getDate()}日`}
+function setUsHubTab(tab,scrollTop=false){
+  const next=tab==='mail'?'mail':'traces';
+  state.usHubTab=next;
+  $$('[data-us-panel]').forEach(p=>p.classList.toggle('active',p.dataset.usPanel===next));
+  $$('[data-us-tab]').forEach(b=>{const on=b.dataset.usTab===next;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});
+  if(next==='traces'){renderTraceHub();renderRiver()}else{renderMail();renderCapsules()}
+  applyPageBackground();
+  if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
+}
 function go(page,push=true){
+  if(page==='traces'||page==='mail'){state.usHubTab=page;page='us'}
   if(!pageMeta[page])return;
   const same=page===state.page;
   if(!same&&push)state.navHistory.push(state.page);
@@ -1946,14 +1994,13 @@ function go(page,push=true){
   if(!same)window.scrollTo({top:0,behavior:'smooth'});
   applyPageBackground();
   if(page==='home'){renderHome();requestAnimationFrame(triggerPairBump)}
-  if(page==='traces'){renderTraceHub();renderRiver()}
-  if(page==='mail'){renderMail();renderCapsules()}
+  if(page==='us')setUsHubTab(state.usHubTab||'traces',false);
   if(page==='status'){renderUs();refreshHealthLive(false).catch(()=>{})}
   if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournal();}
   if(page==='settings'){renderReminderSummary();renderGateSummary();renderNative()}
   if(page==='settings-detail')renderSettingsDetail(state.settingsSection);
 }
-$$('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));$$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+$$('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));$$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));$$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
 function serverUrl(path){const base=(state.conn.server||'').replace(/\/$/,'');return /^(https?:|data:|blob:)/i.test(path)?path:`${base}${path.startsWith('/')?'':'/'}${path}`}
 const CACHE_KEY='lp_v052_remote_cache';
 const PENDING_TRACE_KEY='lp_v051_pending_traces_r3';
@@ -2337,7 +2384,7 @@ function bindGlassControls(){for(const key of ['alpha','blur','highlight','tone'
 
 function loadBackgrounds(){const legacy=parse(localDataGet('lp_v071_backgrounds')||'{}',{})||{};state.backgrounds={};for(const k of BG_KEYS){const direct=localDataGet(`lp_bg_${k}`);if(direct)state.backgrounds[k]=direct;else if(legacy[k]){state.backgrounds[k]=legacy[k];localDataSet(`lp_bg_${k}`,legacy[k])}}}
 function saveBackgrounds(changedKey){if(changedKey){const value=state.backgrounds?.[changedKey]||'';localDataSet(`lp_bg_${changedKey}`,value)}else{for(const k of BG_KEYS)localDataSet(`lp_bg_${k}`,state.backgrounds?.[k]||'')}localDataSet(BG_KEY,JSON.stringify(Object.fromEntries(BG_KEYS.map(k=>[k,!!state.backgrounds?.[k]]))));applyPageBackground()}
-function backgroundPageKey(){if(state.page==='settings'||state.page==='settings-detail'||state.page==='status')return'status';return state.page}
+function backgroundPageKey(){if(state.page==='settings'||state.page==='settings-detail'||state.page==='status')return'status';if(state.page==='us')return state.usHubTab==='mail'?'mail':'traces';return state.page}
 function applyPageBackground(){if(!state.backgrounds||!Object.keys(state.backgrounds).length)loadBackgrounds();const key=backgroundPageKey(),src=state.backgrounds?.[key]||state.backgrounds?.global||'';document.documentElement.style.setProperty('--custom-bg',src?`url(${JSON.stringify(src)})`:'none');document.body.classList.toggle('hasCustomBackground',!!src)}
 function compressBackground(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.72);if(data.length>1600000)data=c.toDataURL('image/jpeg',.56);cb(data)};img.src=r.result};r.readAsDataURL(file)}
 

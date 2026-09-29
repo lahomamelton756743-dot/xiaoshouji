@@ -1803,6 +1803,8 @@ body.diaryMode .systemHomePill{bottom:3px!important;z-index:90!important}
 .healthDataComplex pre{margin:0;padding:0 14px 14px;white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.55;color:#687187;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .healthDataEmpty{font-size:11px;color:#9299a8;padding:8px 4px}
 
+.healthComplexLazy{padding:0 12px 12px}.healthComplexItem{margin:8px 0;padding:10px 11px;border-radius:14px;background:rgba(255,255,255,.10);white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.5;color:#687187;max-height:360px;overflow:auto}.healthComplexItem b{font-size:10px;color:#56627a}.healthLoadComplex{width:100%;margin-top:8px}
+
 </style>
 </head>
 <body>
@@ -2348,7 +2350,7 @@ function healthTimeLabel(value){if(!value)return'—';const d=new Date(value);re
 function localDateKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function healthMetric(v,suffix=''){return v===null||v===undefined||v===''?'暂无数据':`${v}${suffix}`}
 function healthRefreshMessage(){if(state.healthRefreshing)return'正在读取小米健康…';if(state.healthRefreshError){const e=String(state.healthRefreshError);if(e.includes('timeout')||e.includes('unreachable'))return'健康服务正在唤醒或暂时不可达，保留上次数据';if(e.includes('not_configured'))return'健康桥尚未配置';return'这次同步没有成功，仍显示上次数据'}const h=state.health||{};if(h.connected&&h.updated_at)return`已同步 · ${ago(h.updated_at)}`;return'进入状态页会自动读取最新数据'}
-async function refreshHealthLive(force=false){if(!state.conn.connected||state.healthRefreshing)return false;const now=Date.now();if(!force&&state.healthRefreshAt&&now-state.healthRefreshAt<90000)return false;state.healthRefreshing=true;state.healthRefreshError='';renderHealth();renderHealthDetails();try{const date=localDateKey();const r=await nativeRequestLong('POST','/api/littlephone/health/refresh',{date},70000);if(r?.connected||r?.sleep||r?.steps||r?.heart_rate){state.health={...state.health,...r,connected:Boolean(r.connected!==false),date:r.date||date};state.healthRefreshAt=Date.now();saveCache()}else{const fresh=await nativeRequestLong('GET',`/api/littlephone/health/summary?date=${date}`,{},30000);state.health={...state.health,...fresh};state.healthRefreshAt=Date.now();saveCache()}return true}catch(e){state.healthRefreshError=e?.message||'health_refresh_failed';return false}finally{state.healthRefreshing=false;renderHealth();renderHealthDetails();renderHealthApp()}}
+async function refreshHealthLive(force=false){if(!state.conn.connected||state.healthRefreshing)return false;const now=Date.now();if(!force&&state.healthRefreshAt&&now-state.healthRefreshAt<90000)return false;state.healthRefreshing=true;state.healthRefreshError='';renderHealth();renderHealthDetails();try{const date=localDateKey();const r=await nativeRequestLong('POST','/api/littlephone/health/refresh',{date},70000);if(r?.connected||r?.sleep||r?.steps||r?.heart_rate){state.health={...state.health,...r,connected:Boolean(r.connected!==false),date:r.date||date};state.healthRefreshAt=Date.now();saveCache()}else{const fresh=await nativeRequestLong('GET',`/api/littlephone/health/summary?date=${date}`,{},30000);state.health={...state.health,...fresh};state.healthRefreshAt=Date.now();saveCache()}return true}catch(e){state.healthRefreshError=e?.message||'health_refresh_failed';return false}finally{state.healthRefreshing=false;renderHealth();renderHealthDetails();if(state.page==='app-health')renderHealthApp()}}
 function formatHealthClock(v){if(v===null||v===undefined||v==='')return'';if(typeof v==='number'||/^\d{10,13}$/.test(String(v))){let n=Number(v);if(n<1e12)n*=1000;const d=new Date(n);if(!isNaN(d))return d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}const str=String(v);const m=str.match(/(?:T|\s)(\d{1,2}:\d{2})/)||str.match(/^(\d{1,2}:\d{2})/);if(m)return m[1];const d=new Date(str);return isNaN(d)?str:d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}
 function renderHealthDetails(){const h=state.health||{},root=$('#healthDetails');if(!root)return;if(state.healthRefreshing&&!h.connected){root.innerHTML='<div class="hintBox">正在读取小米健康… 如果 Render 刚从休眠中唤醒，第一次会慢一些。</div>';return}if(!h.connected){root.innerHTML=`<div class="hintBox">${esc(healthRefreshMessage())}</div><div class="healthRow"><span>数据源</span><b>${esc(h.source||'not_connected')}</b></div>`;return}const sl=h.sleep||{},hr=h.heart_rate||{},st=h.steps||{},cy=h.cycle||{},mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,distance=st.distance??st.distance_m??st.distance_meters,calories=st.calories??st.kcal,heartNow=hr.latest??hr.resting??hr.average;const deep=Number(sl.deep_minutes||0)>0?`${sl.deep_minutes} 分钟`:'暂无细分',light=Number(sl.light_minutes||0)>0?`${sl.light_minutes} 分钟`:'暂无细分',rem=Number(sl.rem_minutes||0)>0?`${sl.rem_minutes} 分钟`:'暂无细分',sleepAt=formatHealthClock(sl.sleep_at),wakeAt=formatHealthClock(sl.wake_at);root.innerHTML=`<div class="healthSummaryGrid"><div class="healthMetric"><small>昨夜睡眠</small><b>${healthMinutesLabel(mins)}</b></div><div class="healthMetric"><small>睡眠评分</small><b>${healthMetric(sl.score)}</b></div><div class="healthMetric"><small>今日步数</small><b>${healthMetric(st.count)}</b></div><div class="healthMetric"><small>最近心率</small><b>${healthMetric(heartNow,heartNow!=null?' bpm':'')}</b></div></div><div class="healthSectionTitle">睡眠</div>${sleepAt||wakeAt?`<div class="healthRow"><span>入睡 → 醒来</span><b>${sleepAt||'—'} → ${wakeAt||'—'}</b></div>`:''}<div class="healthRow"><span>深睡</span><b>${deep}</b></div><div class="healthRow"><span>浅睡</span><b>${light}</b></div><div class="healthRow"><span>REM</span><b>${rem}</b></div><div class="healthSectionTitle">活动</div><div class="healthRow"><span>距离</span><b>${healthMetric(distance,distance!=null?' m':'')}</b></div><div class="healthRow"><span>卡路里</span><b>${healthMetric(calories,calories!=null?' kcal':'')}</b></div>${cy.days_until_next!=null?`<div class="healthRow"><span>预计下次周期</span><b>还有 ${cy.days_until_next} 天</b></div>`:''}<div class="healthSource">${esc(h.source||'')} · ${h.updated_at?fmt(h.updated_at):'暂无更新时间'}</div>`}
 function statusAgo(v){return v?ago(v):'尚未同步'}
@@ -2571,7 +2573,10 @@ function renderDesktopSystemBar(){
 }
 function renderDesktopShell(){renderDesktopSystemBar();applyAvatars();applyIdentityTheme()}
 function renderMiniApps(){
-  renderPaperApp();renderMemoryApp();renderMailApp();renderRiverApp();renderHealthApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
+  // Health is intentionally lazy: the cached Xiaomi payload can be large.
+  // Rendering every field during app boot caused WebView memory spikes.
+  renderPaperApp();renderMemoryApp();renderMailApp();renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
+  if(state.page==='app-health')renderHealthApp();
 }
 async function sendPaperReplyFromApp(rootId){
   const input=$(`#paperAppList [data-paper-app-reply-text="${CSS.escape(String(rootId))}"]`),content=input?.value.trim();
@@ -2618,7 +2623,6 @@ function healthReadableValue(key,value){
   if(value===null||value===undefined||value==='')return '暂无数据';
   const k=String(key||'').toLowerCase();
   if(typeof value==='boolean')return value?'是':'否';
-  if(Array.isArray(value)||typeof value==='object')return JSON.stringify(value,null,2);
   if(['total_minutes','duration_minutes','sleep_minutes','deep_minutes','light_minutes','rem_minutes','awake_minutes'].includes(k))return `${value} 分钟`;
   if(['latest','average','resting','max','min','bpm','heart_rate'].includes(k))return `${value} bpm`;
   if(['count','goal','steps','step_count'].includes(k))return `${value} 步`;
@@ -2636,20 +2640,59 @@ const HEALTH_LABELS={
   latest:'最近心率',latest_at:'最近心率时间',average:'平均心率',resting:'静息心率',max:'最高心率',min:'最低心率',
   source:'数据源',date:'数据日期',updated_at:'更新时间',error:'错误信息',connected:'连接状态',resolved_uid:'设备用户 ID',available_keys:'可读取指标',metric_errors:'指标读取错误'
 };
-function healthDataRows(obj){
+function healthPathGet(path){
+  let cur=state.health||{};
+  for(const part of String(path||'').split('.').filter(Boolean)){
+    if(cur===null||cur===undefined||typeof cur!=='object')return undefined;
+    cur=cur[part];
+  }
+  return cur;
+}
+function healthComplexSummary(value){
+  if(Array.isArray(value))return `${value.length} 项`;
+  if(value&&typeof value==='object')return `${Object.keys(value).length} 项`;
+  return '';
+}
+function healthDataRows(obj,basePath=''){
   if(!obj||typeof obj!=='object')return '<div class="healthDataEmpty">暂无数据</div>';
   return Object.entries(obj).map(([key,value])=>{
-    const label=HEALTH_LABELS[key]||key.replaceAll('_',' ');
+    const label=HEALTH_LABELS[key]||key.split('_').join(' ');
+    const path=basePath?`${basePath}.${key}`:key;
     if(Array.isArray(value)||value&&typeof value==='object'){
-      const size=Array.isArray(value)?`${value.length} 项`:`${Object.keys(value).length} 项`;
-      return `<details class="glass contentGlass healthDataComplex"><summary><span>${esc(label)}</span><b>${esc(size)}</b></summary><pre>${esc(JSON.stringify(value,null,2))}</pre></details>`;
+      return `<details class="glass contentGlass healthDataComplex" data-health-details="${esc(path)}"><summary><span>${esc(label)}</span><b>${esc(healthComplexSummary(value))} · 点开读取</b></summary><div class="healthComplexLazy" data-health-complex-body="${esc(path)}"><button class="softBtn healthLoadComplex" type="button" data-health-load="${esc(path)}" data-health-offset="0">显示数据</button></div></details>`;
     }
     return `<div class="glass contentGlass healthDataRow"><span>${esc(label)}</span><b>${esc(healthReadableValue(key,value))}</b></div>`;
   }).join('')||'<div class="healthDataEmpty">暂无数据</div>';
 }
-function healthDataSection(title,obj){return `<section class="healthDataSection"><div class="appSectionTitle">${esc(title)}</div><div class="healthDataList">${healthDataRows(obj)}</div></section>`}
+function healthDataSection(title,obj,path=''){return `<section class="healthDataSection"><div class="appSectionTitle">${esc(title)}</div><div class="healthDataList">${healthDataRows(obj,path)}</div></section>`}
+function renderHealthComplexChunk(path,offset=0){
+  const body=$$('[data-health-complex-body]').find(el=>el.dataset.healthComplexBody===path);if(!body)return;
+  const value=healthPathGet(path),chunkSize=40,start=Math.max(0,Number(offset)||0);
+  if(Array.isArray(value)){
+    const items=value.slice(start,start+chunkSize);
+    const html=items.map((item,i)=>`<pre class="healthComplexItem"><b>#${start+i+1}</b> ${esc(typeof item==='object'?JSON.stringify(item,null,2):String(item))}</pre>`).join('');
+    const next=start+items.length;
+    body.insertAdjacentHTML(start?'beforeend':'afterbegin',html||'<div class="healthDataEmpty">暂无数据</div>');
+    body.querySelectorAll('[data-health-load]').forEach(x=>x.remove());
+    if(next<value.length)body.insertAdjacentHTML('beforeend',`<button class="softBtn healthLoadComplex" type="button" data-health-load="${esc(path)}" data-health-offset="${next}">继续显示 ${Math.min(chunkSize,value.length-next)} 项</button>`);
+  }else if(value&&typeof value==='object'){
+    const entries=Object.entries(value),items=entries.slice(start,start+chunkSize);
+    const html=items.map(([k,v])=>`<pre class="healthComplexItem"><b>${esc(k)}</b> ${esc(typeof v==='object'?JSON.stringify(v,null,2):String(v))}</pre>`).join('');
+    const next=start+items.length;
+    body.insertAdjacentHTML(start?'beforeend':'afterbegin',html||'<div class="healthDataEmpty">暂无数据</div>');
+    body.querySelectorAll('[data-health-load]').forEach(x=>x.remove());
+    if(next<entries.length)body.insertAdjacentHTML('beforeend',`<button class="softBtn healthLoadComplex" type="button" data-health-load="${esc(path)}" data-health-offset="${next}">继续显示 ${Math.min(chunkSize,entries.length-next)} 项</button>`);
+  }else body.innerHTML='<div class="healthDataEmpty">暂无数据</div>';
+  bindHealthComplexLoaders();
+}
+function bindHealthComplexLoaders(){
+  $$('[data-health-load]').forEach(btn=>btn.onclick=e=>{e.preventDefault();e.stopPropagation();renderHealthComplexChunk(btn.dataset.healthLoad,Number(btn.dataset.healthOffset||0))});
+}
 function renderHealthApp(){
-  const root=$('#healthAppBody');if(!root)return;const h=state.health||{};
+  const root=$('#healthAppBody');if(!root)return;
+  // Never build the expensive health DOM while another mini app / desktop is active.
+  if(state.page!=='app-health'){root.innerHTML='';return}
+  const h=state.health||{};
   if(!h.connected){root.innerHTML=`<div class="glass healthAppMetric healthAppWide"><small>小米健康</small><b>${state.healthRefreshing?'读取中…':'未连接'}</b><div class="healthAppNote">${esc(healthRefreshMessage())}</div></div>`;return}
   const sl=h.sleep||{},st=h.steps||{},hr=h.heart_rate||{},cy=h.cycle||{};
   const mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,heart=hr.latest??hr.resting??hr.average;
@@ -2657,8 +2700,10 @@ function renderHealthApp(){
   const known=new Set(['connected','source','date','updated_at','error','sleep','steps','heart_rate','cycle']);
   const extras={};Object.entries(h).forEach(([k,v])=>{if(!known.has(k))extras[k]=v});
   const sync={connected:h.connected,source:h.source,date:h.date,updated_at:h.updated_at,error:h.error};
-  root.innerHTML=top+healthDataSection('睡眠 · 全部可读数据',sl)+healthDataSection('心率 · 全部可读数据',hr)+healthDataSection('活动 · 全部可读数据',st)+(Object.keys(cy).length?healthDataSection('周期 · 可读数据',cy):'')+(Object.keys(extras).length?healthDataSection('其他可读数据',extras):'')+healthDataSection('同步信息',sync);
+  root.innerHTML=top+healthDataSection('睡眠 · 全部可读数据',sl,'sleep')+healthDataSection('心率 · 全部可读数据',hr,'heart_rate')+healthDataSection('活动 · 全部可读数据',st,'steps')+(Object.keys(cy).length?healthDataSection('周期 · 可读数据',cy,'cycle'):'')+(Object.keys(extras).length?healthDataSection('其他可读数据',extras,''):'')+healthDataSection('同步信息',sync,'');
+  bindHealthComplexLoaders();
 }
+
 function renderCalendarApp(){
   const root=$('#appCalendarGrid'),title=$('#appCalendarTitle'),up=$('#appCalendarUpcoming');if(!root||!title||!up)return;const view=monthContext(state.appCalendarOffset||0);title.textContent=`${view.getFullYear()}年 ${view.getMonth()+1}月`;
   root.innerHTML=calendarCells(view,(ds)=>{const hits=state.dates.filter(x=>{if(x.kind==='anniversary'||x.kind==='relationship_start')return x.date?.slice(5)===ds.slice(5);return x.date===ds});if(!hits.length)return{};const h=hits[0],style=h.mark_style||'circle',actor=h.marked_by==='daddy'?'daddy':'user',symbol={star:'★',heart:'♡',flag:'⚑'}[style]||'';return{cls:`mark mark-${style} mark-${actor}`,title:hits.map(x=>x.title||x.note||'标记').join('、'),symbol,style:`--mark-color:${identityColor(actor)}`}});

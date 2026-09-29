@@ -1,0 +1,10 @@
+Little Phone v0.8.1 preview3
+
+Crash recovery build.
+- replace API-30 WindowInsets fullscreen calls with minSdk-23 compatible immersive flags
+- stop rendering the full Xiaomi Health payload during APK startup
+- render Xiaomi Health only when its app is actually open
+- load complex/large health arrays and objects in 40-item chunks on demand
+- keep preview2 fullscreen diary and all-health-field visibility
+
+Android versionCode: 80103

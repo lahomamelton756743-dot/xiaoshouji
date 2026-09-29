@@ -1,0 +1,13 @@
+Little Phone v0.8.1 preview7
+
+Changes:
+- center the diary cover and inner page in one shared physical frame
+- rebuild forward/backward diary turns with separate GPU-only 3D animations
+- add real finger-following desktop drag with edge page switching
+- move desktop edit controls to the top so bottom grid rows remain reachable
+- System Widgets now clone the actual legacy home/status/trace/mail components instead of redesigned summaries
+- pin the old Together / Days With You header above the Little Phone status bar
+- add explicit desktop page creation and deletion; deleting a page moves its contents to remaining pages when space is available
+- preserve local layout persistence and current liquid-glass styling
+
+Android versionCode: 80107

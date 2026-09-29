@@ -1,0 +1,18 @@
+Little Phone v0.7.6 hotfix8
+
+Hard reset of the two broken areas.
+
+Diary:
+- remove the ruled inner-page background from the diary screen itself
+- use one 1086:1448 notebook frame for both cover and every inner page
+- cover and inner page are now both exactly 100% of the same bookStage
+- remove cover hint / under-page letterboxing effect
+
+Glass:
+- replace unsupported CSS arithmetic with JS-precomputed opacity variables
+- use a new preference key so broken old glass values do not carry over
+- scheme B remains: farther right = clearer / thinner glass
+- low-saturation backdrop prevents wallpaper green from tinting the glass
+- material tint is ice-blue, pearl-white and ultra-light pink-violet
+
+Android versionCode: 70368

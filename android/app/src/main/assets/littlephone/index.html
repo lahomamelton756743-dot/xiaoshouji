@@ -1400,6 +1400,142 @@ body.hasCustomBackground .mailWindow,body.hasCustomBackground .footCard,body.has
     rgba(245,236,255,calc(.14 - var(--glass-alpha)*.10)) 100%)!important
 }
 
+
+/* =========================================================
+   v0.7.6 hotfix8 — hard reset: one notebook frame + WebView-safe liquid glass
+   ========================================================= */
+/* Remove the ruled-paper/page effect from the diary screen itself. Only the
+   actual notebook should look like paper. */
+#page-diary{
+  background:none!important;background-image:none!important;
+  width:100%!important;max-width:100%!important;margin:0!important;
+  padding:0 0 10px!important;overflow:visible!important
+}
+#page-diary:before,#page-diary:after{display:none!important;content:none!important}
+.journalIntegratedHead{
+  background:transparent!important;background-image:none!important;
+  margin:0 0 12px!important;padding:4px 8px 8px!important;height:auto!important;min-height:0!important
+}
+
+/* One physical book frame. Cover and every inner page are 100% of this exact
+   same box, so they cannot drift to different sizes anymore. */
+#journalBook.bookStage{
+  position:relative!important;
+  display:block!important;
+  width:min(calc(100% - 12px),420px)!important;
+  height:auto!important;
+  aspect-ratio:1086 / 1448!important;
+  min-height:0!important;max-height:none!important;
+  margin:0 auto 8px!important;padding:0!important;
+  perspective:1200px!important;overflow:visible!important;
+  background:transparent!important;background-image:none!important
+}
+#journalBook.bookStage:before,#journalBook.bookStage:after{display:none!important;content:none!important}
+#journalBook>.journalCover076,
+#journalBook>.bookPage.journalPhysicalPage{
+  position:relative!important;inset:auto!important;
+  display:block!important;
+  width:100%!important;height:100%!important;
+  min-width:0!important;max-width:none!important;
+  min-height:0!important;max-height:none!important;
+  aspect-ratio:1086 / 1448!important;
+  margin:0!important;box-sizing:border-box!important;
+  border-radius:20px!important;overflow:hidden!important;
+  transform-style:preserve-3d
+}
+#journalBook>.journalCover076{
+  padding:0!important;border:0!important;background:none!important;background-image:none!important;
+  box-shadow:0 18px 40px rgba(69,82,119,.11)!important
+}
+#journalBook>.journalCover076>img{
+  position:absolute!important;inset:0!important;
+  display:block!important;width:100%!important;height:100%!important;
+  max-width:none!important;max-height:none!important;
+  object-fit:cover!important;object-position:center!important;
+  margin:0!important;padding:0!important;transform:none!important;filter:none!important
+}
+#journalBook .journalCoverHint{display:none!important}
+#journalBook>.bookPage.journalPhysicalPage{
+  padding:18px 22px 82px 34px!important;
+  border:1px solid rgba(222,224,234,.72)!important;
+  box-shadow:0 18px 40px rgba(69,82,119,.11)!important;
+  background-color:#fffdf9!important;
+  background-image:
+    linear-gradient(90deg,transparent 0 39px,rgba(207,127,146,.17) 39px 40px,transparent 40px),
+    repeating-linear-gradient(180deg,transparent 0 34px,rgba(104,133,181,.085) 34px 35px),
+    linear-gradient(135deg,#fffefa,#fbf9f5 68%,#f7f4ee)!important
+}
+#journalBook>.bookPage.journalPhysicalPage:after{display:none!important;content:none!important}
+#journalBook .journalPaperMeta,#journalBook .journalTitle,#journalBook .journalScroll,#journalBook .journalRail,#journalBook .journalFolio{position:relative!important;z-index:2!important}
+#journalBook .journalTitle{font-size:28px!important;margin:10px 0 12px!important}
+#journalBook .journalScroll{height:calc(100% - 108px)!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0 18px 28px 0!important}
+#journalBook .journalText{font-size:15px!important;line-height:2.05!important}
+#journalBook .journalRail{position:absolute!important;top:118px!important;right:10px!important;bottom:72px!important}
+#journalBook .journalFolio{position:absolute!important;right:22px!important;bottom:18px!important;left:auto!important;text-align:right!important}
+#journalBook .journalCoverPen{right:-2px!important;bottom:12px!important;width:116px!important;height:78px!important}
+#journalBook .journalPagePen{right:-2px!important;bottom:15px!important;width:118px!important;height:80px!important}
+@media(max-width:420px){
+  #journalBook.bookStage{width:min(calc(100% - 8px),390px)!important}
+  #journalBook>.journalCover076,#journalBook>.bookPage.journalPhysicalPage{border-radius:18px!important}
+  #journalBook>.bookPage.journalPhysicalPage{padding:16px 18px 78px 30px!important}
+  #journalBook .journalTitle{font-size:26px!important}
+  #journalBook .journalText{font-size:14px!important;line-height:2!important}
+}
+
+/* WebView-safe liquid glass. No arithmetic inside CSS calc(): all opacity
+   values are concrete variables computed in JS. This avoids the silent fallback
+   that made the previous glass look unchanged. */
+.glass,.glass.heroGlass,.glass.contentGlass,.glass.navGlass,
+.softBtn,.iconBtn,.statusSleepHero,.statusScoreHero,.statusHealthMetric,.statusSleepPanel,.statusMini,
+.hintBox,.healthMetric,.healthRow,.mailWindow,.footCard,.statusPhoneCard,.statusHealthWide,.backgroundItem,.glassControl{
+  background:
+    linear-gradient(145deg,
+      rgba(255,255,255,var(--glass-pearl-a)) 0%,
+      rgba(222,239,255,var(--glass-ice-a)) 42%,
+      rgba(255,255,255,var(--glass-pearl-a)) 58%,
+      rgba(246,233,255,var(--glass-lilac-a)) 100%)!important;
+  border:1px solid rgba(255,255,255,var(--glass-border-a))!important;
+  box-shadow:
+    0 16px 38px rgba(77,98,143,var(--glass-shadow-a)),
+    inset 0 1px 0 rgba(255,255,255,var(--glass-inner-a)),
+    inset 0 -1px 0 rgba(221,231,248,.24)!important;
+  backdrop-filter:blur(var(--glass-blur)) saturate(38%) brightness(1.08)!important;
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(38%) brightness(1.08)!important;
+  background-blend-mode:normal!important
+}
+.glass:before,.glass.heroGlass:before,.glass.contentGlass:before,.glass.navGlass:before{
+  content:""!important;display:block!important;position:absolute!important;
+  left:1px!important;right:1px!important;top:1px!important;height:46%!important;
+  border-radius:inherit!important;pointer-events:none!important;
+  opacity:1!important;
+  background:linear-gradient(150deg,
+    rgba(255,255,255,var(--glass-shine-a)),
+    rgba(218,237,255,.10) 40%,
+    rgba(255,255,255,.025) 62%,
+    rgba(244,228,255,.08))!important;
+  mix-blend-mode:normal!important
+}
+.glass:after,.glass.heroGlass:after,.glass.contentGlass:after,.glass.navGlass:after{
+  content:""!important;display:block!important;position:absolute!important;
+  width:56%!important;height:56%!important;right:-20%!important;bottom:-28%!important;
+  border-radius:50%!important;pointer-events:none!important;
+  opacity:var(--glass-refraction-a)!important;
+  background:radial-gradient(circle,
+    rgba(255,255,255,.76) 0 13%,
+    rgba(205,230,255,.58) 30%,
+    rgba(241,220,255,.45) 52%,
+    transparent 72%)!important;
+  filter:blur(9px)!important;mix-blend-mode:normal!important
+}
+/* Make the nav visually part of the same material, not a solid white slab. */
+.nav.navGlass{overflow:visible!important}
+.nav button.active{
+  background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(215,234,255,.21),rgba(241,222,255,.18))!important;
+  border:1px solid rgba(255,255,255,.68)!important;
+  box-shadow:0 8px 20px rgba(84,105,151,.08),inset 0 1px 0 rgba(255,255,255,.82)!important;
+  backdrop-filter:blur(18px) saturate(45%)!important;-webkit-backdrop-filter:blur(18px) saturate(45%)!important
+}
+
 </style>
 </head>
 <body>
@@ -2055,10 +2191,30 @@ function renderUs(){renderStatuses();renderHealth();renderFootprints();renderNat
 
 function renderHomeCalendar(){const view=monthContext(state.homeMonthOffset||0),root=$('#homeDateCalendar');if(!root)return;$('#homeDateMonthTitle').textContent=`${view.getFullYear()}年 ${view.getMonth()+1}月`;root.innerHTML=calendarCells(view,(ds)=>{const hits=state.dates.filter(x=>{if(x.kind==='anniversary'||x.kind==='relationship_start')return x.date?.slice(5)===ds.slice(5);return x.date===ds});if(!hits.length)return{};const h=hits[0],style=h.mark_style||'circle',actor=h.marked_by==='daddy'?'daddy':'user',symbol={star:'★',heart:'♡',flag:'⚑'}[style]||'';return{cls:`mark mark-${style} mark-${actor}`,title:hits.map(x=>x.title||x.note||'标记').join('、'),symbol,style:`--mark-color:${identityColor(actor)}`}});$$('#homeDateCalendar [data-cal-date]').forEach(cell=>cell.onclick=()=>openDateQuick(cell.dataset.calDate))}
 const BG_KEY='lp_v072_backgrounds';const BG_KEYS=['global','diary','traces','home','mail','status'];
-const GLASS_KEY='lp_v075_glass_prefs';
-const glassPrefs={alpha:.05,blur:20,highlight:.40,tone:255};
-function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(0,Math.min(.65,Number(v.alpha??.24)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??28)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.56)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
-function applyGlassPrefs(save=true){const r=document.documentElement.style,safeTone=Math.round(238+(Math.max(0,Math.min(255,glassPrefs.tone))/255)*17);r.setProperty('--glass-alpha',String(glassPrefs.alpha));r.setProperty('--glass-blur',glassPrefs.blur+'px');r.setProperty('--glass-highlight',String(glassPrefs.highlight));r.setProperty('--glass-tone',String(glassPrefs.tone));r.setProperty('--glass-neutral-tone',String(safeTone));if(save)localDataSet(GLASS_KEY,JSON.stringify(glassPrefs))}
+const GLASS_KEY='lp_v076_glass_prefs_hotfix8';
+const glassPrefs={alpha:.48,blur:26,highlight:.58,tone:255};
+function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(0,Math.min(.65,Number(v.alpha??.48)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??26)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.58)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
+function applyGlassPrefs(save=true){
+  const r=document.documentElement.style;
+  const clear=Math.max(0,Math.min(1,glassPrefs.alpha/.65));
+  const f=(solid,thin)=>(solid+(thin-solid)*clear).toFixed(3);
+  const safeTone=Math.round(242+(Math.max(0,Math.min(255,glassPrefs.tone))/255)*13);
+  r.setProperty('--glass-alpha',String(glassPrefs.alpha));
+  r.setProperty('--glass-clear',clear.toFixed(3));
+  r.setProperty('--glass-blur',glassPrefs.blur+'px');
+  r.setProperty('--glass-highlight',String(glassPrefs.highlight));
+  r.setProperty('--glass-tone',String(glassPrefs.tone));
+  r.setProperty('--glass-neutral-tone',String(safeTone));
+  r.setProperty('--glass-pearl-a',f(.30,.045));
+  r.setProperty('--glass-ice-a',f(.25,.038));
+  r.setProperty('--glass-lilac-a',f(.20,.030));
+  r.setProperty('--glass-border-a',f(.88,.54));
+  r.setProperty('--glass-inner-a',f(.94,.58));
+  r.setProperty('--glass-shine-a',f(.30,.075));
+  r.setProperty('--glass-refraction-a',f(.38,.12));
+  r.setProperty('--glass-shadow-a',f(.12,.065));
+  if(save)localDataSet(GLASS_KEY,JSON.stringify(glassPrefs))
+}
 function bindGlassControls(){for(const key of ['alpha','blur','highlight','tone']){const el=$(`[data-glass-control="${key}"]`),out=$(`[data-glass-value="${key}"]`);if(!el)continue;const update=()=>{glassPrefs[key]=Number(el.value);applyGlassPrefs(true);if(out)out.textContent=key==='blur'?`${glassPrefs[key]}px`:key==='tone'?String(Math.round(glassPrefs[key])):Number(glassPrefs[key]).toFixed(2)};el.oninput=update;update()}}
 
 function loadBackgrounds(){const legacy=parse(localDataGet('lp_v071_backgrounds')||'{}',{})||{};state.backgrounds={};for(const k of BG_KEYS){const direct=localDataGet(`lp_bg_${k}`);if(direct)state.backgrounds[k]=direct;else if(legacy[k]){state.backgrounds[k]=legacy[k];localDataSet(`lp_bg_${k}`,legacy[k])}}}
@@ -2073,7 +2229,7 @@ function renderAppearanceSettings(){
   const slider=(key,label,min,max,step,value)=>`<label class="glassControl"><span><b>${label}</b><em data-glass-value="${key}">${key==='blur'?value+'px':key==='tone'?Math.round(value):Number(value).toFixed(2)}</em></span><input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-glass-control="${key}"></label>`;
   body.innerHTML=`<div class="glass settingsPanel appearancePanel"><div class="settingsToolbar"><div class="hintBox">背景与玻璃参数只保存在这台手机，不上传后端。页面背景优先于全局背景。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="appearanceSectionTitle">玻璃质感</div><div class="glassControlPanel">${slider('alpha','玻璃透明度',0,.65,.01,glassPrefs.alpha)}${slider('blur','背景模糊度',0,40,1,glassPrefs.blur)}${slider('highlight','边缘高光强度',0,.8,.05,glassPrefs.highlight)}${slider('tone','玻璃底色',0,255,1,glassPrefs.tone)}</div><button class="softBtn glassReset" type="button" id="glassReset">恢复玻璃默认值</button><div class="appearanceSectionTitle">背景设置</div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div><div class="appearanceNightNook" aria-hidden="true"><img src="gpt-night-window.png" alt=""><span>深夜也留一盏灯。</span></div></div>`;
   bindGlassControls();
-  $('#glassReset').onclick=()=>{Object.assign(glassPrefs,{alpha:.24,blur:28,highlight:.56,tone:255});applyGlassPrefs(true);renderAppearanceSettings();toast('玻璃参数已恢复默认')};
+  $('#glassReset').onclick=()=>{Object.assign(glassPrefs,{alpha:.48,blur:26,highlight:.58,tone:255});applyGlassPrefs(true);renderAppearanceSettings();toast('玻璃参数已恢复默认')};
   const reset=$('#bgResetAll');if(reset)reset.onclick=()=>{for(const k of BG_KEYS){delete state.backgrounds[k];localDataSet(`lp_bg_${k}`,'')}saveBackgrounds();renderAppearanceSettings();toast('已经恢复全部默认背景')};
   $$('[data-bg-clear]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgClear;delete state.backgrounds[k];saveBackgrounds(k);renderAppearanceSettings();toast(`${labels[k]}背景已清除`)});
   $$('[data-bg-pick]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgPick;if(hasNative()&&window.LittlePhoneNative.pickBackground){window.LittlePhoneNative.pickBackground(k)}else{$(`[data-bg-input="${k}"]`)?.click()}});

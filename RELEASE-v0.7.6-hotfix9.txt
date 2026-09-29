@@ -1,0 +1,10 @@
+Little Phone v0.7.6 hotfix9
+
+Changes:
+- make glass genuinely transparent instead of milky; explicitly override the old custom-background white fallback
+- keep only very light ice-blue / pearl-white / pale pink-violet refraction and edge highlights
+- enlarge diary cover and inner pages to the same 90vw x 63dvh physical book frame, matching the marked area and staying above navigation
+- replace flat page transitions with direction-aware 3D page turns: forward turns the current sheet away, backward brings the previous sheet back over the current one
+- use composited transforms and a lightweight crease/shadow layer for smoother animation
+
+Android versionCode: 70369

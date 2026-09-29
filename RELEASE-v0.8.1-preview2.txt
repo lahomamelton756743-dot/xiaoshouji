@@ -1,0 +1,9 @@
+Little Phone v0.8.1 preview2
+
+- Android immersive full-screen: hides real status/navigation bars; swipe reveals them transiently.
+- Diary opens as a near edge-to-edge physical notebook; cover and inner pages use the exact same full-screen frame.
+- Diary title chrome is removed while reading; search remains as a small floating control.
+- Xiaomi Health standalone app now renders every field currently returned by the existing health backend, including all sleep, heart-rate, activity, cycle, nested segment, sync and extra fields.
+- Existing liquid-glass parameters are preserved.
+
+versionCode: 80102

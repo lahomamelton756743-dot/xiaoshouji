@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#edf6ff">
-<title>小手机 v0.7.6</title>
+<title>小手机 v0.8.1</title>
 <style>
 :root{
   --ink:#263044;--ink2:#6f778c;--ink3:#969caf;
@@ -1730,6 +1730,79 @@ body.desktopMode .systemHomePill{display:none}
 body.miniAppMode #page-diary{padding-bottom:36px!important}
 @media(max-width:390px){.desktopPage{padding-left:11px;padding-right:11px;column-gap:6px}.desktopAppIcon{width:53px;height:53px}.desktopAppLabel{font-size:10px}.desktopDock{width:calc(100% - 22px)}}
 
+
+/* =========================================================
+   Little Phone 0.8.1 preview2 — immersive shell + full-screen diary + full health readout
+   ========================================================= */
+/* The Android shell is now immersive. The in-phone status bar belongs to Little
+   Phone; real Android system bars only appear transiently when the user swipes. */
+html,body{min-height:100dvh!important}
+
+/* Diary is a real full-screen mini app now. Keep only a floating search button;
+   the cover and every inner sheet share this exact physical frame. */
+body.diaryMode{overflow:hidden!important}
+body.diaryMode .shell{width:100vw!important;max-width:none!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;overflow:hidden!important}
+body.diaryMode main{width:100vw!important;height:100dvh!important;overflow:hidden!important}
+body.diaryMode #page-diary{
+  position:relative!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;background:transparent!important
+}
+body.diaryMode #page-diary .journalIntegratedHead{
+  position:fixed!important;top:calc(env(safe-area-inset-top) + 8px)!important;right:10px!important;left:auto!important;
+  width:auto!important;min-height:0!important;margin:0!important;padding:0!important;z-index:78!important;
+  background:transparent!important;border:0!important;pointer-events:none!important
+}
+body.diaryMode #page-diary .journalIntegratedHead>div{display:none!important}
+body.diaryMode #page-diary .journalSearchBtn{
+  display:grid!important;pointer-events:auto!important;width:40px!important;height:40px!important;margin:0!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.20),rgba(218,237,255,.10),rgba(245,230,255,.10))!important;
+  border:1px solid rgba(255,255,255,.48)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important
+}
+body.diaryMode #journalBook.bookStage{
+  position:absolute!important;left:5px!important;right:5px!important;top:4px!important;bottom:34px!important;
+  width:auto!important;height:auto!important;max-height:none!important;min-height:0!important;margin:0!important;padding:0!important;
+  perspective:1850px!important;transform-style:preserve-3d!important;overflow:visible!important;background:transparent!important
+}
+body.diaryMode #journalBook>.journalSheet,
+body.diaryMode #journalBook>.journalCover076,
+body.diaryMode #journalBook>.bookPage.journalPhysicalPage{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;
+  min-width:0!important;min-height:0!important;margin:0!important;aspect-ratio:auto!important;border-radius:25px!important;overflow:hidden!important
+}
+body.diaryMode #journalBook>.journalCover076>img{width:100%!important;height:100%!important;object-fit:fill!important;object-position:center!important}
+body.diaryMode #journalBook>.bookPage.journalPhysicalPage{padding:26px 28px 92px 42px!important}
+body.diaryMode #journalBook .journalScroll{height:calc(100% - 120px)!important;max-height:none!important;padding:0 22px 34px 0!important}
+body.diaryMode #journalBook .journalTitle{font-size:32px!important;margin:14px 0 14px!important}
+body.diaryMode #journalBook .journalText{font-size:16.5px!important;line-height:2.15!important}
+body.diaryMode #journalBook .journalRail{top:136px!important;bottom:82px!important}
+body.diaryMode #journalBook .journalFolio{bottom:24px!important}
+body.diaryMode .systemHomePill{bottom:3px!important;z-index:90!important}
+@media(max-width:420px){
+  body.diaryMode #journalBook.bookStage{left:4px!important;right:4px!important;top:4px!important;bottom:32px!important}
+  body.diaryMode #journalBook>.journalSheet,body.diaryMode #journalBook>.journalCover076,body.diaryMode #journalBook>.bookPage.journalPhysicalPage{border-radius:21px!important}
+  body.diaryMode #journalBook>.bookPage.journalPhysicalPage{padding:23px 22px 88px 36px!important}
+  body.diaryMode #journalBook .journalTitle{font-size:29px!important}
+  body.diaryMode #journalBook .journalText{font-size:15.5px!important;line-height:2.08!important}
+}
+
+/* Standalone Xiaomi Health app: overview first, then every field currently
+   present in state.health. Complex arrays/objects stay available in expandable
+   blocks instead of silently being discarded. */
+#page-app-health .healthAppGrid{display:block!important}
+.healthAppOverview{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.healthDataSection{margin-top:18px}
+.healthDataSection .appSectionTitle{margin:0 3px 8px!important}
+.healthDataList{display:grid;gap:8px}
+.healthDataRow{min-height:54px;border-radius:18px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.healthDataRow span{font-size:11px;color:#8993a6;flex:0 0 auto}
+.healthDataRow b{font-size:13px;line-height:1.45;font-weight:620;color:#45516b;text-align:right;word-break:break-word}
+.healthDataComplex{border-radius:18px;padding:0;overflow:hidden}
+.healthDataComplex summary{list-style:none;min-height:54px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:18px;cursor:pointer}
+.healthDataComplex summary::-webkit-details-marker{display:none}
+.healthDataComplex summary span{font-size:11px;color:#8993a6}.healthDataComplex summary b{font-size:11px;color:#69758e;font-weight:600}
+.healthDataComplex pre{margin:0;padding:0 14px 14px;white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.55;color:#687187;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.healthDataEmpty{font-size:11px;color:#9299a8;padding:8px 4px}
+
 </style>
 </head>
 <body>
@@ -2541,11 +2614,50 @@ function renderRiverApp(){
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=()=>openBook(el.dataset.appBookId));
   requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollLeft=sc.scrollWidth})
 }
+function healthReadableValue(key,value){
+  if(value===null||value===undefined||value==='')return '暂无数据';
+  const k=String(key||'').toLowerCase();
+  if(typeof value==='boolean')return value?'是':'否';
+  if(Array.isArray(value)||typeof value==='object')return JSON.stringify(value,null,2);
+  if(['total_minutes','duration_minutes','sleep_minutes','deep_minutes','light_minutes','rem_minutes','awake_minutes'].includes(k))return `${value} 分钟`;
+  if(['latest','average','resting','max','min','bpm','heart_rate'].includes(k))return `${value} bpm`;
+  if(['count','goal','steps','step_count'].includes(k))return `${value} 步`;
+  if(['distance','distance_m','distance_meters'].includes(k))return `${value} m`;
+  if(['calories','kcal'].includes(k))return `${value} kcal`;
+  if(k.includes('at')||k.includes('time')||k.includes('date')){
+    const raw=String(value), pretty=formatHealthClock(value);
+    return pretty&&pretty!==raw?`${raw} · ${pretty}`:raw;
+  }
+  return String(value);
+}
+const HEALTH_LABELS={
+  total_minutes:'总睡眠',duration_minutes:'总睡眠',sleep_minutes:'总睡眠',score:'睡眠评分',sleep_at:'入睡时间',wake_at:'醒来时间',deep_minutes:'深睡',light_minutes:'浅睡',rem_minutes:'REM',awake_minutes:'清醒',segments:'睡眠阶段明细',
+  count:'步数',distance:'距离',distance_m:'距离',distance_meters:'距离',calories:'卡路里',kcal:'卡路里',goal:'步数目标',
+  latest:'最近心率',latest_at:'最近心率时间',average:'平均心率',resting:'静息心率',max:'最高心率',min:'最低心率',
+  source:'数据源',date:'数据日期',updated_at:'更新时间',error:'错误信息',connected:'连接状态',resolved_uid:'设备用户 ID',available_keys:'可读取指标',metric_errors:'指标读取错误'
+};
+function healthDataRows(obj){
+  if(!obj||typeof obj!=='object')return '<div class="healthDataEmpty">暂无数据</div>';
+  return Object.entries(obj).map(([key,value])=>{
+    const label=HEALTH_LABELS[key]||key.replaceAll('_',' ');
+    if(Array.isArray(value)||value&&typeof value==='object'){
+      const size=Array.isArray(value)?`${value.length} 项`:`${Object.keys(value).length} 项`;
+      return `<details class="glass contentGlass healthDataComplex"><summary><span>${esc(label)}</span><b>${esc(size)}</b></summary><pre>${esc(JSON.stringify(value,null,2))}</pre></details>`;
+    }
+    return `<div class="glass contentGlass healthDataRow"><span>${esc(label)}</span><b>${esc(healthReadableValue(key,value))}</b></div>`;
+  }).join('')||'<div class="healthDataEmpty">暂无数据</div>';
+}
+function healthDataSection(title,obj){return `<section class="healthDataSection"><div class="appSectionTitle">${esc(title)}</div><div class="healthDataList">${healthDataRows(obj)}</div></section>`}
 function renderHealthApp(){
   const root=$('#healthAppBody');if(!root)return;const h=state.health||{};
   if(!h.connected){root.innerHTML=`<div class="glass healthAppMetric healthAppWide"><small>小米健康</small><b>${state.healthRefreshing?'读取中…':'未连接'}</b><div class="healthAppNote">${esc(healthRefreshMessage())}</div></div>`;return}
-  const sl=h.sleep||{},st=h.steps||{},hr=h.heart_rate||{},mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,heart=hr.latest??hr.resting??hr.average,distance=st.distance??st.distance_m??st.distance_meters,calories=st.calories??st.kcal;
-  root.innerHTML=`<div class="glass healthAppMetric healthAppWide"><small>昨夜睡眠</small><b>${healthMinutesLabel(mins)}</b><div class="healthAppNote">${formatHealthClock(sl.sleep_at)||'—'} → ${formatHealthClock(sl.wake_at)||'—'}${sl.score!=null?` · 睡眠评分 ${esc(sl.score)}`:''}</div></div><div class="glass healthAppMetric"><small>今日步数</small><b>${healthMetric(st.count)}</b></div><div class="glass healthAppMetric"><small>最近心率</small><b>${healthMetric(heart,heart!=null?' bpm':'')}</b></div><div class="glass healthAppMetric"><small>距离</small><b>${healthMetric(distance,distance!=null?' m':'')}</b></div><div class="glass healthAppMetric"><small>卡路里</small><b>${healthMetric(calories,calories!=null?' kcal':'')}</b></div><div class="glass healthAppMetric healthAppWide"><small>同步状态</small><div class="healthAppNote">${esc(healthRefreshMessage())}</div></div>`;
+  const sl=h.sleep||{},st=h.steps||{},hr=h.heart_rate||{},cy=h.cycle||{};
+  const mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,heart=hr.latest??hr.resting??hr.average;
+  const top=`<div class="healthAppOverview"><div class="glass healthAppMetric healthAppWide"><small>昨夜睡眠</small><b>${healthMinutesLabel(mins)}</b><div class="healthAppNote">${formatHealthClock(sl.sleep_at)||'—'} → ${formatHealthClock(sl.wake_at)||'—'}${sl.score!=null?` · 睡眠评分 ${esc(sl.score)}`:''}</div></div><div class="glass healthAppMetric"><small>今日步数</small><b>${healthMetric(st.count)}</b></div><div class="glass healthAppMetric"><small>最近心率</small><b>${healthMetric(heart,heart!=null?' bpm':'')}</b></div></div>`;
+  const known=new Set(['connected','source','date','updated_at','error','sleep','steps','heart_rate','cycle']);
+  const extras={};Object.entries(h).forEach(([k,v])=>{if(!known.has(k))extras[k]=v});
+  const sync={connected:h.connected,source:h.source,date:h.date,updated_at:h.updated_at,error:h.error};
+  root.innerHTML=top+healthDataSection('睡眠 · 全部可读数据',sl)+healthDataSection('心率 · 全部可读数据',hr)+healthDataSection('活动 · 全部可读数据',st)+(Object.keys(cy).length?healthDataSection('周期 · 可读数据',cy):'')+(Object.keys(extras).length?healthDataSection('其他可读数据',extras):'')+healthDataSection('同步信息',sync);
 }
 function renderCalendarApp(){
   const root=$('#appCalendarGrid'),title=$('#appCalendarTitle'),up=$('#appCalendarUpcoming');if(!root||!title||!up)return;const view=monthContext(state.appCalendarOffset||0);title.textContent=`${view.getFullYear()}年 ${view.getMonth()+1}月`;

@@ -1,0 +1,10 @@
+Little Phone v0.7.6 hotfix7
+
+Changes:
+- force diary cover and inner page to use the exact same frame size
+- hide the cover hint and remove the visible inner-page letterboxing behind the cover
+- switch cover image to fully fill the notebook frame so no top/bottom page strips show through
+- final liquid-glass override for ice-blue / pearl-white / ultra-light pink-violet panels
+- stronger default glass values so changes are visible immediately
+
+Android versionCode: 70367

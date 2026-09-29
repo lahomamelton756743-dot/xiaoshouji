@@ -1,0 +1,10 @@
+Little Phone v0.8.1 preview5
+
+Changes:
+- replace diary cover with uploaded black journal cover asset (1086x1448)
+- add uploaded diary inner page asset and use it as the notebook page background
+- force diary cover and every inner page to share the exact same 1086:1448 frame
+- enlarge the diary notebook within the app while keeping top title area and bottom safe area
+- move the desktop status bar flush to the top safe area
+
+Android versionCode: 80105

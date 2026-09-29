@@ -1805,6 +1805,139 @@ body.diaryMode .systemHomePill{bottom:3px!important;z-index:90!important}
 
 .healthComplexLazy{padding:0 12px 12px}.healthComplexItem{margin:8px 0;padding:10px 11px;border-radius:14px;background:rgba(255,255,255,.10);white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.5;color:#687187;max-height:360px;overflow:auto}.healthComplexItem b{font-size:10px;color:#56627a}.healthLoadComplex{width:100%;margin-top:8px}
 
+
+/* =========================================================
+   v0.8.1 preview5 — diary cover/page asset sync + desktop status flush top
+   ========================================================= */
+/* Desktop status bar: truly pin to the very top safe area, remove the extra gap. */
+.desktopStatusBar{
+  height:calc(28px + env(safe-area-inset-top))!important;
+  padding:calc(env(safe-area-inset-top) + 1px) 14px 2px!important;
+  align-items:flex-end!important;
+}
+.desktopStatusRight{gap:7px!important}
+.desktopViewport{height:calc(100dvh - env(safe-area-inset-top) - 28px)!important}
+.desktopPage{padding-top:14px!important}
+
+/* Diary app uses the new uploaded cover and inner-page assets at the same physical size. */
+body.diaryMode #page-diary{
+  padding:0 10px calc(28px + env(safe-area-inset-bottom))!important;
+  min-height:100dvh!important;
+  background:transparent!important;
+}
+body.diaryMode #page-diary:before,
+body.diaryMode #page-diary:after,
+body.diaryMode .bookStage:before,
+body.diaryMode .bookStage:after{display:none!important;content:none!important}
+body.diaryMode #page-diary .journalIntegratedHead{
+  width:calc(100% - 10px)!important;
+  margin:0 5px 4px!important;
+  padding:2px 2px 4px!important;
+  min-height:auto!important;
+}
+body.diaryMode #page-diary .journalScriptHeading{font-size:31px!important}
+body.diaryMode #page-diary .journalIntegratedSub{font-size:10px!important;margin-top:1px!important}
+body.diaryMode .bookStage{
+  padding:0 0 calc(48px + env(safe-area-inset-bottom))!important;
+  min-height:calc(100dvh - 120px)!important;
+  perspective:1800px!important;
+  overflow:visible!important;
+}
+body.diaryMode #journalBook{
+  display:grid!important;
+  place-items:start center!important;
+  width:100%!important;
+  min-height:calc(100dvh - 132px)!important;
+}
+body.diaryMode #journalBook>.journalSheet,
+body.diaryMode #journalBook>.journalCover076,
+body.diaryMode #journalBook>.bookPage.journalPhysicalPage{
+  width:min(calc(100vw - 20px), 436px)!important;
+  aspect-ratio:1086 / 1448!important;
+  height:auto!important;
+  max-height:calc(100dvh - 132px)!important;
+  min-height:0!important;
+  border-radius:22px!important;
+  overflow:hidden!important;
+  margin:0 auto!important;
+  box-shadow:0 18px 42px rgba(19,24,39,.18)!important;
+}
+body.diaryMode #journalBook>.journalCover076{
+  background:#0f1014!important;
+  cursor:pointer!important;
+}
+body.diaryMode #journalBook>.journalCover076>img{
+  width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important;display:block!important;
+}
+body.diaryMode #journalBook .journalCoverHint,
+body.diaryMode #journalBook .journalDecorPen,
+body.diaryMode #journalBook .journalPagePen{display:none!important}
+body.diaryMode #journalBook>.bookPage.journalPhysicalPage,
+body.diaryMode .journalLeaf.journalPhysicalPage{
+  position:relative!important;
+  background:#f7f3ec!important;
+  border:none!important;
+  padding:64px 56px 74px 56px!important;
+}
+body.diaryMode .journalPageTexture{
+  position:absolute;inset:0;
+  background:url('diary-page-v081.png') center/cover no-repeat;
+  z-index:0;pointer-events:none;
+}
+body.diaryMode .journalTurnShade{z-index:2!important}
+body.diaryMode .journalPaperMeta,
+body.diaryMode .journalTitle,
+body.diaryMode .journalScroll,
+body.diaryMode .journalFolio,
+body.diaryMode .journalRail{position:relative;z-index:3}
+body.diaryMode .journalPaperMeta{
+  display:flex!important;justify-content:space-between!important;gap:12px;
+  font-size:11px!important;letter-spacing:.04em!important;color:#7e7a73!important;
+  margin-bottom:18px!important
+}
+body.diaryMode .journalTitle{
+  font-size:28px!important;line-height:1.22!important;color:#303036!important;
+  margin:0 0 14px!important;font-family:"Songti SC","STSong",serif!important;font-weight:600!important
+}
+body.diaryMode .journalScroll{
+  max-height:none!important;height:calc(100% - 102px)!important;min-height:0!important;
+  padding:0 14px 16px 0!important;overflow-y:auto!important;overflow-x:hidden!important;
+  scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important
+}
+body.diaryMode .journalScroll::-webkit-scrollbar{display:none!important}
+body.diaryMode .journalText{
+  color:#454038!important;font-size:18px!important;line-height:1.95!important;
+  font-family:"Songti SC","STSong",serif!important;white-space:pre-wrap!important
+}
+body.diaryMode .journalRail{
+  position:absolute!important;top:112px!important;right:18px!important;bottom:74px!important;width:3px!important;
+  background:rgba(132,126,120,.12)!important;border-radius:999px!important
+}
+body.diaryMode .journalThumb{background:linear-gradient(180deg,rgba(138,148,170,.56),rgba(182,148,156,.48))!important}
+body.diaryMode .journalFolio{
+  position:absolute!important;right:28px!important;bottom:22px!important;left:auto!important;
+  font-size:11px!important;color:#7d7a74!important;font-family:"Iowan Old Style","Times New Roman",serif!important
+}
+body.diaryMode .journalEndActions{margin-top:18px!important;padding-bottom:6px!important}
+body.diaryMode .journalEndActions .softBtn,
+body.diaryMode .journalEndActions .dangerBtn{background:rgba(255,255,255,.46)!important}
+@media(max-width:520px){
+  body.diaryMode #journalBook>.journalSheet,
+  body.diaryMode #journalBook>.journalCover076,
+  body.diaryMode #journalBook>.bookPage.journalPhysicalPage{
+    width:min(calc(100vw - 16px), 420px)!important;
+    max-height:calc(100dvh - 126px)!important;
+    border-radius:20px!important;
+  }
+  body.diaryMode .bookStage{min-height:calc(100dvh - 112px)!important}
+  body.diaryMode .journalLeaf.journalPhysicalPage,
+  body.diaryMode #journalBook>.bookPage.journalPhysicalPage{padding:58px 44px 70px 45px!important}
+  body.diaryMode .journalTitle{font-size:26px!important}
+  body.diaryMode .journalText{font-size:17px!important;line-height:1.9!important}
+  body.diaryMode .journalRail{top:102px!important;right:14px!important;bottom:70px!important}
+  body.diaryMode .journalFolio{right:22px!important;bottom:18px!important}
+}
+
 </style>
 </head>
 <body>
@@ -2204,7 +2337,7 @@ function go(page,push=true){
   if(page==='app-memory')renderMemoryApp();
   if(page==='app-mail')renderMailApp();
   if(page==='app-river')renderRiverApp();
-  if(page==='app-health'){renderHealthApp();refreshHealthLive(false).catch(()=>{})}
+  if(page==='app-health'){renderHealthApp()}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
   if(page==='app-phone')renderPhoneApp();
@@ -2349,7 +2482,7 @@ function healthMinutesLabel(value){const mins=Number(value||0);return mins>0?`${
 function healthTimeLabel(value){if(!value)return'—';const d=new Date(value);return Number.isNaN(+d)?String(value):d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
 function localDateKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function healthMetric(v,suffix=''){return v===null||v===undefined||v===''?'暂无数据':`${v}${suffix}`}
-function healthRefreshMessage(){if(state.healthRefreshing)return'正在读取小米健康…';if(state.healthRefreshError){const e=String(state.healthRefreshError);if(e.includes('timeout')||e.includes('unreachable'))return'健康服务正在唤醒或暂时不可达，保留上次数据';if(e.includes('not_configured'))return'健康桥尚未配置';return'这次同步没有成功，仍显示上次数据'}const h=state.health||{};if(h.connected&&h.updated_at)return`已同步 · ${ago(h.updated_at)}`;return'进入状态页会自动读取最新数据'}
+function healthRefreshMessage(){if(state.healthRefreshing)return'正在读取小米健康…';if(state.healthRefreshError){const e=String(state.healthRefreshError);if(e.includes('timeout')||e.includes('unreachable'))return'健康服务正在唤醒或暂时不可达，保留上次数据';if(e.includes('not_configured'))return'健康桥尚未配置';return'这次同步没有成功，仍显示上次数据'}const h=state.health||{};if(h.connected&&h.updated_at)return`上次同步 · ${ago(h.updated_at)} · 仅手动刷新`;return'不会自动刷新，点“刷新最新数据”时才读取小米健康'}
 async function refreshHealthLive(force=false){if(!state.conn.connected||state.healthRefreshing)return false;const now=Date.now();if(!force&&state.healthRefreshAt&&now-state.healthRefreshAt<90000)return false;state.healthRefreshing=true;state.healthRefreshError='';renderHealth();renderHealthDetails();try{const date=localDateKey();const r=await nativeRequestLong('POST','/api/littlephone/health/refresh',{date},70000);if(r?.connected||r?.sleep||r?.steps||r?.heart_rate){state.health={...state.health,...r,connected:Boolean(r.connected!==false),date:r.date||date};state.healthRefreshAt=Date.now();saveCache()}else{const fresh=await nativeRequestLong('GET',`/api/littlephone/health/summary?date=${date}`,{},30000);state.health={...state.health,...fresh};state.healthRefreshAt=Date.now();saveCache()}return true}catch(e){state.healthRefreshError=e?.message||'health_refresh_failed';return false}finally{state.healthRefreshing=false;renderHealth();renderHealthDetails();if(state.page==='app-health')renderHealthApp()}}
 function formatHealthClock(v){if(v===null||v===undefined||v==='')return'';if(typeof v==='number'||/^\d{10,13}$/.test(String(v))){let n=Number(v);if(n<1e12)n*=1000;const d=new Date(n);if(!isNaN(d))return d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}const str=String(v);const m=str.match(/(?:T|\s)(\d{1,2}:\d{2})/)||str.match(/^(\d{1,2}:\d{2})/);if(m)return m[1];const d=new Date(str);return isNaN(d)?str:d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}
 function renderHealthDetails(){const h=state.health||{},root=$('#healthDetails');if(!root)return;if(state.healthRefreshing&&!h.connected){root.innerHTML='<div class="hintBox">正在读取小米健康… 如果 Render 刚从休眠中唤醒，第一次会慢一些。</div>';return}if(!h.connected){root.innerHTML=`<div class="hintBox">${esc(healthRefreshMessage())}</div><div class="healthRow"><span>数据源</span><b>${esc(h.source||'not_connected')}</b></div>`;return}const sl=h.sleep||{},hr=h.heart_rate||{},st=h.steps||{},cy=h.cycle||{},mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,distance=st.distance??st.distance_m??st.distance_meters,calories=st.calories??st.kcal,heartNow=hr.latest??hr.resting??hr.average;const deep=Number(sl.deep_minutes||0)>0?`${sl.deep_minutes} 分钟`:'暂无细分',light=Number(sl.light_minutes||0)>0?`${sl.light_minutes} 分钟`:'暂无细分',rem=Number(sl.rem_minutes||0)>0?`${sl.rem_minutes} 分钟`:'暂无细分',sleepAt=formatHealthClock(sl.sleep_at),wakeAt=formatHealthClock(sl.wake_at);root.innerHTML=`<div class="healthSummaryGrid"><div class="healthMetric"><small>昨夜睡眠</small><b>${healthMinutesLabel(mins)}</b></div><div class="healthMetric"><small>睡眠评分</small><b>${healthMetric(sl.score)}</b></div><div class="healthMetric"><small>今日步数</small><b>${healthMetric(st.count)}</b></div><div class="healthMetric"><small>最近心率</small><b>${healthMetric(heartNow,heartNow!=null?' bpm':'')}</b></div></div><div class="healthSectionTitle">睡眠</div>${sleepAt||wakeAt?`<div class="healthRow"><span>入睡 → 醒来</span><b>${sleepAt||'—'} → ${wakeAt||'—'}</b></div>`:''}<div class="healthRow"><span>深睡</span><b>${deep}</b></div><div class="healthRow"><span>浅睡</span><b>${light}</b></div><div class="healthRow"><span>REM</span><b>${rem}</b></div><div class="healthSectionTitle">活动</div><div class="healthRow"><span>距离</span><b>${healthMetric(distance,distance!=null?' m':'')}</b></div><div class="healthRow"><span>卡路里</span><b>${healthMetric(calories,calories!=null?' kcal':'')}</b></div>${cy.days_until_next!=null?`<div class="healthRow"><span>预计下次周期</span><b>还有 ${cy.days_until_next} 天</b></div>`:''}<div class="healthSource">${esc(h.source||'')} · ${h.updated_at?fmt(h.updated_at):'暂无更新时间'}</div>`}
@@ -2437,7 +2570,7 @@ function renderJournalSearch(){const q=String($('#journalSearchInput')?.value||'
 function openJournalSearch(){const input=$('#journalSearchInput');if(input)input.value='';renderJournalSearch();show('#journalSearchModal');setTimeout(()=>input?.focus(),80)}
 function journalCoverMarkup(){return `<article class="journalCover076 journalSheet" aria-label="日记封面"><img src="diary-cover-v076.png" alt="日记封面"><div class="journalTurnShade" aria-hidden="true"></div></article>`}
 function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy');return `<article class="bookPage journalLeaf journalPhysicalPage journalSheet">
-    <div class="journalDecorPen journalPagePen" aria-hidden="true"></div>
+    <div class="journalPageTexture" aria-hidden="true"></div>
     <div class="journalTurnShade" aria-hidden="true"></div>
     <div class="journalPaperMeta"><span>${esc(d.date||'')}</span><span>${esc(actorName(d.author||'daddy'))}</span></div>
     <div class="journalTitle">${esc(d.title||'今天')}</div>
@@ -2787,7 +2920,7 @@ $$('[data-avatar]').forEach(b=>b.onclick=()=>openProfile(b.dataset.avatar));$('#
 $$('[data-compose]').forEach(b=>b.onclick=()=>openCompose(b.dataset.compose));
 for(const [btn,modal] of [['#composerClose','#composerModal'],['#paperClose','#paperModal'],['#detailClose','#detailModal'],['#todoClose','#todoModal'],['#profileClose','#profileModal'],['#dateClose','#dateModal'],['#cycleClose','#cycleModal'],['#healthClose','#healthModal'],['#statusClose','#statusModal'],['#journalSearchClose','#journalSearchModal']]){const el=$(btn);if(el)el.onclick=()=>hide(modal)};
 $('#paperShortcut').onclick=e=>{if(e.target.closest('#paperWriteInline'))return;renderPaperBox();show('#paperModal');addLocalTrace(`${actorName('user')}打开纸条箱`,'','paper_box')};$('#paperWriteInline').onclick=e=>{e.stopPropagation();openCompose('paper')};$('#paperWriteButton').onclick=()=>openCompose('paper');$('#paperShuffleButton').onclick=()=>{selectPaper(true);renderTraceHub();toast('换了一张纸条')};$('#todoAllButton').onclick=()=>{renderTodoModal();show('#todoModal')};$('#callRecordsButton').onclick=openCallRecords;$('#rememberShortcut').onclick=openMemoryRecords;$('#mailAllButton').onclick=openMailArchive;$('#mailPrevCard').onclick=()=>{const n=unifiedMailItems().length;if(n){state.mailCarouselIndex=(state.mailCarouselIndex-1+n)%n;renderMail()}};$('#mailNextCard').onclick=()=>{const n=unifiedMailItems().length;if(n){state.mailCarouselIndex=(state.mailCarouselIndex+1)%n;renderMail()}};$('#capsulePrevCard').onclick=()=>{const n=(state.capsules||[]).length;if(n){state.capsuleCarouselIndex=(state.capsuleCarouselIndex-1+n)%n;renderCapsules()}};$('#capsuleNextCard').onclick=()=>{const n=(state.capsules||[]).length;if(n){state.capsuleCarouselIndex=(state.capsuleCarouselIndex+1)%n;renderCapsules()}};$('#capsuleAllButton').onclick=openCapsuleArchive;
-if($('#journalSearchButton'))$('#journalSearchButton').onclick=openJournalSearch;if($('#journalSearchInput'))$('#journalSearchInput').oninput=renderJournalSearch;$('#daysTogether').onclick=()=>{setDateModalMode(false);resetDateForm();renderDates();show('#dateModal')};$('#healthButton').onclick=()=>{renderHealthDetails();show('#healthModal');refreshHealthLive(false).catch(()=>{})};$('#healthRefreshButton').onclick=()=>refreshHealthLive(true).catch(()=>{});if($('#healthAppRefresh'))$('#healthAppRefresh').onclick=()=>refreshHealthLive(true).catch(()=>{});$('#statusSettingsButton').onclick=()=>go('settings');$('#settingsBack').onclick=()=>go('desktop');$('#settingsDetailBack').onclick=()=>go('settings');
+if($('#journalSearchButton'))$('#journalSearchButton').onclick=openJournalSearch;if($('#journalSearchInput'))$('#journalSearchInput').oninput=renderJournalSearch;$('#daysTogether').onclick=()=>{setDateModalMode(false);resetDateForm();renderDates();show('#dateModal')};$('#healthButton').onclick=()=>{renderHealthDetails();show('#healthModal')};$('#healthRefreshButton').onclick=()=>refreshHealthLive(true).catch(()=>{});if($('#healthAppRefresh'))$('#healthAppRefresh').onclick=()=>refreshHealthLive(true).catch(()=>{});$('#statusSettingsButton').onclick=()=>go('settings');$('#settingsBack').onclick=()=>go('desktop');$('#settingsDetailBack').onclick=()=>go('settings');
 // v0.7.5: delegate settings navigation so taps survive page rerenders/WebView quirks.
 document.addEventListener('click',e=>{const row=e.target.closest('[data-settings-section]');if(!row)return;e.preventDefault();e.stopPropagation();openSettingsSection(row.dataset.settingsSection)});
 if($('#mailSearch'))$('#mailSearch').oninput=e=>{state.mailSearch=e.target.value;renderMail()};$('#profileChoosePhoto').onclick=()=>{if(hasNative()&&window.LittlePhoneNative.pickAvatar){window.LittlePhoneNative.pickAvatar(state.profileEditing)}else $(state.profileEditing==='daddy'?'#avatarDaddyInput':'#avatarRyanInput').click()};$('#profileSave').onclick=saveProfile;$('#dateAdd').onclick=addDate;$('#datePrev').onclick=()=>{state.dateMonthOffset--;renderDates()};$('#dateNext').onclick=()=>{state.dateMonthOffset++;renderDates()};$('#homeDatePrev').onclick=()=>{state.homeMonthOffset--;renderHomeCalendar()};$('#homeDateNext').onclick=()=>{state.homeMonthOffset++;renderHomeCalendar()};$('#cycleSave').onclick=saveCycle;$('#recordAdd').onclick=addCycleRecord;$('#cyclePrev').onclick=()=>{state.cycleMonthOffset--;renderCycle()};$('#cycleNext').onclick=()=>{state.cycleMonthOffset++;renderCycle()};

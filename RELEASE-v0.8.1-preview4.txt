@@ -1,0 +1,9 @@
+Little Phone v0.8.1 preview4
+
+Changes:
+- Xiaomi Health no longer refreshes automatically when entering the Health app
+- opening the legacy Health detail modal also no longer triggers refresh
+- only explicit taps on “刷新最新数据” call the live health refresh endpoint
+- cached / last-synced health data continues to display normally
+
+Android versionCode: 80104

@@ -1687,6 +1687,49 @@ body.hasCustomBackground .statusHealthWide{
   .usHubPanelTop{align-items:flex-start;flex-direction:column}.usHubPanelTop .usHubIntro{max-width:100%}
 }
 
+
+/* =========================================================
+   Little Phone 0.8.1 — phone shell preview
+   Keep the existing v0.7.6 liquid-glass system untouched; all new shell
+   surfaces reuse .glass / .contentGlass instead of redefining them.
+   ========================================================= */
+.navWrap{display:none!important}
+body.desktopMode .shell{padding:0!important;min-height:100dvh!important}
+body.miniAppMode .shell{padding-top:calc(env(safe-area-inset-top) + 10px)!important;padding-bottom:calc(48px + env(safe-area-inset-bottom))!important}
+#page-desktop{padding:0!important;margin:0!important;min-height:100dvh!important;height:100dvh!important;overflow:hidden!important}
+.desktopStatusBar{height:calc(44px + env(safe-area-inset-top));padding:calc(env(safe-area-inset-top) + 10px) 22px 8px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:8;font-size:12px;font-weight:680;color:#45516c;letter-spacing:.01em}
+.desktopStatusRight{display:flex;align-items:center;gap:8px;font-size:10px}.desktopSignal{display:flex;gap:2px;align-items:flex-end;height:10px}.desktopSignal i{display:block;width:2px;border-radius:2px;background:currentColor;opacity:.75}.desktopSignal i:nth-child(1){height:3px}.desktopSignal i:nth-child(2){height:5px}.desktopSignal i:nth-child(3){height:7px}.desktopSignal i:nth-child(4){height:9px}.desktopBattery{display:flex;align-items:center;gap:4px}.desktopBatteryShell{width:19px;height:9px;border:1.2px solid currentColor;border-radius:3px;padding:1px;position:relative;opacity:.72}.desktopBatteryShell:after{content:"";position:absolute;width:2px;height:4px;right:-3px;top:1.5px;border-radius:0 2px 2px 0;background:currentColor}.desktopBatteryFill{display:block;height:100%;border-radius:1px;background:currentColor;width:72%}
+.desktopViewport{height:calc(100dvh - env(safe-area-inset-top) - 44px);display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;touch-action:pan-x}
+.desktopViewport::-webkit-scrollbar{display:none}
+.desktopPage{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box;padding:20px 18px calc(126px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(6,minmax(70px,1fr));column-gap:10px;row-gap:8px;align-items:start}
+.desktopApp{appearance:none;border:0;background:transparent;color:#44506a;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;min-width:0;padding:0 1px;font-size:11px;line-height:1.15;text-shadow:0 1px 8px rgba(255,255,255,.62)}
+.desktopApp:active .desktopAppIcon{transform:scale(.91)}
+.desktopAppIcon{width:56px;height:56px;border-radius:17px;display:grid;place-items:center;position:relative;overflow:hidden;transition:transform .13s ease;font-size:24px;color:#596987}
+.desktopAppIcon.glass{box-shadow:0 10px 24px rgba(80,101,143,.08),inset 0 1px 0 rgba(255,255,255,.58)!important}
+.desktopAppIcon:before{content:"";position:absolute;inset:7px;border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(214,233,255,.08),rgba(243,226,255,.08));border:1px solid rgba(255,255,255,.27);pointer-events:none}.desktopAppIcon span{position:relative;z-index:2}.desktopAppLabel{display:block;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.desktopDots{position:fixed;left:50%;bottom:calc(103px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:15;display:flex;gap:6px}.desktopDots i{width:5px;height:5px;border-radius:50%;background:rgba(76,89,122,.22);transition:.2s}.desktopDots i.active{width:14px;border-radius:8px;background:rgba(74,88,126,.48)}
+.desktopDock{position:fixed;z-index:18;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 32px),430px);height:72px;border-radius:27px;padding:7px 11px;display:grid;grid-template-columns:repeat(4,1fr);align-items:center}
+.desktopDock .desktopApp{gap:0}.desktopDock .desktopAppLabel{display:none}.desktopDock .desktopAppIcon{width:50px;height:50px;border-radius:15px;margin:auto}.desktopDock .desktopAppIcon.glass{background:transparent!important}
+.desktopPageTwoNote{grid-column:1/-1;grid-row:3/span 2;align-self:center;text-align:center;color:#8891a4;font-size:11px;line-height:1.65;padding:0 42px}
+
+.systemHomePill{display:none;position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 6px);transform:translateX(-50%);z-index:86;width:118px;height:24px;border:0;background:transparent;padding:0}
+.systemHomePill:before{content:"";position:absolute;left:21px;right:21px;top:8px;height:4px;border-radius:6px;background:rgba(65,73,93,.42);box-shadow:0 1px 5px rgba(255,255,255,.50)}
+body.miniAppMode .systemHomePill{display:block}
+body.desktopMode .systemHomePill{display:none}
+
+.phoneAppPage{min-height:calc(100dvh - env(safe-area-inset-top) - 58px);padding:0 0 34px!important;overflow-x:hidden!important}
+.miniAppHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:2px 2px 18px;padding:0 3px 10px;border-bottom:1px solid rgba(108,124,157,.10)}
+.miniAppTitle{font-family:"Songti SC","STSong",serif;font-size:36px;line-height:1;color:#2f3d58;letter-spacing:-.04em}.miniAppTitle small{display:block;font-family:system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:.04em;color:#969dae;margin-top:7px}.miniAppActions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.appSectionTitle{font-family:"Songti SC","STSong",serif;font-size:20px;color:#46526a;margin:20px 4px 10px}.appList{display:grid;gap:10px}.appList .paperThreadCard{margin:0}.appEmpty{padding:28px 16px;text-align:center;color:#9199a8}
+.mailAppCard{padding:15px;border-radius:24px;cursor:pointer}.mailAppCard+.mailAppCard{margin-top:9px}.mailAppMeta{display:flex;justify-content:space-between;gap:12px;font-size:9px;color:#989eac}.mailAppBody{font-size:13px;line-height:1.65;margin-top:9px;white-space:pre-wrap;color:#566074}.mailAppLocked{opacity:.72}.mailAppFutureDate{font-size:11px;color:#7b86a0;margin-top:7px}
+#riverAppScroller{min-height:430px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}#riverAppScroller::-webkit-scrollbar{display:none}#riverAppTrack{height:400px;position:relative}
+.healthAppGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.healthAppMetric{border-radius:22px;padding:16px;min-height:88px}.healthAppMetric small{display:block;font-size:10px;color:#9199a9}.healthAppMetric b{display:block;margin-top:9px;font-size:23px;font-weight:680;color:#44516c}.healthAppWide{grid-column:1/-1}.healthAppNote{font-size:11px;line-height:1.65;color:#8d95a4;margin-top:8px}
+.appCalendarCard{border-radius:27px;padding:13px}.appCalendarUpcoming{display:grid;gap:8px;margin-top:12px}.appCalendarUpcoming .glass{padding:12px 14px;border-radius:19px}.appCalendarUpcoming b{font-size:12px}.appCalendarUpcoming small{display:block;margin-top:4px;color:#929aaa;font-size:9px}
+.phoneAppHero{border-radius:28px;padding:18px;margin-bottom:12px}.phoneAppGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.phoneAppMetric{border-radius:21px;padding:15px}.phoneAppMetric small{display:block;color:#9299a8;font-size:9px}.phoneAppMetric b{display:block;margin-top:8px;font-size:20px;color:#44516c}.phoneTopApps{display:grid;gap:8px;margin-top:14px}
+#page-settings,#page-settings-detail{padding-bottom:42px!important}
+body.miniAppMode #page-diary{padding-bottom:36px!important}
+@media(max-width:390px){.desktopPage{padding-left:11px;padding-right:11px;column-gap:6px}.desktopAppIcon{width:53px;height:53px}.desktopAppLabel{font-size:10px}.desktopDock{width:calc(100% - 22px)}}
+
 </style>
 </head>
 <body>
@@ -1699,6 +1742,38 @@ body.hasCustomBackground .statusHealthWide{
   <div class="offlineBanner" id="offlineBanner">暂时无法连接 server，正在显示上次成功同步的内容。</div>
 
   <main>
+
+    <section class="page active" id="page-desktop">
+      <div class="desktopStatusBar" aria-label="小手机状态栏">
+        <span id="desktopClock">21:01</span>
+        <div class="desktopStatusRight"><span id="desktopNetwork">Wi‑Fi</span><span class="desktopSignal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="desktopBattery"><span id="desktopBatteryText">—%</span><span class="desktopBatteryShell"><i class="desktopBatteryFill" id="desktopBatteryFill"></i></span></span></div>
+      </div>
+      <div class="desktopViewport" id="desktopViewport">
+        <div class="desktopPage" data-desktop-page="0">
+          <button class="desktopApp" data-open-app="diary"><span class="desktopAppIcon glass"><span>⌑</span></span><span class="desktopAppLabel">日记</span></button>
+          <button class="desktopApp" data-open-app="papers"><span class="desktopAppIcon glass"><span>✎</span></span><span class="desktopAppLabel">纸条</span></button>
+          <button class="desktopApp" data-open-app="memory"><span class="desktopAppIcon glass"><span>⌁</span></span><span class="desktopAppLabel">记得</span></button>
+          <button class="desktopApp" data-open-app="mail"><span class="desktopAppIcon glass"><span>✉</span></span><span class="desktopAppLabel">信箱</span></button>
+          <button class="desktopApp" data-open-app="river"><span class="desktopAppIcon glass"><span>≈</span></span><span class="desktopAppLabel">时间河</span></button>
+          <button class="desktopApp" data-open-app="health"><span class="desktopAppIcon glass"><span>♡</span></span><span class="desktopAppLabel">小米健康</span></button>
+          <button class="desktopApp" data-open-app="calendar"><span class="desktopAppIcon glass"><span>□</span></span><span class="desktopAppLabel">日历</span></button>
+          <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
+        </div>
+        <div class="desktopPage" data-desktop-page="1">
+          <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">手机</span></button>
+          <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
+          <div class="desktopPageTwoNote">第二页先留空。以后聊天、相册、电话、通知中心都可以直接作为新的 App 放进来，不再改整台小手机的结构。</div>
+        </div>
+      </div>
+      <div class="desktopDots" aria-hidden="true"><i class="active" data-desktop-dot="0"></i><i data-desktop-dot="1"></i></div>
+      <div class="glass desktopDock" id="desktopDock">
+        <button class="desktopApp" data-open-app="diary"><span class="desktopAppIcon glass"><span>⌑</span></span><span class="desktopAppLabel">日记</span></button>
+        <button class="desktopApp" data-open-app="mail"><span class="desktopAppIcon glass"><span>✉</span></span><span class="desktopAppLabel">信箱</span></button>
+        <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
+        <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
+      </div>
+    </section>
+
     <section class="page" id="page-diary">
       <div class="journalIntegratedHead">
         <div>
@@ -1738,7 +1813,7 @@ body.hasCustomBackground .statusHealthWide{
       </div>
     </section>
 
-    <section class="page active" id="page-home">
+    <section class="page" id="page-home">
       <div class="homeFlourishLayer" aria-hidden="true"><span class="scriptGhost one">𝓌𝒾𝓉𝒽 𝓎ℴ𝓊</span><span class="scriptGhost two">𝓈ℴ𝒻𝓉𝓁𝓎 · 𝒶𝓁𝓌𝒶𝓎𝓈</span><svg class="flourishStroke" viewBox="0 0 720 190" preserveAspectRatio="none"><path d="M8 93 C92 48 161 50 225 86 S351 126 419 82 S558 38 708 72"/><path d="M458 135 C510 106 557 108 605 137 C637 157 665 158 704 143"/></svg><i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i></div>
       <div class="homeStack">
         <div class="togetherVisual" aria-label="相伴天数">
@@ -1849,6 +1924,52 @@ body.hasCustomBackground .statusHealthWide{
     </section>
 
 
+
+    <section class="page phoneAppPage" id="page-app-papers">
+      <div class="miniAppHead"><div class="miniAppTitle">纸条<small>你和 daddy 留下来的小纸片</small></div><div class="miniAppActions"><button class="softBtn" data-compose="paper">写纸条</button></div></div>
+      <div class="appList" id="paperAppList"></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-memory">
+      <div class="miniAppHead"><div class="miniAppTitle">记得<small>真正留下来的理解</small></div></div>
+      <div class="appList" id="memoryAppList"></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-mail">
+      <div class="miniAppHead"><div class="miniAppTitle">信箱<small>普通信与未来信</small></div><div class="miniAppActions"><button class="softBtn" data-compose="capsule">未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
+      <div class="appSectionTitle">普通信</div><div id="mailAppNormal"></div>
+      <div class="appSectionTitle">未来信</div><div id="mailAppFuture"></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-river">
+      <div class="miniAppHead"><div class="miniAppTitle">时间河<small>我们的日常册</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
+      <div class="glass riverShell heroGlass"><div class="riverHint">左右滑动 · 点气泡展开</div><div class="riverScroller" id="riverAppScroller"><div class="riverTrack" id="riverAppTrack"></div></div></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-health">
+      <div class="miniAppHead"><div class="miniAppTitle">小米健康<small>睡眠 · 心率 · 步数</small></div><div class="miniAppActions"><button class="softBtn" id="healthAppRefresh">刷新</button></div></div>
+      <div class="healthAppGrid" id="healthAppBody"></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-calendar">
+      <div class="miniAppHead"><div class="miniAppTitle">日历<small>纪念日与重要日期</small></div></div>
+      <div class="glass appCalendarCard">
+        <div class="calendarHead"><button class="softBtn" id="appCalendarPrev">‹</button><div class="dateTitle" id="appCalendarTitle"></div><button class="softBtn" id="appCalendarNext">›</button></div>
+        <div class="monthGrid" id="appCalendarGrid"></div>
+      </div>
+      <div class="appSectionTitle">接下来</div><div class="appCalendarUpcoming" id="appCalendarUpcoming"></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-todo">
+      <div class="miniAppHead"><div class="miniAppTitle">待办<small>今天和接下来的事</small></div><div class="miniAppActions"><button class="softBtn" data-compose="todo">添加</button></div></div>
+      <div class="appList" id="todoAppList"></div>
+    </section>
+
+    <section class="page phoneAppPage" id="page-app-phone">
+      <div class="miniAppHead"><div class="miniAppTitle">手机<small>这台真实手机今天的状态</small></div></div>
+      <div id="phoneAppBody"></div>
+    </section>
+
     <section class="page" id="page-status">
       <div class="sectionHead statusHead"><div><h2>状态</h2><p>健康、足迹和手机今天的样子。</p></div><button class="iconBtn settingsIcon" id="statusSettingsButton" aria-label="设置">⚙</button></div>
       <button class="glass statusHealthWide" id="healthButton">
@@ -1882,7 +2003,7 @@ body.hasCustomBackground .statusHealthWide{
     </section>
 
     <section class="page" id="page-settings">
-      <div class="settingsPageHead"><button class="journalBack" id="settingsBack">‹</button><div><div class="eyebrow">状态</div><div class="settingsTitle">设置</div></div></div>
+      <div class="settingsPageHead"><button class="journalBack" id="settingsBack">‹</button><div><div class="eyebrow">小手机</div><div class="settingsTitle">设置</div></div></div>
       <div class="glass settingsList">
         <button class="settingsRow" data-settings-section="reminders"><span><b>来电与提醒</b><small id="reminderSummary">来电、喝水、休息</small></span><i>›</i></button>
         <button class="settingsRow" data-settings-section="permissions"><span><b>设备权限</b><small>通知、Usage、无障碍、后台与电池</small></span><i>›</i></button>
@@ -1898,6 +2019,8 @@ body.hasCustomBackground .statusHealthWide{
     </section>
   </main>
 </div>
+
+<button class="systemHomePill" id="systemHomePill" aria-label="回到小手机桌面"></button>
 
 <div class="navWrap"><nav class="glass nav navGlass" id="nav">
   <button data-page="diary"><span class="ico">⌑</span><span>日记</span></button>
@@ -1924,8 +2047,8 @@ body.hasCustomBackground .statusHealthWide{
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={page:'home',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces'};
-const pageMeta={home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],settings:['状态 · 设置',''],"settings-detail":['设置','']};
+const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0};
+const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-health':['小米健康',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['手机',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -1949,7 +2072,7 @@ function readNative(){
   state.guidian=hasNative()&&window.LittlePhoneNative.getGuidianConfig?parse(window.LittlePhoneNative.getGuidianConfig(),{}):{};
   state.gate=hasNative()&&window.LittlePhoneNative.getAppGateState?parse(window.LittlePhoneNative.getAppGateState(),{}):{};if(hasNative()&&window.LittlePhoneNative.getCallRecords){try{state.calls=mergeCalls(state.calls)}catch{}}
   if(state.profile.ryan_name)state.native.user_name=state.profile.ryan_name;if(state.profile.daddy_name)state.native.companion_name=state.profile.daddy_name;
-  for(const fn of [renderNative,renderPolicy,applyAvatars,renderReminderSummary,renderGateSummary]){try{fn()}catch(e){console.warn('little-phone render',e)}}
+  for(const fn of [renderNative,renderPolicy,applyAvatars,renderReminderSummary,renderGateSummary,renderDesktopSystemBar,renderPhoneApp]){try{fn()}catch(e){console.warn('little-phone render',e)}}
 }
 function renderReminderSummary(){
   const r=state.reminders||{},g=state.guidian||{};
@@ -1965,7 +2088,7 @@ function renderReminderSummary(){
 }
 
 function formatUsage(m){m=Number(m||0);return m<60?`${m} 分钟`:`${Math.floor(m/60)}小时${m%60?m%60+'分':''}`}
-function tick(){const d=new Date(),wd='日一二三四五六'[d.getDay()];$('#heroClock').textContent=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;$('#heroDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${wd}`;const h=d.getHours();const name=state.native.user_name||'瑞安';$('#pageTitle').textContent=`${h<6?'夜深了':h<11?'早上好':h<14?'中午好':h<18?'下午好':'晚上好'}，${name}`}
+function tick(){const d=new Date(),wd='日一二三四五六'[d.getDay()],clock=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;if($('#heroClock'))$('#heroClock').textContent=clock;if($('#heroDate'))$('#heroDate').textContent=`${d.getMonth()+1}月${d.getDate()}日 · 星期${wd}`;if($('#desktopClock'))$('#desktopClock').textContent=clock;const h=d.getHours();const name=state.native.user_name||'瑞安';if($('#pageTitle'))$('#pageTitle').textContent=`${h<6?'夜深了':h<11?'早上好':h<14?'中午好':h<18?'下午好':'晚上好'}，${name}`}
 function ago(iso){if(!iso)return'';const t=new Date(iso).getTime();if(!Number.isFinite(t))return'';const s=Math.max(0,Math.floor((Date.now()-t)/1000));if(s<60)return'刚刚';if(s<3600)return`${Math.floor(s/60)} 分钟前`;if(s<86400)return`${Math.floor(s/3600)} 小时前`;return`${Math.floor(s/86400)} 天前`}
 function fmt(iso){if(!iso)return'';const d=new Date(iso);return Number.isNaN(d.getTime())?iso:d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
 function dayLabel(iso){const d=new Date(iso);if(Number.isNaN(+d))return iso||'某一天';const now=new Date();if(d.toDateString()===now.toDateString())return'今天';const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return'昨天';return`${d.getMonth()+1}月${d.getDate()}日`}
@@ -1978,29 +2101,48 @@ function setUsHubTab(tab,scrollTop=false){
   applyPageBackground();
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }
+function openMiniApp(app){
+  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',health:'app-health',calendar:'app-calendar',todo:'app-todo',phone:'app-phone',settings:'settings'};
+  const page=map[app]||'desktop';go(page);
+}
 function go(page,push=true){
-  if(page==='traces'||page==='mail'){state.usHubTab=page;page='us'}
+  if(page==='home')page='desktop';
+  if(page==='traces')page='app-river';
+  if(page==='mail')page='app-mail';
+  if(page==='status')page='app-phone';
   if(!pageMeta[page])return;
   const same=page===state.page;
-  if(!same&&push)state.navHistory.push(state.page);
+  if(!same&&push&&state.page)state.navHistory.push(state.page);
   state.page=page;
   $$('.page').forEach(x=>x.classList.remove('active'));
   const target=$(`#page-${page}`);if(target)target.classList.add('active');
-  const navPage=(page==='settings'||page==='settings-detail')?'status':page;
-  $$('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===navPage));
   document.body.classList.toggle('settingsMode',page==='settings'||page==='settings-detail');
   document.body.classList.toggle('diaryMode',page==='diary');
+  document.body.classList.toggle('desktopMode',page==='desktop');
+  document.body.classList.toggle('miniAppMode',page!=='desktop');
   document.body.dataset.page=page;
-  if(!same)window.scrollTo({top:0,behavior:'smooth'});
+  if(!same)window.scrollTo({top:0,behavior:'auto'});
   applyPageBackground();
-  if(page==='home'){renderHome();requestAnimationFrame(triggerPairBump)}
-  if(page==='us')setUsHubTab(state.usHubTab||'traces',false);
-  if(page==='status'){renderUs();refreshHealthLive(false).catch(()=>{})}
-  if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournal();}
+  if(page==='desktop'){renderDesktopShell();return}
+  if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournal();return}
+  if(page==='app-papers')renderPaperApp();
+  if(page==='app-memory')renderMemoryApp();
+  if(page==='app-mail')renderMailApp();
+  if(page==='app-river')renderRiverApp();
+  if(page==='app-health'){renderHealthApp();refreshHealthLive(false).catch(()=>{})}
+  if(page==='app-calendar')renderCalendarApp();
+  if(page==='app-todo')renderTodoApp();
+  if(page==='app-phone')renderPhoneApp();
   if(page==='settings'){renderReminderSummary();renderGateSummary();renderNative()}
   if(page==='settings-detail')renderSettingsDetail(state.settingsSection);
 }
-$$('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));$$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));$$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
+$$('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));
+$$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+$$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
+$$('[data-open-app]').forEach(b=>b.onclick=()=>openMiniApp(b.dataset.openApp));
+if($('#systemHomePill'))$('#systemHomePill').onclick=()=>go('desktop');
+const desktopViewport=$('#desktopViewport');
+if(desktopViewport){desktopViewport.addEventListener('scroll',()=>{const w=Math.max(1,desktopViewport.clientWidth),idx=Math.max(0,Math.min(1,Math.round(desktopViewport.scrollLeft/w)));$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx))},{passive:true})}
 function serverUrl(path){const base=(state.conn.server||'').replace(/\/$/,'');return /^(https?:|data:|blob:)/i.test(path)?path:`${base}${path.startsWith('/')?'':'/'}${path}`}
 const CACHE_KEY='lp_v052_remote_cache';
 const PENDING_TRACE_KEY='lp_v051_pending_traces_r3';
@@ -2041,7 +2183,7 @@ async function flushPendingEvents(){if(!state.conn.connected||!state.pendingEven
 function loadCache(){let raw='';if(hasNative()&&window.LittlePhoneNative.getLocalCache){try{raw=window.LittlePhoneNative.getLocalCache()||''}catch{}}if(!raw)raw=localStorage.getItem(CACHE_KEY)||'';const c=parse(raw,null);if(!c)return;for(const k of ['visit','events','papers','mail','capsules','dailybook','diaries','todos','dates','cycle','statuses','calls','memories','health','profile'])if(c[k]!==undefined)state[k]=c[k]}
 function saveCache(){try{const raw=JSON.stringify({visit:state.visit,events:state.events,papers:state.papers,mail:state.mail,capsules:state.capsules,dailybook:state.dailybook,diaries:state.diaries,todos:state.todos,dates:state.dates,cycle:state.cycle,statuses:state.statuses,calls:state.calls,memories:state.memories,health:state.health,profile:state.profile,saved_at:Date.now()});localStorage.setItem(CACHE_KEY,raw);if(hasNative()&&window.LittlePhoneNative.setLocalCache){try{window.LittlePhoneNative.setLocalCache(raw)}catch{}}}catch{}}
 function renderAll(){
-  const jobs=[renderHome,renderTraceHub,renderMail,renderCapsules,renderRiver,renderTodos,renderUs,renderPaperBox,renderDates,renderJournal,renderHealth];
+  const jobs=[renderHome,renderTraceHub,renderMail,renderCapsules,renderRiver,renderTodos,renderUs,renderPaperBox,renderDates,renderJournal,renderHealth,renderMiniApps,renderDesktopSystemBar];
   for(const job of jobs){try{job()}catch(e){console.warn('render failed',job.name,e)}}
 }
 async function loadRemote(){
@@ -2133,7 +2275,7 @@ function healthTimeLabel(value){if(!value)return'—';const d=new Date(value);re
 function localDateKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function healthMetric(v,suffix=''){return v===null||v===undefined||v===''?'暂无数据':`${v}${suffix}`}
 function healthRefreshMessage(){if(state.healthRefreshing)return'正在读取小米健康…';if(state.healthRefreshError){const e=String(state.healthRefreshError);if(e.includes('timeout')||e.includes('unreachable'))return'健康服务正在唤醒或暂时不可达，保留上次数据';if(e.includes('not_configured'))return'健康桥尚未配置';return'这次同步没有成功，仍显示上次数据'}const h=state.health||{};if(h.connected&&h.updated_at)return`已同步 · ${ago(h.updated_at)}`;return'进入状态页会自动读取最新数据'}
-async function refreshHealthLive(force=false){if(!state.conn.connected||state.healthRefreshing)return false;const now=Date.now();if(!force&&state.healthRefreshAt&&now-state.healthRefreshAt<90000)return false;state.healthRefreshing=true;state.healthRefreshError='';renderHealth();renderHealthDetails();try{const date=localDateKey();const r=await nativeRequestLong('POST','/api/littlephone/health/refresh',{date},70000);if(r?.connected||r?.sleep||r?.steps||r?.heart_rate){state.health={...state.health,...r,connected:Boolean(r.connected!==false),date:r.date||date};state.healthRefreshAt=Date.now();saveCache()}else{const fresh=await nativeRequestLong('GET',`/api/littlephone/health/summary?date=${date}`,{},30000);state.health={...state.health,...fresh};state.healthRefreshAt=Date.now();saveCache()}return true}catch(e){state.healthRefreshError=e?.message||'health_refresh_failed';return false}finally{state.healthRefreshing=false;renderHealth();renderHealthDetails()}}
+async function refreshHealthLive(force=false){if(!state.conn.connected||state.healthRefreshing)return false;const now=Date.now();if(!force&&state.healthRefreshAt&&now-state.healthRefreshAt<90000)return false;state.healthRefreshing=true;state.healthRefreshError='';renderHealth();renderHealthDetails();try{const date=localDateKey();const r=await nativeRequestLong('POST','/api/littlephone/health/refresh',{date},70000);if(r?.connected||r?.sleep||r?.steps||r?.heart_rate){state.health={...state.health,...r,connected:Boolean(r.connected!==false),date:r.date||date};state.healthRefreshAt=Date.now();saveCache()}else{const fresh=await nativeRequestLong('GET',`/api/littlephone/health/summary?date=${date}`,{},30000);state.health={...state.health,...fresh};state.healthRefreshAt=Date.now();saveCache()}return true}catch(e){state.healthRefreshError=e?.message||'health_refresh_failed';return false}finally{state.healthRefreshing=false;renderHealth();renderHealthDetails();renderHealthApp()}}
 function formatHealthClock(v){if(v===null||v===undefined||v==='')return'';if(typeof v==='number'||/^\d{10,13}$/.test(String(v))){let n=Number(v);if(n<1e12)n*=1000;const d=new Date(n);if(!isNaN(d))return d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}const str=String(v);const m=str.match(/(?:T|\s)(\d{1,2}:\d{2})/)||str.match(/^(\d{1,2}:\d{2})/);if(m)return m[1];const d=new Date(str);return isNaN(d)?str:d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}
 function renderHealthDetails(){const h=state.health||{},root=$('#healthDetails');if(!root)return;if(state.healthRefreshing&&!h.connected){root.innerHTML='<div class="hintBox">正在读取小米健康… 如果 Render 刚从休眠中唤醒，第一次会慢一些。</div>';return}if(!h.connected){root.innerHTML=`<div class="hintBox">${esc(healthRefreshMessage())}</div><div class="healthRow"><span>数据源</span><b>${esc(h.source||'not_connected')}</b></div>`;return}const sl=h.sleep||{},hr=h.heart_rate||{},st=h.steps||{},cy=h.cycle||{},mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,distance=st.distance??st.distance_m??st.distance_meters,calories=st.calories??st.kcal,heartNow=hr.latest??hr.resting??hr.average;const deep=Number(sl.deep_minutes||0)>0?`${sl.deep_minutes} 分钟`:'暂无细分',light=Number(sl.light_minutes||0)>0?`${sl.light_minutes} 分钟`:'暂无细分',rem=Number(sl.rem_minutes||0)>0?`${sl.rem_minutes} 分钟`:'暂无细分',sleepAt=formatHealthClock(sl.sleep_at),wakeAt=formatHealthClock(sl.wake_at);root.innerHTML=`<div class="healthSummaryGrid"><div class="healthMetric"><small>昨夜睡眠</small><b>${healthMinutesLabel(mins)}</b></div><div class="healthMetric"><small>睡眠评分</small><b>${healthMetric(sl.score)}</b></div><div class="healthMetric"><small>今日步数</small><b>${healthMetric(st.count)}</b></div><div class="healthMetric"><small>最近心率</small><b>${healthMetric(heartNow,heartNow!=null?' bpm':'')}</b></div></div><div class="healthSectionTitle">睡眠</div>${sleepAt||wakeAt?`<div class="healthRow"><span>入睡 → 醒来</span><b>${sleepAt||'—'} → ${wakeAt||'—'}</b></div>`:''}<div class="healthRow"><span>深睡</span><b>${deep}</b></div><div class="healthRow"><span>浅睡</span><b>${light}</b></div><div class="healthRow"><span>REM</span><b>${rem}</b></div><div class="healthSectionTitle">活动</div><div class="healthRow"><span>距离</span><b>${healthMetric(distance,distance!=null?' m':'')}</b></div><div class="healthRow"><span>卡路里</span><b>${healthMetric(calories,calories!=null?' kcal':'')}</b></div>${cy.days_until_next!=null?`<div class="healthRow"><span>预计下次周期</span><b>还有 ${cy.days_until_next} 天</b></div>`:''}<div class="healthSource">${esc(h.source||'')} · ${h.updated_at?fmt(h.updated_at):'暂无更新时间'}</div>`}
 function statusAgo(v){return v?ago(v):'尚未同步'}
@@ -2284,7 +2426,7 @@ function calcDays(){const rel=relationshipInfo(),el=$('#togetherDaysNumber');if(
 function openCompose(mode,item=null){state.compose=mode;state.images=mode==='dailybook-edit'?[...((item&&item.images)||[])]:[];state.editTodoId=item?.id||'';hide('#plusSheet');hide('#todoModal');const modal=$('#composerModal'),title=$('#composerTitle'),body=$('#composerBody');const today=new Date().toISOString().slice(0,10);if(mode==='trace'){title.textContent='留一条痕迹';body.innerHTML=`<input class="field" id="cTitle" placeholder="发生了什么" value="${esc(actorName('user'))}留下一条痕迹"><textarea class="field" id="cText" placeholder="可以只写一句"></textarea><button class="submit" id="cSubmit">留下</button>`}else if(mode==='paper'){title.textContent='留一张纸条';body.innerHTML=`<textarea class="field" id="cText" placeholder="一句话就好"></textarea><button class="submit" id="cSubmit">放进纸条箱</button>`}else if(mode==='mail'){title.textContent='写一封信';body.innerHTML=`<textarea class="field" id="cText" placeholder="写给对方的话"></textarea><button class="submit" id="cSubmit">投进信箱</button>`}else if(mode==='capsule'){title.textContent='封一封未来信';body.innerHTML=`<textarea class="field" id="cText" placeholder="到那一天再看"></textarea><input class="field" id="cDate" type="date" min="${today}"><button class="submit" id="cSubmit">封存</button>`}else if(mode==='todo'||mode==='todo-edit'){title.textContent=mode==='todo'?'添加待办':'编辑待办';body.innerHTML=`<input class="field" id="cTitle" placeholder="要做什么" value="${esc(item?.title||'')}"><label class="meta">到期时间</label><input class="field" id="cDue" type="datetime-local" value="${esc(normalizeLocalDateTime(item?.due_at||''))}"><label class="meta">提醒时间</label><input class="field" id="cRemind" type="datetime-local" value="${esc(normalizeLocalDateTime(item?.remind_at||''))}"><button class="submit" id="cSubmit">${mode==='todo'?'放进今天':'保存修改'}</button>`}else if(mode==='diary-edit'){state.editDiaryId=item?.id||'';title.textContent='编辑日记';body.innerHTML=`<input class="field" id="cTitle" placeholder="标题" value="${esc(item?.title||'')}"><textarea class="field" id="cText" placeholder="正文">${esc(item?.content||'')}</textarea><input class="field" id="cDate" type="date" value="${esc(item?.date||today)}"><button class="submit" id="cSubmit">保存修改</button>`}else if(mode==='dailybook'||mode==='dailybook-edit'){state.dailybookEditId=item?.id||'';title.textContent=mode==='dailybook'?'写进日常册':'编辑日常册';body.innerHTML=`<div class="formRow"><input class="field" id="cTitle" placeholder="标题" value="${esc(item?.title||'')}"><input class="field" id="cMood" placeholder="心情" value="${esc(item?.mood||'')}"></div><textarea class="field" id="cText" placeholder="今天发生了什么">${esc(item?.content||'')}</textarea><input class="field" id="cDate" type="date" value="${esc(item?.date||today)}"><input class="field" id="cImages" type="file" accept="image/*" multiple><div class="photos" id="photoPreview"></div><button class="submit" id="cSubmit">${mode==='dailybook'?'放进时间河':'保存修改'}</button>`}show('#composerModal');if($('#cImages'))$('#cImages').onchange=e=>loadImages([...e.target.files]);$('#cSubmit').onclick=submitCompose}
 function normalizeLocalDateTime(v){if(!v)return'';const d=new Date(v);if(Number.isNaN(+d))return v.slice(0,16);const pad=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
 function loadImages(files){state.images=[];const preview=$('#photoPreview');preview.innerHTML='';files.slice(0,9).forEach(file=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);const data=c.toDataURL('image/jpeg',.8);state.images.push({data,mime:'image/jpeg'});const thumb=document.createElement('img');thumb.src=data;preview.appendChild(thumb)};img.src=r.result};r.readAsDataURL(file)})}
-async function submitCompose(){if(!state.conn.connected&&!["trace","paper","mail"].includes(state.compose))return toast('先连接自己的 server');const mode=state.compose,author=actorName('user'),btn=$('#cSubmit');btn.disabled=true;let localOnly=false;try{if(mode==='trace'){const title=$('#cTitle').value.trim()||`${author} 留下一条痕迹`,content=$('#cText').value.trim();await addLocalTrace(title,content,'manual');localOnly=true}else if(mode==='paper'){const content=$('#cText').value.trim();if(!content)throw new Error('纸条还是空的');const id=mutationId('paper'),created_at=new Date().toISOString(),body={client_id:id,author:'user',content};const r=await writeWithLocalFallback('/api/littlephone/papers',body,'paper',{id,author:'user',content,created_at,pending:true});localOnly=!r.remote}else if(mode==='mail'){const content=$('#cText').value.trim();if(!content)throw new Error('信还是空的');const id=mutationId('mail'),created_at=new Date().toISOString(),body={client_id:id,author:'user',content,kind:'letter'};const r=await writeWithLocalFallback('/api/mail',body,'mail',{id,author:'user',content,kind:'letter',created_at,user_seen:true,daddy_seen:false,pending:true});localOnly=!r.remote}else if(mode==='capsule'){const content=$('#cText').value.trim(),unlock_at=$('#cDate').value;if(!content||!unlock_at)throw new Error('正文和日期都要填');await apiWrite('/api/capsules',{author:'user',content,unlock_at})}else if(mode==='todo'){const title=$('#cTitle').value.trim();if(!title)throw new Error('待办还是空的');await apiWrite('/api/littlephone/todos',{author:'user',title,due_at:$('#cDue').value,remind_at:$('#cRemind').value})}else if(mode==='todo-edit'){const title=$('#cTitle').value.trim();if(!title)throw new Error('待办还是空的');await apiWrite('/api/littlephone/todos/update',{id:state.editTodoId,title,due_at:$('#cDue').value,remind_at:$('#cRemind').value})}else if(mode==='diary-edit'){const title=$('#cTitle').value.trim()||'今天',content=$('#cText').value.trim(),date=$('#cDate').value;if(!content)throw new Error('日记正文不能为空');await apiWrite('/api/littlephone/diaries/update',{id:state.editDiaryId,title,content,date})}else if(mode==='dailybook'){const title=$('#cTitle').value.trim()||'今天',content=$('#cText').value.trim();if(!content&&!state.images.length)throw new Error('写一点，或者放一张照片');await apiWrite('/api/littlephone/dailybook',{author:'user',title,mood:$('#cMood').value.trim(),content,date:$('#cDate').value,images:state.images})}else if(mode==='dailybook-edit'){const title=$('#cTitle').value.trim()||'今天',content=$('#cText').value.trim();await apiWrite('/api/littlephone/dailybook/update',{id:state.dailybookEditId,actor:'user',title,mood:$('#cMood').value.trim(),content,date:$('#cDate').value,images:state.images})}hide('#composerModal');if(localOnly){saveCache();renderAll();toast(mode==='trace'?'已经留在本机':'已先保存在手机，server 恢复后会自动同步')}else{toast('已经放好了');await loadRemote()}if(mode==='mail'||mode==='capsule')go('mail');if(mode==='diary-edit')go('diary');if(mode==='dailybook'||mode==='dailybook-edit'||mode==='trace')go('traces');if(mode==='paper'){renderPaperBox();show('#paperModal')}}catch(e){toast(e.message||'没有成功')}finally{btn.disabled=false}}
+async function submitCompose(){if(!state.conn.connected&&!["trace","paper","mail"].includes(state.compose))return toast('先连接自己的 server');const mode=state.compose,author=actorName('user'),btn=$('#cSubmit');btn.disabled=true;let localOnly=false;try{if(mode==='trace'){const title=$('#cTitle').value.trim()||`${author} 留下一条痕迹`,content=$('#cText').value.trim();await addLocalTrace(title,content,'manual');localOnly=true}else if(mode==='paper'){const content=$('#cText').value.trim();if(!content)throw new Error('纸条还是空的');const id=mutationId('paper'),created_at=new Date().toISOString(),body={client_id:id,author:'user',content};const r=await writeWithLocalFallback('/api/littlephone/papers',body,'paper',{id,author:'user',content,created_at,pending:true});localOnly=!r.remote}else if(mode==='mail'){const content=$('#cText').value.trim();if(!content)throw new Error('信还是空的');const id=mutationId('mail'),created_at=new Date().toISOString(),body={client_id:id,author:'user',content,kind:'letter'};const r=await writeWithLocalFallback('/api/mail',body,'mail',{id,author:'user',content,kind:'letter',created_at,user_seen:true,daddy_seen:false,pending:true});localOnly=!r.remote}else if(mode==='capsule'){const content=$('#cText').value.trim(),unlock_at=$('#cDate').value;if(!content||!unlock_at)throw new Error('正文和日期都要填');await apiWrite('/api/capsules',{author:'user',content,unlock_at})}else if(mode==='todo'){const title=$('#cTitle').value.trim();if(!title)throw new Error('待办还是空的');await apiWrite('/api/littlephone/todos',{author:'user',title,due_at:$('#cDue').value,remind_at:$('#cRemind').value})}else if(mode==='todo-edit'){const title=$('#cTitle').value.trim();if(!title)throw new Error('待办还是空的');await apiWrite('/api/littlephone/todos/update',{id:state.editTodoId,title,due_at:$('#cDue').value,remind_at:$('#cRemind').value})}else if(mode==='diary-edit'){const title=$('#cTitle').value.trim()||'今天',content=$('#cText').value.trim(),date=$('#cDate').value;if(!content)throw new Error('日记正文不能为空');await apiWrite('/api/littlephone/diaries/update',{id:state.editDiaryId,title,content,date})}else if(mode==='dailybook'){const title=$('#cTitle').value.trim()||'今天',content=$('#cText').value.trim();if(!content&&!state.images.length)throw new Error('写一点，或者放一张照片');await apiWrite('/api/littlephone/dailybook',{author:'user',title,mood:$('#cMood').value.trim(),content,date:$('#cDate').value,images:state.images})}else if(mode==='dailybook-edit'){const title=$('#cTitle').value.trim()||'今天',content=$('#cText').value.trim();await apiWrite('/api/littlephone/dailybook/update',{id:state.dailybookEditId,actor:'user',title,mood:$('#cMood').value.trim(),content,date:$('#cDate').value,images:state.images})}hide('#composerModal');if(localOnly){saveCache();renderAll();toast(mode==='trace'?'已经留在本机':'已先保存在手机，server 恢复后会自动同步')}else{toast('已经放好了');await loadRemote()}if(mode==='mail'||mode==='capsule')go('mail');if(mode==='diary-edit')go('diary');if(mode==='dailybook'||mode==='dailybook-edit'||mode==='trace')go('traces');if(mode==='paper'){renderPaperBox();renderPaperApp();if(state.page!=='app-papers')show('#paperModal')}}catch(e){toast(e.message||'没有成功')}finally{btn.disabled=false}}
 async function deleteItem(path,id,label,after){if(!state.conn.connected)return toast('当前离线，暂时不能删除');if(!confirm(`确定删除${label}吗？`))return;try{await apiWrite(path,{id});toast('已删除');if(after)after();await loadRemote()}catch(e){toast(e.message||'删除失败')}}
 function openDetail(title,html){$('#detailTitle').textContent=title;$('#detailBody').innerHTML=html;show('#detailModal')}
 
@@ -2347,6 +2489,81 @@ function todoItemHtml(t,archived=false){return `<div class="glass contentGlass t
 function renderTodoModal(){const root=$('#todoList');if(!root)return;if(!state.conn.connected&&!state.todos.length){root.innerHTML='<div class="glass empty">连接后显示待办。</div>';return}const current=state.todos.filter(t=>!(t.done&&todoDuePast(t))),archive=state.todos.filter(t=>t.done&&todoDuePast(t));root.innerHTML=(current.length?current.map(t=>todoItemHtml(t)).join(''):'<div class="glass empty">当前没有待办。</div>')+(archive.length?`<div class="todoArchiveTitle">历史 / 已归档</div>${archive.map(t=>todoItemHtml(t,true)).join('')}`:'');$$('[data-todo-modal]').forEach(x=>x.onchange=()=>toggleTodo(x.dataset.todoModal,x.checked));$$('[data-edit-todo]').forEach(b=>b.onclick=()=>openCompose('todo-edit',state.todos.find(t=>String(t.id)===String(b.dataset.editTodo))));$$('[data-delete-todo]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/todos/delete',b.dataset.deleteTodo,'这个待办'))}
 function paperReplyHtml(r){const side=authorSide(r.author);return `<div class="paperReplyNote"><div class="replyWho ${side==='user'?'identityUser':'identityDaddy'}">${esc(actorName(r.author||''))}</div><div class="replyText authoredText ${side}">${esc(r.content||'')}</div><div class="replyWhen">${fmt(r.created_at)}</div></div>`}
 function paperRootsSorted(){const ids=new Set((state.papers||[]).map(p=>String(p.id)));return (state.papers||[]).filter(p=>!p.reply_to||!ids.has(String(p.reply_to))).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))}
+
+function renderDesktopSystemBar(){
+  const n=state.native||{},battery=Math.max(0,Math.min(100,Number(n.battery_percent??0)));
+  if($('#desktopNetwork'))$('#desktopNetwork').textContent=String(n.network_type||'').toLowerCase().includes('wifi')?'Wi‑Fi':(n.network_type||'离线');
+  if($('#desktopBatteryText'))$('#desktopBatteryText').textContent=n.battery_percent>=0?`${Math.round(battery)}%`:'—';
+  if($('#desktopBatteryFill'))$('#desktopBatteryFill').style.width=`${battery}%`;
+}
+function renderDesktopShell(){renderDesktopSystemBar();applyAvatars();applyIdentityTheme()}
+function renderMiniApps(){
+  renderPaperApp();renderMemoryApp();renderMailApp();renderRiverApp();renderHealthApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
+}
+async function sendPaperReplyFromApp(rootId){
+  const input=$(`#paperAppList [data-paper-app-reply-text="${CSS.escape(String(rootId))}"]`),content=input?.value.trim();
+  if(!content)return toast('回复还是空的');
+  try{await apiWrite('/api/littlephone/papers',{author:'user',content,reply_to:rootId});if(input)input.value='';await loadRemote();toast('已经回在纸条下面')}catch(e){toast(e.message||'没有回复成功')}
+}
+function renderPaperApp(){
+  const root=$('#paperAppList');if(!root)return;
+  if(!state.conn.connected&&!state.papers.length){root.innerHTML='<div class="glass appEmpty">连接后打开纸条。</div>';return}
+  const ids=new Set(state.papers.map(p=>String(p.id))),roots=state.papers.filter(p=>!p.reply_to||!ids.has(String(p.reply_to)));
+  root.innerHTML=roots.length?roots.map(p=>{const replies=state.papers.filter(x=>String(x.reply_to||'')===String(p.id)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));return `<article class="paperThreadCard"><div class="paperAuthor ${authorSide(p.author)==='user'?'identityUser':'identityDaddy'}">${esc(actorName(p.author||''))} · ${fmt(p.created_at)}</div><div class="paperRoot authoredText ${authorSide(p.author)}">${esc(p.content||'')}</div>${replies.length?`<div class="paperReplies">${replies.map(paperReplyHtml).join('')}</div>`:''}<div class="paperReplyRow"><input class="paperReplyInput" data-paper-app-reply-text="${esc(p.id)}" placeholder="写一句回复……"><button class="paperTinyAction" data-paper-app-reply="${esc(p.id)}">回复</button></div><div class="paperSecondary"><button class="paperDeleteLink" data-paper-app-delete="${esc(p.id)}">删除纸条</button></div></article>`}).join(''):'<div class="glass appEmpty">纸条还是空的。</div>';
+  root.querySelectorAll('[data-paper-app-reply]').forEach(b=>b.onclick=()=>sendPaperReplyFromApp(b.dataset.paperAppReply));
+  root.querySelectorAll('[data-paper-app-reply-text]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendPaperReplyFromApp(i.dataset.paperAppReplyText)}});
+  root.querySelectorAll('[data-paper-app-delete]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/papers/delete',b.dataset.paperAppDelete,'这张纸条'));
+}
+function renderMemoryApp(){
+  const root=$('#memoryAppList');if(!root)return;const list=state.memories||[];
+  root.innerHTML=list.length?list.map(m=>`<article class="glass contentGlass memoryItem"><div class="detailText authoredText daddy">${esc(m.content||'')}</div><div class="meta">${m.confirmed?'已确认':m.confidence==='tentative'?'还在确认':'记住了'} · ${fmt(m.updated_at||m.created_at)}</div><div class="itemActions">${m.confirmed?'':`<button class="softBtn" data-app-memory-confirm="${esc(m.id)}">对</button><button class="softBtn" data-app-memory-correct="${esc(m.id)}">不是这样</button>`}<button class="dangerBtn" data-app-memory-delete="${esc(m.id)}">删除</button></div></article>`).join(''):'<div class="glass appEmpty">还没有新的理解。</div>';
+  root.querySelectorAll('[data-app-memory-confirm]').forEach(b=>b.onclick=()=>confirmMemory(b.dataset.appMemoryConfirm));
+  root.querySelectorAll('[data-app-memory-correct]').forEach(b=>b.onclick=()=>correctMemory(b.dataset.appMemoryCorrect));
+  root.querySelectorAll('[data-app-memory-delete]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/memories/delete',b.dataset.appMemoryDelete,'这条记忆'));
+}
+function renderMailApp(){
+  const normal=$('#mailAppNormal'),future=$('#mailAppFuture');if(!normal||!future)return;
+  const roots=unifiedMailItems();
+  normal.innerHTML=roots.length?roots.map(m=>{const opened=mailCanPreview(m),side=authorSide(m.author),to=actorName(side==='daddy'?'user':'daddy');return `<article class="glass contentGlass mailAppCard" data-app-mail="${esc(m.id)}"><div class="mailAppMeta"><span>${esc(actorName(m.author||''))} → ${esc(to)}</span><span>${esc(formalMailDate(m.created_at))}</span></div><div class="mailAppBody authoredText ${side}">${esc(opened?String(m.content||'').slice(0,92):'信封还没有拆开。')}</div></article>`}).join(''):'<div class="glass appEmpty">普通信箱还是空的。</div>';
+  normal.querySelectorAll('[data-app-mail]').forEach(c=>c.onclick=()=>openMailDetail(c.dataset.appMail));
+  const futures=[...(state.capsules||[])].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  future.innerHTML=futures.length?futures.map(m=>{const side=authorSide(m.author),locked=!!m.locked,seen=seenState(m,'user');return `<article class="glass contentGlass mailAppCard ${locked?'mailAppLocked':''}" data-app-future="${esc(m.id)}"><div class="mailAppMeta"><span>${esc(actorName(m.author||''))}</span><span>开启 · ${esc(m.unlock_at||'')}</span></div><div class="mailAppBody authoredText ${side}">${esc(locked?'还没有到开启的日子。':seen?String(m.content||'').slice(0,92):'已经到日子了，点开拆信。')}</div><div class="mailAppFutureDate">${locked?'仍在封存':'已经抵达'}</div></article>`}).join(''):'<div class="glass appEmpty">还没有未来信。</div>';
+  future.querySelectorAll('[data-app-future]').forEach(c=>{const m=futures.find(x=>String(x.id)===String(c.dataset.appFuture));c.onclick=()=>openUnifiedMail(m?{...m,_kind:'capsule',future:true}:null)});
+}
+function renderRiverApp(){
+  const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
+  if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
+  const items=[...state.dailybook].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||(new Date(a.created_at||0)-new Date(b.created_at||0)));
+  if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
+  const width=Math.max(720,220+items.length*190),height=400;root.style.width=width+'px';const pts=items.map((e,i)=>({x:105+i*190,y:190+Math.sin(i*1.35)*34,e,i}));let d=`M ${pts[0].x} ${pts[0].y}`;for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];d+=` C ${a.x+62} ${a.y}, ${b.x-62} ${b.y}, ${b.x} ${b.y}`}
+  const nodes=pts.map(p=>{const up=p.i%2===0,bubbleTop=up?p.y-126:p.y+30,dateTop=up?p.y+18:p.y-30,img=(p.e.images||[])[0];return `<div class="riverNode" style="left:${p.x}px;top:0"><span class="riverDot" style="top:${p.y-5}px"></span><span class="riverDate" style="top:${dateTop}px">${esc(p.e.date||dayLabel(p.e.created_at))}</span><button class="glass contentGlass riverBubble" data-app-book-id="${esc(p.e.id)}" style="top:${bubbleTop}px">${img?`<img class="riverThumb" src="${esc(serverUrl(img.url||''))}">`:''}<div class="bookTitle" style="${img?'padding-right:38px':''}">${esc(p.e.title||'今天')}</div><div class="bookMood">${esc(p.e.mood||'')}</div><div class="riverPeek authoredText ${authorSide(p.e.author)}">${esc((p.e.content||'').slice(0,48))}</div></button></div>`}).join('');
+  root.innerHTML=`<svg class="riverSvg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs><linearGradient id="riverAppGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(126,165,224,.34)"/><stop offset=".45" stop-color="rgba(255,255,255,.84)"/><stop offset="1" stop-color="rgba(215,154,190,.35)"/></linearGradient></defs><path class="riverPathGlow" d="${d}"/><path class="riverPath" d="${d}"/></svg>${nodes}`;
+  root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=()=>openBook(el.dataset.appBookId));
+  requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollLeft=sc.scrollWidth})
+}
+function renderHealthApp(){
+  const root=$('#healthAppBody');if(!root)return;const h=state.health||{};
+  if(!h.connected){root.innerHTML=`<div class="glass healthAppMetric healthAppWide"><small>小米健康</small><b>${state.healthRefreshing?'读取中…':'未连接'}</b><div class="healthAppNote">${esc(healthRefreshMessage())}</div></div>`;return}
+  const sl=h.sleep||{},st=h.steps||{},hr=h.heart_rate||{},mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,heart=hr.latest??hr.resting??hr.average,distance=st.distance??st.distance_m??st.distance_meters,calories=st.calories??st.kcal;
+  root.innerHTML=`<div class="glass healthAppMetric healthAppWide"><small>昨夜睡眠</small><b>${healthMinutesLabel(mins)}</b><div class="healthAppNote">${formatHealthClock(sl.sleep_at)||'—'} → ${formatHealthClock(sl.wake_at)||'—'}${sl.score!=null?` · 睡眠评分 ${esc(sl.score)}`:''}</div></div><div class="glass healthAppMetric"><small>今日步数</small><b>${healthMetric(st.count)}</b></div><div class="glass healthAppMetric"><small>最近心率</small><b>${healthMetric(heart,heart!=null?' bpm':'')}</b></div><div class="glass healthAppMetric"><small>距离</small><b>${healthMetric(distance,distance!=null?' m':'')}</b></div><div class="glass healthAppMetric"><small>卡路里</small><b>${healthMetric(calories,calories!=null?' kcal':'')}</b></div><div class="glass healthAppMetric healthAppWide"><small>同步状态</small><div class="healthAppNote">${esc(healthRefreshMessage())}</div></div>`;
+}
+function renderCalendarApp(){
+  const root=$('#appCalendarGrid'),title=$('#appCalendarTitle'),up=$('#appCalendarUpcoming');if(!root||!title||!up)return;const view=monthContext(state.appCalendarOffset||0);title.textContent=`${view.getFullYear()}年 ${view.getMonth()+1}月`;
+  root.innerHTML=calendarCells(view,(ds)=>{const hits=state.dates.filter(x=>{if(x.kind==='anniversary'||x.kind==='relationship_start')return x.date?.slice(5)===ds.slice(5);return x.date===ds});if(!hits.length)return{};const h=hits[0],style=h.mark_style||'circle',actor=h.marked_by==='daddy'?'daddy':'user',symbol={star:'★',heart:'♡',flag:'⚑'}[style]||'';return{cls:`mark mark-${style} mark-${actor}`,title:hits.map(x=>x.title||x.note||'标记').join('、'),symbol,style:`--mark-color:${identityColor(actor)}`}});
+  root.querySelectorAll('[data-cal-date]').forEach(cell=>cell.onclick=()=>openDateQuick(cell.dataset.calDate));
+  const list=[...(state.dates||[])].filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,8);up.innerHTML=list.length?list.map(x=>`<div class="glass contentGlass"><b>${esc(x.title||'重要日期')}</b><small>${esc(x.date||'')} ${x.note?'· '+esc(x.note):''}</small></div>`).join(''):'<div class="glass appEmpty">还没有重要日期。</div>';
+  if($('#appCalendarPrev'))$('#appCalendarPrev').onclick=()=>{state.appCalendarOffset=(state.appCalendarOffset||0)-1;renderCalendarApp()};if($('#appCalendarNext'))$('#appCalendarNext').onclick=()=>{state.appCalendarOffset=(state.appCalendarOffset||0)+1;renderCalendarApp()};
+}
+function renderTodoApp(){
+  const root=$('#todoAppList');if(!root)return;if(!state.conn.connected&&!state.todos.length){root.innerHTML='<div class="glass appEmpty">连接后显示待办。</div>';return}
+  const current=state.todos.filter(t=>!(t.done&&todoDuePast(t))),archive=state.todos.filter(t=>t.done&&todoDuePast(t));root.innerHTML=(current.length?current.map(t=>todoItemHtml(t)).join(''):'<div class="glass appEmpty">当前没有待办。</div>')+(archive.length?`<div class="todoArchiveTitle">历史 / 已归档</div>${archive.map(t=>todoItemHtml(t,true)).join('')}`:'');
+  root.querySelectorAll('[data-todo-modal]').forEach(x=>x.onchange=()=>toggleTodo(x.dataset.todoModal,x.checked));root.querySelectorAll('[data-edit-todo]').forEach(b=>b.onclick=()=>openCompose('todo-edit',state.todos.find(t=>String(t.id)===String(b.dataset.editTodo))));root.querySelectorAll('[data-delete-todo]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/todos/delete',b.dataset.deleteTodo,'这个待办'));
+}
+function renderPhoneApp(){
+  const root=$('#phoneAppBody');if(!root)return;const n=state.native||{},usageReady=n.usage_permission_ready!==false,apps=Array.isArray(n.top_apps_today)?n.top_apps_today.slice().sort((a,b)=>Number(b.minutes||0)-Number(a.minutes||0)).slice(0,5):[];
+  root.innerHTML=`<div class="glass phoneAppHero"><div class="cardLabel">我的手机状态</div><div class="phoneAppGrid"><div class="glass contentGlass phoneAppMetric"><small>电量</small><b>${n.battery_percent>=0?`${esc(n.battery_percent)}%${n.charging?' ⚡':''}`:'—'}</b></div><div class="glass contentGlass phoneAppMetric"><small>网络</small><b>${esc(n.network_type||'—')}</b></div><div class="glass contentGlass phoneAppMetric"><small>屏幕时间</small><b>${usageReady?esc(formatUsage(n.screen_time_today_minutes||0)):'未授权'}</b></div><div class="glass contentGlass phoneAppMetric"><small>解锁次数</small><b>${usageReady?`${esc(n.unlock_count_today||0)} 次`:'—'}</b></div></div></div><div class="appSectionTitle">今日 App 使用</div><div class="glass phoneAppHero"><div class="phoneTopApps">${!usageReady?'<div class="meta">Usage Access 未开启</div>':apps.length?apps.map((a,i)=>`<div class="topAppRow"><span class="topAppIcon">${a.icon?`<img src="${esc(a.icon)}" alt="">`:i+1}</span><span class="topAppName">${esc(a.app||a.package||'App')}</span><span class="topAppTime">${esc(formatUsage(a.minutes||0))}</span></div>`).join(''):'<div class="meta">今天还没有可用的使用统计。</div>'}</div></div>`;
+}
+
 function renderPaperBox(){const root=$('#paperList');if(!root)return;if(!state.conn.connected&&!state.papers.length){root.innerHTML='<div class="glass empty">连接后打开纸条箱。</div>';return}const ids=new Set(state.papers.map(p=>String(p.id))),roots=state.papers.filter(p=>!p.reply_to||!ids.has(String(p.reply_to)));root.innerHTML=roots.length?roots.map(p=>{const replies=state.papers.filter(x=>String(x.reply_to||'')===String(p.id)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));return `<article class="paperThreadCard"><div class="paperAuthor ${authorSide(p.author)==='user'?'identityUser':'identityDaddy'}">${esc(actorName(p.author||''))} · ${fmt(p.created_at)}</div><div class="paperRoot authoredText ${authorSide(p.author)}">${esc(p.content||'')}</div>${replies.length?`<div class="paperReplies">${replies.map(paperReplyHtml).join('')}</div>`:''}<div class="paperReplyRow"><input class="paperReplyInput" data-paper-reply-text="${esc(p.id)}" placeholder="写一句回复……"><button class="paperTinyAction" data-paper-reply="${esc(p.id)}">回复</button></div><div class="paperSecondary"><button class="paperDeleteLink" data-delete-paper="${esc(p.id)}">删除纸条</button></div></article>`}).join(''):'<div class="glass empty">纸条箱还是空的。</div>';$$('[data-paper-reply]').forEach(b=>b.onclick=()=>sendPaperReply(b.dataset.paperReply));$$('[data-paper-reply-text]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendPaperReply(i.dataset.paperReplyText)}});$$('[data-delete-paper]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/papers/delete',b.dataset.deletePaper,'这张纸条'))}
 async function sendPaperReply(rootId){const el=$(`[data-paper-reply-text="${CSS.escape(String(rootId))}"]`),content=el?.value.trim();if(!content)return toast('回复还是空的');try{await apiWrite('/api/littlephone/papers',{author:'user',content,reply_to:rootId});await loadRemote();renderPaperBox();toast('已经回在纸条下面')}catch(e){toast(e.message||'没有回复成功')}}
 function renderStatuses(){const labels={online:'在线中',away:'稍后回来',quiet:'安静中'};for(const actor of ['user','daddy']){const st=state.statuses?.[actor]||{},prefix=actor==='user'?'user':'daddy',txt=$(`#${prefix}StatusText`),time=$(`#${prefix}StatusTime`),dot=$(`#${prefix}PresenceDot`);if(txt)txt.textContent=labels[st.presence||'online']||'在线中';if(time)time.textContent=statusAgo(st.updated_at);if(dot)dot.className='presenceDot '+(st.presence||'online')}}
@@ -2384,7 +2601,7 @@ function bindGlassControls(){for(const key of ['alpha','blur','highlight','tone'
 
 function loadBackgrounds(){const legacy=parse(localDataGet('lp_v071_backgrounds')||'{}',{})||{};state.backgrounds={};for(const k of BG_KEYS){const direct=localDataGet(`lp_bg_${k}`);if(direct)state.backgrounds[k]=direct;else if(legacy[k]){state.backgrounds[k]=legacy[k];localDataSet(`lp_bg_${k}`,legacy[k])}}}
 function saveBackgrounds(changedKey){if(changedKey){const value=state.backgrounds?.[changedKey]||'';localDataSet(`lp_bg_${changedKey}`,value)}else{for(const k of BG_KEYS)localDataSet(`lp_bg_${k}`,state.backgrounds?.[k]||'')}localDataSet(BG_KEY,JSON.stringify(Object.fromEntries(BG_KEYS.map(k=>[k,!!state.backgrounds?.[k]]))));applyPageBackground()}
-function backgroundPageKey(){if(state.page==='settings'||state.page==='settings-detail'||state.page==='status')return'status';if(state.page==='us')return state.usHubTab==='mail'?'mail':'traces';return state.page}
+function backgroundPageKey(){if(state.page==='desktop'||state.page==='app-calendar'||state.page==='app-todo')return'home';if(state.page==='settings'||state.page==='settings-detail'||state.page==='status'||state.page==='app-health'||state.page==='app-phone')return'status';if(state.page==='app-mail')return'mail';if(state.page==='app-river'||state.page==='app-papers'||state.page==='app-memory')return'traces';if(state.page==='us')return state.usHubTab==='mail'?'mail':'traces';return state.page}
 function applyPageBackground(){if(!state.backgrounds||!Object.keys(state.backgrounds).length)loadBackgrounds();const key=backgroundPageKey(),src=state.backgrounds?.[key]||state.backgrounds?.global||'';document.documentElement.style.setProperty('--custom-bg',src?`url(${JSON.stringify(src)})`:'none');document.body.classList.toggle('hasCustomBackground',!!src)}
 function compressBackground(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.72);if(data.length>1600000)data=c.toDataURL('image/jpeg',.56);cb(data)};img.src=r.result};r.readAsDataURL(file)}
 
@@ -2413,7 +2630,7 @@ $$('[data-avatar]').forEach(b=>b.onclick=()=>openProfile(b.dataset.avatar));$('#
 $$('[data-compose]').forEach(b=>b.onclick=()=>openCompose(b.dataset.compose));
 for(const [btn,modal] of [['#composerClose','#composerModal'],['#paperClose','#paperModal'],['#detailClose','#detailModal'],['#todoClose','#todoModal'],['#profileClose','#profileModal'],['#dateClose','#dateModal'],['#cycleClose','#cycleModal'],['#healthClose','#healthModal'],['#statusClose','#statusModal'],['#journalSearchClose','#journalSearchModal']]){const el=$(btn);if(el)el.onclick=()=>hide(modal)};
 $('#paperShortcut').onclick=e=>{if(e.target.closest('#paperWriteInline'))return;renderPaperBox();show('#paperModal');addLocalTrace(`${actorName('user')}打开纸条箱`,'','paper_box')};$('#paperWriteInline').onclick=e=>{e.stopPropagation();openCompose('paper')};$('#paperWriteButton').onclick=()=>openCompose('paper');$('#paperShuffleButton').onclick=()=>{selectPaper(true);renderTraceHub();toast('换了一张纸条')};$('#todoAllButton').onclick=()=>{renderTodoModal();show('#todoModal')};$('#callRecordsButton').onclick=openCallRecords;$('#rememberShortcut').onclick=openMemoryRecords;$('#mailAllButton').onclick=openMailArchive;$('#mailPrevCard').onclick=()=>{const n=unifiedMailItems().length;if(n){state.mailCarouselIndex=(state.mailCarouselIndex-1+n)%n;renderMail()}};$('#mailNextCard').onclick=()=>{const n=unifiedMailItems().length;if(n){state.mailCarouselIndex=(state.mailCarouselIndex+1)%n;renderMail()}};$('#capsulePrevCard').onclick=()=>{const n=(state.capsules||[]).length;if(n){state.capsuleCarouselIndex=(state.capsuleCarouselIndex-1+n)%n;renderCapsules()}};$('#capsuleNextCard').onclick=()=>{const n=(state.capsules||[]).length;if(n){state.capsuleCarouselIndex=(state.capsuleCarouselIndex+1)%n;renderCapsules()}};$('#capsuleAllButton').onclick=openCapsuleArchive;
-if($('#journalSearchButton'))$('#journalSearchButton').onclick=openJournalSearch;if($('#journalSearchInput'))$('#journalSearchInput').oninput=renderJournalSearch;$('#daysTogether').onclick=()=>{setDateModalMode(false);resetDateForm();renderDates();show('#dateModal')};$('#healthButton').onclick=()=>{renderHealthDetails();show('#healthModal');refreshHealthLive(false).catch(()=>{})};$('#healthRefreshButton').onclick=()=>refreshHealthLive(true).catch(()=>{});$('#statusSettingsButton').onclick=()=>go('settings');$('#settingsBack').onclick=()=>go('status');$('#settingsDetailBack').onclick=()=>go('settings');
+if($('#journalSearchButton'))$('#journalSearchButton').onclick=openJournalSearch;if($('#journalSearchInput'))$('#journalSearchInput').oninput=renderJournalSearch;$('#daysTogether').onclick=()=>{setDateModalMode(false);resetDateForm();renderDates();show('#dateModal')};$('#healthButton').onclick=()=>{renderHealthDetails();show('#healthModal');refreshHealthLive(false).catch(()=>{})};$('#healthRefreshButton').onclick=()=>refreshHealthLive(true).catch(()=>{});if($('#healthAppRefresh'))$('#healthAppRefresh').onclick=()=>refreshHealthLive(true).catch(()=>{});$('#statusSettingsButton').onclick=()=>go('settings');$('#settingsBack').onclick=()=>go('desktop');$('#settingsDetailBack').onclick=()=>go('settings');
 // v0.7.5: delegate settings navigation so taps survive page rerenders/WebView quirks.
 document.addEventListener('click',e=>{const row=e.target.closest('[data-settings-section]');if(!row)return;e.preventDefault();e.stopPropagation();openSettingsSection(row.dataset.settingsSection)});
 if($('#mailSearch'))$('#mailSearch').oninput=e=>{state.mailSearch=e.target.value;renderMail()};$('#profileChoosePhoto').onclick=()=>{if(hasNative()&&window.LittlePhoneNative.pickAvatar){window.LittlePhoneNative.pickAvatar(state.profileEditing)}else $(state.profileEditing==='daddy'?'#avatarDaddyInput':'#avatarRyanInput').click()};$('#profileSave').onclick=saveProfile;$('#dateAdd').onclick=addDate;$('#datePrev').onclick=()=>{state.dateMonthOffset--;renderDates()};$('#dateNext').onclick=()=>{state.dateMonthOffset++;renderDates()};$('#homeDatePrev').onclick=()=>{state.homeMonthOffset--;renderHomeCalendar()};$('#homeDateNext').onclick=()=>{state.homeMonthOffset++;renderHomeCalendar()};$('#cycleSave').onclick=saveCycle;$('#recordAdd').onclick=addCycleRecord;$('#cyclePrev').onclick=()=>{state.cycleMonthOffset--;renderCycle()};$('#cycleNext').onclick=()=>{state.cycleMonthOffset++;renderCycle()};
@@ -2423,9 +2640,9 @@ $$('[data-presence]').forEach(b=>b.onclick=()=>{state.statusPresence=b.dataset.p
 if($('#connectionButton'))$('#connectionButton').onclick=()=>{if(hasNative())window.LittlePhoneNative.openConnectionSettings()};$('#offlineBanner').onclick=async()=>{if(!state.conn.connected){if(hasNative())window.LittlePhoneNative.openConnectionSettings();return}toast('正在重新测试连接…');await loadRemote();toast(state.remoteError?`还是没连上：${friendlyRemoteError(state.lastRemoteError)}`:'server 已重新连上')};
 $$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)hide('#'+m.id)}));if($('#journalBack'))$('#journalBack').onclick=()=>go('home');
 document.addEventListener('visibilitychange',()=>{if(document.hidden){state.hiddenAt=Date.now()}else if(state.hiddenAt&&Date.now()-state.hiddenAt>=600000){selectPaper(true);renderTraceHub();state.hiddenAt=0}});setInterval(()=>{const now=Date.now(),changed=Number(localStorage.getItem('lp_v051_paper_changed')||0);if(state.papers.length&&now-changed>=600000){selectPaper(true);renderTraceHub()}},60000);
-function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings-detail'){go('settings',false);return true}if(state.page==='settings'){go('status',false);return true}if(state.navHistory.length){const prev=state.navHistory.pop();go(prev,false);return true}if(state.page!=='home'){go('home',false);return true}return false}
+function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings-detail'){go('settings',false);return true}if(state.page!=='desktop'){go('desktop',false);return true}return false}
 window.addEventListener('littlephone-connection-changed',()=>{readNative();loadRemote().then(logOpenOnce)});window.addEventListener('littlephone-profile-changed',()=>{readNative();if($('#profileModal').classList.contains('show')){const src=getAvatarSrc(state.profileEditing),name=state.profileEditing==='daddy'?(state.profile.daddy_name||'daddy'):(state.profile.ryan_name||'瑞安');$('#profileAvatarPreview').innerHTML=src?`<img src="${src}" alt="">`:esc(name?.[0]||'?')}});window.addEventListener('littlephone-permission-changed',()=>readNative());window.addEventListener('littlephone-weather-updated',()=>readNative());window.addEventListener('littlephone-background-picked',e=>{const d=e.detail||{},k=String(d.page||'global'),data=String(d.data_url||'');if(!BG_KEYS.includes(k)||!data)return;state.backgrounds[k]=data;saveBackgrounds(k);if(state.page==='settings-detail'&&state.settingsSection==='appearance')renderAppearanceSettings();toast('背景已经换好')});window.LittlePhone={refreshNative:()=>{readNative();loadRemote().then(logOpenOnce)},go,handleBack};
-mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();loadGlassPrefs();tick();setInterval(tick,1000);calcDays();applyAvatars();go('home',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
+mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();loadGlassPrefs();tick();setInterval(tick,1000);calcDays();applyAvatars();go('desktop',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
 })();
 </script>
 </body>

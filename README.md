@@ -1,4 +1,4 @@
-# 小手机 v0.7.6
+# 小手机 v0.8.1
 
 Base: v0.7.4. This release keeps the existing Cloudflare Worker + D1 + Xiaomi Health Bridge architecture and existing data.
 
@@ -20,9 +20,9 @@ Base: v0.7.4. This release keeps the existing Cloudflare Worker + D1 + Xiaomi He
 Deployment values:
 - Worker: little-phone-backend
 - D1: little-phone-v051
-- versionName: 0.7.6
+- versionName: 0.8.1
 - versionCode: 70361
-- APK: LittlePhone-v0.7.6.apk
+- APK: LittlePhone-v0.8.1.apk
 
 Suggested commit:
 `Build little-phone v0.7.6 diary health and GPT decoration rework`

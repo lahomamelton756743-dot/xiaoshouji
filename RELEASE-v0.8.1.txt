@@ -1,0 +1,33 @@
+Little Phone v0.8.1 — phone shell preview
+
+Scope
+- New real-phone style desktop shell
+- 4 x 6 desktop grid
+- Two horizontally swipeable desktop pages with scroll-snap
+- Persistent four-app dock on the desktop
+- Small internal Home pill above the Android system gesture area (tap only for now)
+- Settings is now a desktop app
+- Existing v0.7.6 liquid-glass visual system is preserved rather than replaced
+
+Existing functions surfaced as apps
+- Diary
+- Papers
+- GPT Memory / 记得
+- Mail
+- Time River
+- Xiaomi Health
+- Calendar
+- Todo
+- Phone status
+- Settings
+
+Not included yet
+- Chat
+- Xinchao / proactive wake
+- Widgets
+- Notification center
+- Lock screen
+- Recent apps
+
+Android versionCode: 80101
+Android versionName: 0.8.1

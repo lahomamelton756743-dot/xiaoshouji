@@ -1183,6 +1183,115 @@ body.diaryMode .shell{padding-bottom:calc(118px + env(safe-area-inset-bottom))!i
 }
 .glass:after{opacity:calc(.08 + (1 - var(--glass-alpha)) * .34)!important;filter:blur(calc(5px + (1 - var(--glass-alpha)) * 18px))!important}
 
+
+/* =========================================================
+   v0.7.6 hotfix6 — diary motion/performance and liquid glass cleanup
+   ========================================================= */
+/* Diary: make the book visibly taller again and stop the page from feeling
+   like a flat sheet stuck to the viewport. */
+#page-diary{overflow:visible!important}
+.bookStage{
+  width:100%!important;margin:0!important;padding:0 8px calc(84px + env(safe-area-inset-bottom))!important;
+  min-height:calc(100dvh - 142px)!important;perspective:1200px!important;overflow:visible!important
+}
+.bookStage:after{display:none!important;content:none!important}
+.journalCover076,.bookPage.journalPhysicalPage{
+  display:block!important;
+  width:min(calc(100% - 4px), 420px)!important;
+  height:min(calc(100dvh - 198px), 74vh)!important;
+  max-height:calc(100dvh - 198px)!important;
+  min-height:540px!important;
+  aspect-ratio:0.685 / 1!important;
+  margin:0 auto!important;
+  border-radius:22px!important;overflow:hidden!important;box-shadow:0 20px 44px rgba(62,74,110,.11)!important
+}
+.journalCover076 img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center top!important}
+.bookPage,.bookCover,.journalLeaf{animation:none!important}
+.bookPage.journalPhysicalPage{
+  padding:18px 22px 86px 34px!important;
+  background:
+    linear-gradient(90deg,transparent 0 39px,rgba(211,131,149,.18) 39px 40px,transparent 40px),
+    repeating-linear-gradient(180deg,transparent 0 34px,rgba(106,136,184,.090) 34px 35px),
+    linear-gradient(135deg,rgba(255,254,250,.97),rgba(252,250,246,.955) 65%,rgba(248,245,239,.95))!important;
+  border:1px solid rgba(233,235,243,.76)!important
+}
+.bookPage.journalPhysicalPage:before{left:28px!important;opacity:.9!important}
+.journalLeaf.journalPhysicalPage .journalTitle{font-size:30px!important;line-height:1.24!important;margin:10px 0 12px!important}
+.journalLeaf.journalPhysicalPage .journalText{font-size:16px!important;line-height:2.08!important}
+.journalLeaf.journalPhysicalPage .journalScroll{
+  height:calc(100% - 110px)!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;
+  padding:0 18px 28px 0!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important
+}
+.journalLeaf.journalPhysicalPage .journalRail{right:11px!important;top:120px!important;bottom:76px!important}
+.journalLeaf.journalPhysicalPage .journalFolio{bottom:20px!important;right:24px!important;left:auto!important;text-align:right!important}
+.journalCoverPen{right:-1px!important;bottom:14px!important;width:126px!important;height:84px!important}
+.journalPagePen{right:-1px!important;bottom:18px!important;width:128px!important;height:86px!important}
+.journalCoverHint{bottom:16px!important;right:16px!important;background:rgba(244,241,250,.66)!important;color:#8c89a3!important}
+@media(max-width:520px){
+  .bookStage{padding:0 5px calc(84px + env(safe-area-inset-bottom))!important}
+  .journalCover076,.bookPage.journalPhysicalPage{width:min(calc(100% - 2px), 390px)!important;height:min(calc(100dvh - 194px), 72vh)!important;min-height:520px!important;border-radius:18px!important}
+  .bookPage.journalPhysicalPage{padding:16px 18px 82px 30px!important}
+  .journalLeaf.journalPhysicalPage .journalTitle{font-size:27px!important}
+  .journalLeaf.journalPhysicalPage .journalText{font-size:15px!important;line-height:2.0!important}
+  .journalCoverPen{width:114px!important;height:76px!important}
+  .journalPagePen{width:116px!important;height:78px!important}
+}
+
+/* Lighter page-turn animation: no ghost page cloning, no heavy reflow. */
+.bookPage.journalOpenFromCover{transform-origin:left center!important;animation:journalOpenFromCover .28s cubic-bezier(.2,.8,.22,1) both!important}
+.bookPage.journalPageTurnForward{transform-origin:right center!important;animation:journalPageTurnForward .24s cubic-bezier(.2,.82,.22,1) both!important;will-change:transform,opacity}
+.bookPage.journalPageTurnBackward{transform-origin:left center!important;animation:journalPageTurnBackward .24s cubic-bezier(.2,.82,.22,1) both!important;will-change:transform,opacity}
+.journalCover076.journalBackToCover{transform-origin:left center!important;animation:journalBackToCover .28s cubic-bezier(.2,.8,.22,1) both!important}
+@keyframes journalOpenFromCover{0%{transform:perspective(1100px) rotateY(16deg) translateX(10px);opacity:.72}100%{transform:none;opacity:1}}
+@keyframes journalPageTurnForward{0%{transform:perspective(1100px) rotateY(-15deg) translateX(10px);opacity:.72}100%{transform:none;opacity:1}}
+@keyframes journalPageTurnBackward{0%{transform:perspective(1100px) rotateY(15deg) translateX(-10px);opacity:.72}100%{transform:none;opacity:1}}
+@keyframes journalBackToCover{0%{transform:perspective(1100px) rotateY(-15deg) translateX(-10px);opacity:.72}100%{transform:none;opacity:1}}
+
+/* Final glass pass: ice blue + pearl white + very pale pink-violet refraction.
+   Slider scheme B: move right -> thinner / clearer / more transparent glass.
+   We keep a cool white base so the panel never turns muddy green. */
+.glass,.glass.heroGlass,.glass.contentGlass,.glass.navGlass,
+.softBtn,.iconBtn,.statusSleepHero,.statusScoreHero,.statusHealthMetric,.statusSleepPanel,.statusMini,.hintBox,.healthMetric,.healthRow,.mailWindow,.footCard,.statusPhoneCard,.statusHealthWide,.backgroundItem,.glassControl{
+  background:
+    linear-gradient(160deg,
+      rgba(255,255,255,calc(.27 - var(--glass-alpha)*.25)),
+      rgba(238,246,255,calc(.20 - var(--glass-alpha)*.18)) 46%,
+      rgba(247,241,255,calc(.17 - var(--glass-alpha)*.15)) 100%)!important;
+  border:1px solid rgba(255,255,255,calc(.86 - var(--glass-alpha)*.28))!important;
+  box-shadow:
+    0 18px 40px rgba(87,109,154,.09),
+    inset 0 1px 0 rgba(255,255,255,calc(.84 - var(--glass-alpha)*.24)),
+    inset 0 -1px 0 rgba(228,234,248,calc(.42 - var(--glass-alpha)*.20))!important;
+  backdrop-filter:blur(calc(10px + var(--glass-blur)*.72)) saturate(128%) brightness(1.03)!important;
+  -webkit-backdrop-filter:blur(calc(10px + var(--glass-blur)*.72)) saturate(128%) brightness(1.03)!important
+}
+.glass:before{
+  opacity:1!important;
+  background:
+    linear-gradient(135deg,
+      rgba(255,255,255,calc(.16 - var(--glass-alpha)*.12)) 0%,
+      rgba(228,240,255,calc(.18 - var(--glass-alpha)*.13)) 34%,
+      rgba(255,255,255,calc(.05 - var(--glass-alpha)*.03)) 52%,
+      rgba(245,235,255,calc(.15 - var(--glass-alpha)*.10)) 82%,
+      rgba(255,255,255,calc(.08 - var(--glass-alpha)*.05)) 100%)!important
+}
+.glass:after{
+  opacity:calc(.22 - var(--glass-alpha)*.16)!important;
+  filter:blur(calc(8px + var(--glass-blur)*.50))!important;
+  background:
+    radial-gradient(circle at 14% 12%,rgba(255,255,255,.42),transparent 38%),
+    radial-gradient(circle at 86% 14%,rgba(212,231,255,.32),transparent 34%),
+    radial-gradient(circle at 80% 84%,rgba(240,223,255,.26),transparent 32%)!important
+}
+body.hasCustomBackground .glass,body.hasCustomBackground .glass.heroGlass,body.hasCustomBackground .glass.contentGlass,body.hasCustomBackground .glass.navGlass,
+body.hasCustomBackground .mailWindow,body.hasCustomBackground .footCard,body.hasCustomBackground .statusPhoneCard,body.hasCustomBackground .statusHealthWide{
+  background:
+    linear-gradient(160deg,
+      rgba(255,255,255,calc(.24 - var(--glass-alpha)*.20)),
+      rgba(238,246,255,calc(.18 - var(--glass-alpha)*.15)) 46%,
+      rgba(247,241,255,calc(.15 - var(--glass-alpha)*.12)) 100%)!important
+}
+
 </style>
 </head>
 <body>
@@ -1731,38 +1840,33 @@ function renderJournal(){
   bindJournalScroll();
 }
 function bindJournalScroll(){const sc=$('#journalScroll'),thumb=$('#journalThumb');if(!sc||!thumb)return;const sync=()=>{const max=Math.max(1,sc.scrollHeight-sc.clientHeight),ratio=Math.min(1,sc.clientHeight/Math.max(sc.scrollHeight,1)),rail=Math.max(50,sc.clientHeight-10),h=Math.max(30,rail*ratio),top=(sc.scrollTop/max)*Math.max(0,rail-h);thumb.style.height=h+'px';thumb.style.transform=`translateY(${top}px)`;thumb.style.opacity=sc.scrollHeight>sc.clientHeight+4?'1':'.22'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(sync)}
-function bindJournalTurn(){const root=$('#journalBook');if(!root)return;root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a'))return;const r=root.getBoundingClientRect();const dir=e.clientX<r.left+r.width*.5?-1:1;if(state.journalCoverOpen){if(dir>0){state.journalCoverOpen=false;state.journalIndex=0;renderJournal();const first=root.querySelector('.bookPage');if(first){first.classList.add('journalFirstOpenIn');setTimeout(()=>first.classList.remove('journalFirstOpenIn'),620)}}else{root.classList.remove('boundaryTap');root.style.setProperty('--nudge','-6px');void root.offsetWidth;root.classList.add('boundaryTap');setTimeout(()=>root.classList.remove('boundaryTap'),300)}return}stepJournalAnimated(dir)}}
+function bindJournalTurn(){const root=$('#journalBook');if(!root)return;root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a'))return;const r=root.getBoundingClientRect();const dir=e.clientX<r.left+r.width*.5?-1:1;if(state.journalCoverOpen){if(dir>0){state.journalCoverOpen=false;state.journalIndex=0;renderJournal();const first=root.querySelector('.bookPage');if(first){requestAnimationFrame(()=>{first.classList.add('journalOpenFromCover');setTimeout(()=>first.classList.remove('journalOpenFromCover'),280)})}}else{root.classList.remove('boundaryTap');root.style.setProperty('--nudge','-6px');void root.offsetWidth;root.classList.add('boundaryTap');setTimeout(()=>root.classList.remove('boundaryTap'),220)}return}stepJournalAnimated(dir)}}
 function stepJournalAnimated(delta){
   if(state.journalAnimating)return;
   const list=journalSorted();
   if(!list.length)return;
   if(state.journalIndex<0||state.journalIndex>=list.length)state.journalIndex=0;
   const root=$('#journalBook');
-  // The cover is page 0 of the physical book: backing up from the first diary page closes it.
   if(delta<0&&state.journalIndex===0){
     state.journalAnimating=true;
     state.journalCoverOpen=true;state.journalIndex=-1;renderJournal();
     const cover=root?.querySelector('.journalCover076');
-    if(cover){cover.classList.add('journalCoverBackIn');setTimeout(()=>cover.classList.remove('journalCoverBackIn'),620)}
-    setTimeout(()=>state.journalAnimating=false,640);
+    if(cover){requestAnimationFrame(()=>{cover.classList.add('journalBackToCover');setTimeout(()=>cover.classList.remove('journalBackToCover'),280)})}
+    setTimeout(()=>state.journalAnimating=false,300);
     return;
   }
   const next=Math.max(0,Math.min(list.length-1,state.journalIndex+delta));
   if(next===state.journalIndex){
     const stage=$('#journalBook');
-    if(stage){stage.style.setProperty('--nudge',delta>0?'6px':'-6px');stage.classList.remove('boundaryTap');void stage.offsetWidth;stage.classList.add('boundaryTap');setTimeout(()=>stage.classList.remove('boundaryTap'),300)}
+    if(stage){stage.style.setProperty('--nudge',delta>0?'6px':'-6px');stage.classList.remove('boundaryTap');void stage.offsetWidth;stage.classList.add('boundaryTap');setTimeout(()=>stage.classList.remove('boundaryTap'),220)}
     return;
   }
-  const old=root?.querySelector('.bookPage')?.outerHTML||'';
-  state.journalAnimating=true;state.journalIndex=next;renderJournal();
-  if(delta>0&&root&&old){
-    const tmp=document.createElement('div');tmp.innerHTML=old;const ghost=tmp.firstElementChild;
-    if(ghost){ghost.classList.add('journalGhost','turnNext');ghost.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));root.appendChild(ghost);setTimeout(()=>ghost.remove(),560)}
-  }else if(delta<0&&root){
-    const incoming=root.querySelector('.bookPage');
-    if(incoming){incoming.classList.add('turnPrevIn076');setTimeout(()=>incoming.classList.remove('turnPrevIn076'),620)}
-  }
-  setTimeout(()=>state.journalAnimating=false,640);
+  state.journalAnimating=true;
+  state.journalIndex=next;
+  renderJournal();
+  const incoming=root?.querySelector('.bookPage');
+  if(incoming){const cls=delta>0?'journalPageTurnForward':'journalPageTurnBackward';requestAnimationFrame(()=>{incoming.classList.add(cls);setTimeout(()=>incoming.classList.remove(cls),260)})}
+  setTimeout(()=>state.journalAnimating=false,290);
 }
 function stepJournal(delta){stepJournalAnimated(delta)}
 function renderPolicy(){const root=$('#permissionGroup');if(!root)return;const items=[['visit_enabled','允许来访读取','总开关关闭后，不再触发新的设备快照',''],['device_state','设备状态','电量、充电、网络与屏幕状态',''],['calendar','日历摘要','只读临近事项摘要',''],['usage','屏幕使用','屏幕时间、解锁次数与使用统计','usage'],['location','城市 / 天气','需要 Android 位置权限','location'],['notifications','通知摘要','默认不读取正文','notifications'],['media','媒体状态','当前播放状态','notification_listener']];const policyHtml=items.map(([k,t,sub,cap])=>{const system=cap?state.permissions[cap]:true;return`<div class="settingRow"><div><div class="sTitle">${t}</div><div class="sSub">${sub}${cap&&!system?' · 系统权限未开':''}</div></div><button class="switch ${state.policy[k]?'on':''}" data-policy="${k}" data-cap="${cap}"><i></i></button></div>`}).join('');const systemItems=[['notifications','通知权限','主动提醒能否正常显示'],['notification_listener','通知使用权','媒体状态与通知桥接'],['usage','Usage Access','屏幕时间、App 使用统计与门禁识别'],['accessibility','无障碍服务','门禁承接、返回/桌面和 Android command'],['background','后台运行','小手机前台服务是否正在运行'],['battery_optimization','电池优化','建议把小手机设为不受电池优化限制']];const sys=`<div class="permissionSectionTitle">Android 系统能力</div>`+systemItems.map(([cap,t,sub])=>`<button class="systemPermissionRow" data-system-cap="${cap}"><span><b>${t}</b><small>${sub}</small></span><em class="${state.permissions[cap]?'on':''}">${state.permissions[cap]?'已开启':'未开启'}</em></button>`).join('');root.innerHTML=policyHtml+sys;$$('[data-policy]').forEach(b=>b.onclick=()=>{if(!hasNative()||!window.LittlePhoneNative.setVisitPolicy)return toast('只在 Android App 内可改');const key=b.dataset.policy,val=!state.policy[key];const ok=window.LittlePhoneNative.setVisitPolicy(key,val);if(ok){state.policy[key]=val;if(val&&b.dataset.cap&&window.LittlePhoneNative.requestCapability)window.LittlePhoneNative.requestCapability(b.dataset.cap);renderPolicy()}});$$('[data-system-cap]').forEach(b=>b.onclick=()=>{if(hasNative()&&window.LittlePhoneNative.requestCapability){window.LittlePhoneNative.requestCapability(b.dataset.systemCap);toast('已打开对应系统设置')}})}
@@ -1845,7 +1949,7 @@ function renderHomeCalendar(){const view=monthContext(state.homeMonthOffset||0),
 const BG_KEY='lp_v072_backgrounds';const BG_KEYS=['global','diary','traces','home','mail','status'];
 const GLASS_KEY='lp_v075_glass_prefs';
 const glassPrefs={alpha:.05,blur:20,highlight:.40,tone:255};
-function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(0,Math.min(.45,Number(v.alpha??.05)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??20)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.40)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
+function loadGlassPrefs(){const v=parse(localDataGet(GLASS_KEY)||'{}',{});glassPrefs.alpha=Math.max(0,Math.min(.65,Number(v.alpha??.12)));glassPrefs.blur=Math.max(0,Math.min(40,Number(v.blur??20)));glassPrefs.highlight=Math.max(0,Math.min(.8,Number(v.highlight??.40)));glassPrefs.tone=Math.max(0,Math.min(255,Number(v.tone??255)));applyGlassPrefs(false)}
 function applyGlassPrefs(save=true){const r=document.documentElement.style,safeTone=Math.round(238+(Math.max(0,Math.min(255,glassPrefs.tone))/255)*17);r.setProperty('--glass-alpha',String(glassPrefs.alpha));r.setProperty('--glass-blur',glassPrefs.blur+'px');r.setProperty('--glass-highlight',String(glassPrefs.highlight));r.setProperty('--glass-tone',String(glassPrefs.tone));r.setProperty('--glass-neutral-tone',String(safeTone));if(save)localDataSet(GLASS_KEY,JSON.stringify(glassPrefs))}
 function bindGlassControls(){for(const key of ['alpha','blur','highlight','tone']){const el=$(`[data-glass-control="${key}"]`),out=$(`[data-glass-value="${key}"]`);if(!el)continue;const update=()=>{glassPrefs[key]=Number(el.value);applyGlassPrefs(true);if(out)out.textContent=key==='blur'?`${glassPrefs[key]}px`:key==='tone'?String(Math.round(glassPrefs[key])):Number(glassPrefs[key]).toFixed(2)};el.oninput=update;update()}}
 
@@ -1859,9 +1963,9 @@ function renderAppearanceSettings(){
   loadBackgrounds();loadGlassPrefs();
   const body=$('#settingsDetailBody'),labels={global:'全局背景',diary:'日记',traces:'留痕',home:'首页',mail:'信箱',status:'状态'};
   const slider=(key,label,min,max,step,value)=>`<label class="glassControl"><span><b>${label}</b><em data-glass-value="${key}">${key==='blur'?value+'px':key==='tone'?Math.round(value):Number(value).toFixed(2)}</em></span><input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-glass-control="${key}"></label>`;
-  body.innerHTML=`<div class="glass settingsPanel appearancePanel"><div class="settingsToolbar"><div class="hintBox">背景与玻璃参数只保存在这台手机，不上传后端。页面背景优先于全局背景。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="appearanceSectionTitle">玻璃质感</div><div class="glassControlPanel">${slider('alpha','玻璃透明度',0,.45,.01,glassPrefs.alpha)}${slider('blur','背景模糊度',0,40,1,glassPrefs.blur)}${slider('highlight','边缘高光强度',0,.8,.05,glassPrefs.highlight)}${slider('tone','玻璃底色',0,255,1,glassPrefs.tone)}</div><button class="softBtn glassReset" type="button" id="glassReset">恢复玻璃默认值</button><div class="appearanceSectionTitle">背景设置</div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div><div class="appearanceNightNook" aria-hidden="true"><img src="gpt-night-window.png" alt=""><span>深夜也留一盏灯。</span></div></div>`;
+  body.innerHTML=`<div class="glass settingsPanel appearancePanel"><div class="settingsToolbar"><div class="hintBox">背景与玻璃参数只保存在这台手机，不上传后端。页面背景优先于全局背景。</div><button class="softBtn bgResetAll" type="button" id="bgResetAll">恢复全部默认背景</button></div><div class="appearanceSectionTitle">玻璃质感</div><div class="glassControlPanel">${slider('alpha','玻璃透明度',0,.65,.01,glassPrefs.alpha)}${slider('blur','背景模糊度',0,40,1,glassPrefs.blur)}${slider('highlight','边缘高光强度',0,.8,.05,glassPrefs.highlight)}${slider('tone','玻璃底色',0,255,1,glassPrefs.tone)}</div><button class="softBtn glassReset" type="button" id="glassReset">恢复玻璃默认值</button><div class="appearanceSectionTitle">背景设置</div><div class="backgroundGrid">${Object.entries(labels).map(([k,v])=>`<div class="backgroundItem"><div><b>${v}</b><small>${state.backgrounds?.[k]?'已设置自定义背景':'跟随全局 / 默认背景'}</small></div><span class="backgroundPreview" style="${state.backgrounds?.[k]?`background-image:url(${JSON.stringify(state.backgrounds[k])})`:''}"></span><div class="backgroundActions"><button class="softBtn" type="button" data-bg-pick="${k}">更换</button><input type="file" accept="image/*" data-bg-input="${k}" hidden>${state.backgrounds?.[k]?`<button class="softBtn" type="button" data-bg-clear="${k}">清除</button>`:''}</div></div>`).join('')}</div><div class="appearanceNightNook" aria-hidden="true"><img src="gpt-night-window.png" alt=""><span>深夜也留一盏灯。</span></div></div>`;
   bindGlassControls();
-  $('#glassReset').onclick=()=>{Object.assign(glassPrefs,{alpha:.05,blur:20,highlight:.40,tone:255});applyGlassPrefs(true);renderAppearanceSettings();toast('玻璃参数已恢复默认')};
+  $('#glassReset').onclick=()=>{Object.assign(glassPrefs,{alpha:.12,blur:20,highlight:.40,tone:255});applyGlassPrefs(true);renderAppearanceSettings();toast('玻璃参数已恢复默认')};
   const reset=$('#bgResetAll');if(reset)reset.onclick=()=>{for(const k of BG_KEYS){delete state.backgrounds[k];localDataSet(`lp_bg_${k}`,'')}saveBackgrounds();renderAppearanceSettings();toast('已经恢复全部默认背景')};
   $$('[data-bg-clear]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgClear;delete state.backgrounds[k];saveBackgrounds(k);renderAppearanceSettings();toast(`${labels[k]}背景已清除`)});
   $$('[data-bg-pick]').forEach(b=>b.onclick=()=>{const k=b.dataset.bgPick;if(hasNative()&&window.LittlePhoneNative.pickBackground){window.LittlePhoneNative.pickBackground(k)}else{$(`[data-bg-input="${k}"]`)?.click()}});

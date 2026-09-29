@@ -1093,6 +1093,96 @@ body.diaryMode .shell{padding-bottom:calc(118px + env(safe-area-inset-bottom))!i
     rgba(247,235,251,calc(.006 + var(--glass-alpha) * .74)))!important
 }
 
+
+/* =========================================================
+   v0.7.6 hotfix5 — prettier letters, taller diary cover, and
+   transparency scheme B (right = more transparent / more glass)
+   ========================================================= */
+/* Mail sealed envelope: softer floral stationery instead of the previous
+   heavy/plain block. */
+.mailEnvelopeVisual.sealed{
+  min-height:220px!important;
+  display:grid!important;place-items:center!important;
+  background:
+    radial-gradient(circle at right 22px top 22px,rgba(216,226,245,.38),transparent 90px),
+    linear-gradient(150deg,#fffdfb 0%,#f7f1f6 56%,#edf3fb 100%)!important;
+  border:1px solid rgba(167,154,172,.18)!important;
+  box-shadow:0 18px 36px rgba(74,72,97,.08),inset 0 1px 0 rgba(255,255,255,.86)!important;
+  overflow:hidden!important
+}
+.mailEnvelopeVisual.sealed:before{
+  content:"";position:absolute;left:-4%;right:-4%;top:-2%;height:56%;z-index:1;
+  background:linear-gradient(155deg,#fffaf7,#efe8f1)!important;
+  clip-path:polygon(0 0,100% 0,50% 100%);filter:drop-shadow(0 6px 6px rgba(89,72,58,.045))
+}
+.mailEnvelopeVisual.sealed .envelopeFoldLeft,.mailEnvelopeVisual.sealed .envelopeFoldRight{
+  bottom:-1%!important;height:67%!important;background:linear-gradient(145deg,#fbf5f6,#ede5ec)!important
+}
+.mailEnvelopeVisual.sealed .envelopeFoldLeft{left:-18%!important;width:66%!important}
+.mailEnvelopeVisual.sealed .envelopeFoldRight{right:-18%!important;width:66%!important}
+.mailEnvelopeLiner{position:absolute;inset:16px 18px auto auto;width:120px;height:120px;background:url('floral-corner.svg') center/contain no-repeat;opacity:.17;pointer-events:none;z-index:2;transform:rotate(5deg)}
+.mailEnvelopeBotanical{position:absolute;left:16px;right:16px;bottom:18px;height:48px;background:linear-gradient(90deg,rgba(189,201,230,.14),rgba(226,205,230,.10),rgba(189,201,230,.14));filter:blur(16px);pointer-events:none;z-index:1}
+.mailEnvelopePlate{
+  position:relative;z-index:4;display:grid;justify-items:center;gap:7px;
+  width:min(78%, 290px);padding:18px 18px 20px;border-radius:20px;
+  background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(250,245,251,.58));
+  border:1px solid rgba(255,255,255,.82);box-shadow:0 12px 24px rgba(80,86,118,.07),inset 0 1px 0 rgba(255,255,255,.92)
+}
+.mailEnvelopeKicker{font-size:9px;letter-spacing:.24em;color:#a595ab}
+.mailEnvelopePlate .mailWindowTitle{font-size:26px!important;line-height:1.26!important;text-align:center;color:#2f3854!important}
+.mailEnvelopeHint{font-size:10px;color:#9990a4;letter-spacing:.10em}
+.mailSeal{
+  left:50%!important;top:54%!important;transform:translate(-50%,-50%)!important;z-index:5!important;
+  width:56px!important;height:56px!important;border-radius:50%!important;
+  display:grid!important;place-items:center!important;
+  background:radial-gradient(circle at 34% 27%,#d3b2ea,#a280d0 62%,#8263bd)!important;
+  color:#fff!important;box-shadow:0 10px 18px rgba(116,95,157,.22),inset 0 1px 6px rgba(255,255,255,.25)!important;
+  border:2px solid rgba(119,95,168,.18)!important;font-size:22px!important
+}
+
+/* Diary: allow margins again, but make the cover/page read taller and more
+   book-like instead of a squatter full-bleed slab. */
+.bookStage{margin-left:0!important;margin-right:0!important;width:100%!important;padding:0 10px calc(84px + env(safe-area-inset-bottom))!important}
+.journalCover076,.bookPage,.journalLeaf,.journalPhysicalPage{
+  width:100%!important;max-width:620px!important;aspect-ratio:1086 / 1548!important;
+  height:auto!important;min-height:0!important;max-height:none!important;margin:0 auto!important;border-radius:22px!important;overflow:hidden!important
+}
+.journalCover076{background:linear-gradient(145deg,rgba(255,255,255,.38),rgba(244,246,252,.24))!important;box-shadow:0 18px 36px rgba(77,88,122,.10)!important}
+.journalCover076 img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center top!important;transform:scale(1.02)}
+.journalLeaf.journalPhysicalPage{box-shadow:0 18px 36px rgba(77,88,122,.10)!important}
+.journalCoverPen{right:-2px!important;bottom:12px!important;width:122px!important;height:82px!important}
+.journalPagePen{right:-2px!important;bottom:16px!important;width:124px!important;height:84px!important}
+@media(max-width:520px){
+  .bookStage{padding:0 6px calc(84px + env(safe-area-inset-bottom))!important}
+  .journalCover076,.bookPage,.journalLeaf,.journalPhysicalPage{max-width:none!important;aspect-ratio:1086 / 1566!important;border-radius:18px!important}
+  .mailEnvelopePlate{width:min(82%, 280px);padding:16px 14px 18px}
+  .mailEnvelopePlate .mailWindowTitle{font-size:23px!important}
+  .journalCoverPen{width:112px!important;height:74px!important;bottom:12px!important}
+  .journalPagePen{width:114px!important;height:76px!important;bottom:15px!important}
+}
+
+/* Scheme B: moving the slider right makes the glass more transparent, i.e.
+   lighter / more see-through rather than whiter and more solid. */
+.glass,.glass.heroGlass,.glass.contentGlass,.glass.navGlass,
+.softBtn,.iconBtn,.statusSleepHero,.statusScoreHero,.statusHealthMetric,.statusSleepPanel,.statusMini,.hintBox,.healthMetric,.healthRow,
+.backgroundItem,.glassControl{
+  background:linear-gradient(135deg,
+    rgba(var(--glass-neutral-tone),var(--glass-neutral-tone),var(--glass-neutral-tone),calc(.22 * (1 - var(--glass-alpha)) + .018)),
+    rgba(255,255,255,calc(.16 * (1 - var(--glass-alpha)) + .010)) 48%,
+    rgba(249,243,253,calc(.11 * (1 - var(--glass-alpha)) + .008)))!important;
+  box-shadow:0 18px 42px rgba(78,98,143,.08),inset 0 1px 0 rgba(255,255,255,calc(.34 * (1 - var(--glass-alpha)) + .10))!important;
+  backdrop-filter:blur(calc(8px + var(--glass-blur))) saturate(118%)!important;
+  -webkit-backdrop-filter:blur(calc(8px + var(--glass-blur))) saturate(118%)!important
+}
+.glass:before{
+  opacity:calc(.08 + (1 - var(--glass-alpha)) * .74)!important;
+  background:linear-gradient(145deg,
+    rgba(255,255,255,calc(.18 * (1 - var(--glass-alpha)) + .015)),
+    rgba(224,240,255,calc(.09 * (1 - var(--glass-alpha)) + .010)) 48%,
+    rgba(239,225,250,calc(.07 * (1 - var(--glass-alpha)) + .010)))!important
+}
+.glass:after{opacity:calc(.08 + (1 - var(--glass-alpha)) * .34)!important;filter:blur(calc(5px + (1 - var(--glass-alpha)) * 18px))!important}
+
 </style>
 </head>
 <body>
@@ -1732,7 +1822,7 @@ function mailCanPreview(m){return !m.locked&&seenState(m,'user')&&String(m.conte
 function bubbleHtml(item){const side=authorSide(item.author),src=getAvatarSrc(side==='user'?'ryan':'daddy'),name=actorName(side);return `<div class="bubbleRow ${side}">${side==='daddy'?`<span class="bubbleAvatar">${src?`<img src="${esc(src)}">`:esc(name[0]||'D')}</span>`:''}<div class="bubble"><div class="authoredText ${side}">${esc(item.content||'')}</div><div class="bubbleMeta ${side==='user'?'identityUser':'identityDaddy'}">${esc(name)} · ${fmt(item.created_at)}</div></div>${side==='user'?`<span class="bubbleAvatar">${src?`<img src="${esc(src)}">`:esc(name[0]||'瑞')}</span>`:''}</div>`}
 async function openUnifiedMail(m){if(!m)return;if(m.future){if(m.locked)return toast(`要到 ${m.unlock_at||'那一天'} 才能打开`);openDetail('未来信',`${formalLetterHtml(m,{future:true})}<div class="seenPair"><span class="seenChip ${seenState(m,'user')?'on':''}">${esc(actorName('user'))} · ${seenState(m,'user')?'已拆':'未拆'}</span><span class="seenChip ${seenState(m,'daddy')?'on':''}">${esc(actorName('daddy'))} · ${seenState(m,'daddy')?'已拆':'未拆'}</span></div>`);if(!seenState(m,'user')&&state.conn.connected){try{await nativeRequest('POST','/api/capsules/read',{id:m.id,actor:'user'});m.user_seen=true;renderCapsules();renderMail()}catch{}}return}return openMailDetail(m.id)}
 async function openMailDetail(id){const roots=rootMailItems(),index=Math.max(0,roots.findIndex(x=>String(x.id)===String(id))),m=roots[index]||state.mail.find(x=>String(x.id)===String(id));if(!m)return;state.mailOpenId=m.id;const thread=mailThread(m.id),replies=thread.filter(x=>String(x.id)!==String(m.id));openDetail('一封信',`${formalLetterHtml(m)}<div class="seenPair" style="margin-top:10px"><span class="seenChip ${seenState(m,'user')?'on':''}">${esc(actorName('user'))} · ${seenState(m,'user')?'已拆':'未拆'}</span><span class="seenChip ${seenState(m,'daddy')?'on':''}">${esc(actorName('daddy'))} · ${seenState(m,'daddy')?'已拆':'未拆'}</span></div><div class="thread">${replies.map(bubbleHtml).join('')}</div><div class="replyBox"><textarea class="field" id="mailReplyText" placeholder="回一封信……"></textarea><button class="softBtn" id="mailReplySend">回信</button></div><div class="letterNav"><button class="softBtn" id="mailPrev">‹ 上一封</button><button class="paperDeleteLink" id="detailDeleteMail">删除</button><button class="softBtn" id="mailNext">下一封 ›</button></div>`);$('#detailDeleteMail').onclick=()=>deleteItem('/api/mail/delete',m.id,'这封信',()=>hide('#detailModal'));$('#mailPrev').onclick=()=>roots.length&&openMailDetail(roots[(index-1+roots.length)%roots.length].id);$('#mailNext').onclick=()=>roots.length&&openMailDetail(roots[(index+1)%roots.length].id);$('#mailReplySend').onclick=()=>sendMailReply(m.id);if(!seenState(m,'user')&&state.conn.connected){try{await nativeRequest('POST','/api/mail/read',{id:m.id,actor:'user'});m.user_seen=true;renderCapsules();renderMail()}catch{}}}
-function renderMail(){const root=$('#mailList');if(!root)return;const items=unifiedMailItems();if(!state.conn.connected&&!items.length){root.innerHTML='<div class="empty">连接后才能打开信箱。</div>';return}if(!items.length){root.innerHTML='<div class="empty">普通信箱还是空的。</div>';return}state.mailCarouselIndex=((state.mailCarouselIndex%items.length)+items.length)%items.length;const m=items[state.mailCarouselIndex],side=authorSide(m.author),opened=mailCanPreview(m),preview=opened?String(m.content||'').slice(0,120):'',date=formalMailDate(m.created_at),to=actorName(side==='daddy'?'user':'daddy');root.innerHTML=`<article class="mailSingle" data-normal-mail="${esc(m.id)}"><div class="mailFormalMeta"><div><div class="mailFieldLabel">FROM</div><div class="mailFieldValue ${side==='user'?'identityUser':'identityDaddy'}">${esc(actorName(m.author||''))}</div></div><div><div class="mailFieldLabel">DATE</div><div class="mailFieldValue">${esc(date)}</div></div></div><div class="mailEnvelopeVisual ${opened?'opened':'sealed'}">${opened?`<div class="letterPeek"><div class="mailPaperPreviewTo">TO · ${esc(to)}</div><div class="mailPaperPreviewBody authoredText ${side}">${esc(preview||'已经拆开的信')}</div><div class="mailPaperPreviewSign authoredText ${side}">${esc(actorName(m.author||''))} · ${esc(date)}</div></div>`:`<span class="envelopeFoldLeft"></span><span class="envelopeFoldRight"></span><span class="mailSeal waxSeal">✦</span><div class="mailWindowTitle editorialTitle">给 ${esc(to)} 的一封信</div>`}</div><div class="seenPair"><span class="seenChip ${seenState(m,'user')?'on':''}">${esc(actorName('user'))} · ${seenState(m,'user')?'已拆':'未拆'}</span><span class="seenChip ${seenState(m,'daddy')?'on':''}">${esc(actorName('daddy'))} · ${seenState(m,'daddy')?'已拆':'未拆'}</span></div></article>`;const card=$('[data-normal-mail]');if(card)card.onclick=()=>openMailDetail(m.id);const prev=$('#mailPrevCard'),next=$('#mailNextCard');if(prev)prev.disabled=items.length<2;if(next)next.disabled=items.length<2}
+function renderMail(){const root=$('#mailList');if(!root)return;const items=unifiedMailItems();if(!state.conn.connected&&!items.length){root.innerHTML='<div class="empty">连接后才能打开信箱。</div>';return}if(!items.length){root.innerHTML='<div class="empty">普通信箱还是空的。</div>';return}state.mailCarouselIndex=((state.mailCarouselIndex%items.length)+items.length)%items.length;const m=items[state.mailCarouselIndex],side=authorSide(m.author),opened=mailCanPreview(m),preview=opened?String(m.content||'').slice(0,120):'',date=formalMailDate(m.created_at),to=actorName(side==='daddy'?'user':'daddy');root.innerHTML=`<article class="mailSingle" data-normal-mail="${esc(m.id)}"><div class="mailFormalMeta"><div><div class="mailFieldLabel">FROM</div><div class="mailFieldValue ${side==='user'?'identityUser':'identityDaddy'}">${esc(actorName(m.author||''))}</div></div><div><div class="mailFieldLabel">DATE</div><div class="mailFieldValue">${esc(date)}</div></div></div><div class="mailEnvelopeVisual ${opened?'opened':'sealed'}">${opened?`<div class="letterPeek"><div class="mailPaperPreviewTo">TO · ${esc(to)}</div><div class="mailPaperPreviewBody authoredText ${side}">${esc(preview||'已经拆开的信')}</div><div class="mailPaperPreviewSign authoredText ${side}">${esc(actorName(m.author||''))} · ${esc(date)}</div></div>`:`<span class="envelopeFoldLeft"></span><span class="envelopeFoldRight"></span><span class="mailSeal waxSeal">✦</span><div class="mailEnvelopeLiner"></div><div class="mailEnvelopeBotanical"></div><div class="mailEnvelopePlate"><div class="mailEnvelopeKicker">TO</div><div class="mailWindowTitle editorialTitle">给 ${esc(to)} 的一封信</div><div class="mailEnvelopeHint">轻触拆信</div></div>`}</div><div class="seenPair"><span class="seenChip ${seenState(m,'user')?'on':''}">${esc(actorName('user'))} · ${seenState(m,'user')?'已拆':'未拆'}</span><span class="seenChip ${seenState(m,'daddy')?'on':''}">${esc(actorName('daddy'))} · ${seenState(m,'daddy')?'已拆':'未拆'}</span></div></article>`;const card=$('[data-normal-mail]');if(card)card.onclick=()=>openMailDetail(m.id);const prev=$('#mailPrevCard'),next=$('#mailNextCard');if(prev)prev.disabled=items.length<2;if(next)next.disabled=items.length<2}
 function renderCapsules(){const root=$('#capsuleList');if(!root)return;const items=[...(state.capsules||[])].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));if(!items.length){root.innerHTML='<div class="empty">还没有未来信。</div>';return}state.capsuleCarouselIndex=((state.capsuleCarouselIndex%items.length)+items.length)%items.length;const m=items[state.capsuleCarouselIndex],side=authorSide(m.author),locked=!!m.locked,seen=seenState(m,'user'),sealed=locked||!seen,preview=!locked&&seen&&String(m.content||'').trim()?String(m.content||'').slice(0,105):'',date=formalMailDate(m.created_at),to=actorName(side==='daddy'?'user':'daddy');root.innerHTML=`<article class="mailSingle futureLetter" data-future-mail="current"><div class="mailFormalMeta"><div><div class="mailFieldLabel">FROM THE PAST</div><div class="mailFieldValue ${side==='user'?'identityUser':'identityDaddy'}">${esc(actorName(m.author||''))}</div></div><div><div class="mailFieldLabel">OPEN</div><div class="mailFieldValue">${esc(m.unlock_at||'')}</div></div></div><div class="futureEnvelope ${sealed?'sealed':'opened'}">${sealed?`<span class="futureFoldL"></span><span class="futureFoldR"></span><span class="futureStamp">FUTURE<br>MAIL</span><span class="futurePostmark">${esc((m.unlock_at||'').slice(5).replace('-','.'))}</span><span class="futureWax">♡</span><div class="futureEnvelopeText"><b>${locked?'给未来的你':'已经到日子了，等你拆开'}</b><small>TO · ${esc(to)}</small><small>${locked?`开启日 · ${esc(m.unlock_at||'')}`:'信已经到达 · 点一下拆信'}</small></div>`:`<div class="futureLetterPaper"><div class="futurePaperKicker">TO · ${esc(to)} · FUTURE LETTER</div><div class="futurePaperPreview authoredText ${side}">${esc(preview||'这封未来信已经拆开。')}</div><div class="futurePaperSign authoredText ${side}">${esc(actorName(m.author||''))} · ${esc(date)}</div></div>`}</div><div class="futureLockHint">${locked?'信封仍然封着，日期到了才可以拆。':seen?'已拆封':'已解锁但还没拆封'}</div>${!locked?`<div class="seenPair"><span class="seenChip ${seenState(m,'user')?'on':''}">${esc(actorName('user'))} · ${seenState(m,'user')?'已拆':'未拆'}</span><span class="seenChip ${seenState(m,'daddy')?'on':''}">${esc(actorName('daddy'))} · ${seenState(m,'daddy')?'已拆':'未拆'}</span></div>`:''}</article>`;const card=$('[data-future-mail]');if(card)card.onclick=()=>openUnifiedMail({...m,_kind:'capsule',future:true});const prev=$('#capsulePrevCard'),next=$('#capsuleNextCard');if(prev)prev.disabled=items.length<2;if(next)next.disabled=items.length<2}
 function openMailArchive(){const items=unifiedMailItems(),groups=new Map();for(const m of items){const key=dayArchiveKey(m.created_at);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(m)}const dates=[...groups.keys()];const row=m=>`<button class="traceListRow archiveLetter" data-archive-mail="${esc(m.id)}"><span class="mailKindBadge">信</span><span class="traceListMain"><b>${esc(actorName(m.author||''))}</b><small>${mailCanPreview(m)?esc(String(m.content||'').slice(0,38)):'未拆'}</small></span><time>${fmt(m.created_at)}</time></button>`;const bind=(scopeItems=items)=>$$('[data-archive-mail]').forEach(b=>b.onclick=()=>{const m=scopeItems.find(x=>String(x.id)===String(b.dataset.archiveMail))||items.find(x=>String(x.id)===String(b.dataset.archiveMail));if(m)openMailDetail(m.id)});const showDates=()=>{openDetail('全部普通信',`<div class="mailArchiveSearch"><input class="field" id="archiveSearch" placeholder="搜索已经解锁的普通信"></div><div id="mailArchiveBody">${dates.length?dates.map(k=>`<button class="glass archiveDate" data-archive-date="${esc(k)}"><b>${esc(k)}</b><span>${groups.get(k).length} 封</span></button>`).join(''):'<div class="empty">还没有普通信。</div>'}</div>`);$$('[data-archive-date]').forEach(b=>b.onclick=()=>showDay(b.dataset.archiveDate));$('#archiveSearch').oninput=e=>showSearch(e.target.value)};const showDay=k=>{const body=$('#mailArchiveBody');if(!body)return;body.innerHTML=`<button class="softBtn" id="archiveBack">‹ 按日期</button><div class="archiveDayTitle editorialTitle">${esc(k)}</div>${(groups.get(k)||[]).map(row).join('')}`;$('#archiveBack').onclick=showDates;bind(groups.get(k)||[])};const showSearch=q=>{const body=$('#mailArchiveBody'),x=String(q||'').trim().toLowerCase();if(!body)return;if(!x){body.innerHTML=dates.map(k=>`<button class="glass archiveDate" data-archive-date="${esc(k)}"><b>${esc(k)}</b><span>${groups.get(k).length} 封</span></button>`).join('');$$('[data-archive-date]').forEach(b=>b.onclick=()=>showDay(b.dataset.archiveDate));return}const found=items.filter(m=>String(m.content||'').toLowerCase().includes(x)||actorName(m.author||'').toLowerCase().includes(x));body.innerHTML=found.length?found.map(row).join(''):'<div class="empty">没有找到普通信。</div>';bind(found)};showDates()}
 function openCapsuleArchive(){const items=[...(state.capsules||[])].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));const groups=new Map();for(const m of items){const key=dayArchiveKey(m.created_at);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(m)}openDetail('全部未来信',items.length?[...groups.entries()].map(([k,list])=>`<div class="archiveDayTitle editorialTitle">${esc(k)}</div>${list.map(m=>`<button class="traceListRow" data-capsule-archive="${items.indexOf(m)}"><span class="mailKindBadge future">未来信</span><span class="traceListMain"><b>${esc(actorName(m.author||''))}</b><small>${m.locked?`锁到 ${esc(m.unlock_at||'')}`:`已解锁 · ${esc(String(m.content||'').slice(0,32))}`}</small></span><time>${fmt(m.created_at)}</time></button>`).join('')}`).join(''):'<div class="empty">还没有未来信。</div>');$$('[data-capsule-archive]').forEach(b=>b.onclick=()=>{const m=items[Number(b.dataset.capsuleArchive)];if(m)openUnifiedMail({...m,_kind:'capsule',future:true})})}

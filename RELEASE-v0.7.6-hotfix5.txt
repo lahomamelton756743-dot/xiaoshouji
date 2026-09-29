@@ -1,0 +1,12 @@
+Little Phone v0.7.6 hotfix5
+
+Changes:
+- redesign the normal-letter envelope to look softer and prettier
+- make the diary cover/page a bit taller again, with margins instead of full bleed
+- switch glass slider to scheme B: farther right = more transparent / more glass
+
+Backend note:
+- GPT memories and GPT profile tools already exist in the Cloudflare Worker code
+- if ChatGPT still cannot read/write them, redeploy the Worker and reconnect MCP so the latest tool list is loaded
+
+Android versionCode: 70365

@@ -180,6 +180,10 @@ public class AppGate {
         if (pass.length() > 0) lock.put("emergency_hash", hash(pass));
         clearTemp(lock);
         JSONObject s = state(ctx); locks(s).put(pkg, lock); save(ctx, s);
+        // A remote lock is an explicit request to enforce the gate. Older local UI state could
+        // leave the master gate toggle off, making the lock appear in Little Phone while the
+        // target app remained usable. Re-enable enforcement whenever a lock is created.
+        AppPrefs.get(ctx).edit().putBoolean(KEY_ENABLED, true).apply();
         addGateApp(ctx, lock.optString("app_name", labelOf(ctx, pkg)), pkg);
         log(ctx, "锁定 " + lock.optString("app_name") + " 到 " + lock.optString("locked_until_local") + "：" + lock.optString("reason"));
         triggerCurrentForegroundIfNeeded(ctx, pkg);
@@ -301,24 +305,33 @@ public class AppGate {
         final Context app = ctx.getApplicationContext();
         final Handler main = new Handler(Looper.getMainLooper());
 
-        // v0.6.3：门禁只保留一层 LockActivity。
-        // 旧版 Activity + 悬浮遮罩双层兜底会造成同一次拦截出现两套 UI，
-        // 用户确认只保留统一的小手机门禁页。Activity 若确实没显示，直接回桌面兜底，
-        // 不再叠第二个悬浮页面。
-        showLockActivity(app, pkg);
+        // Only keep the single existing LockActivity UI, but enforcement must happen before
+        // relying on a background Activity launch. Android may reject/delay that launch; in the
+        // broken build this left the locked app fully usable. Accessibility can always perform
+        // HOME, so leave the target app first, then present the same gate page.
+        ScreenshotService svc = ScreenshotService.getInstance();
+        if (svc != null) {
+            try {
+                svc.doHome();
+                DebugState.append(app, "应用门禁：已先离开被锁 App：" + pkg);
+            } catch (Exception e) {
+                DebugState.append(app, "应用门禁：离开被锁 App 失败：" + ScreenshotService.shortMsg(e));
+            }
+        }
+        main.postDelayed(() -> {
+            ScreenshotService live = ScreenshotService.getInstance();
+            showLockActivity(live != null ? live : app, pkg);
+        }, 180);
 
-        // Android 10+ 对后台 Activity 启动限制较严格。无障碍服务存在时再用它的
-        // Context 补发一次统一 LockActivity；不要因为 1.5 秒内没回报 visible 就立刻 Home，
-        // 否则会出现“点进被锁 App 后马上退出、门禁页没来得及显示”的体验。
+        // One retry only. No second overlay/UI is introduced.
         main.postDelayed(() -> {
             if (isLockActivityVisibleFor(pkg)) return;
-            ScreenshotService svc = ScreenshotService.getInstance();
-            if (svc != null) showLockActivity(svc, pkg);
-        }, 650);
-        main.postDelayed(() -> {
-            if (!isLockActivityVisibleFor(pkg))
-                DebugState.append(app, "统一门禁页尚未确认显示，保留目标状态等待下一次前台事件重试：" + pkg);
-        }, 3200);
+            ScreenshotService live = ScreenshotService.getInstance();
+            if (live != null) {
+                try { live.doHome(); } catch (Exception ignored) { }
+                showLockActivity(live, pkg);
+            }
+        }, 900);
     }
 
     private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {

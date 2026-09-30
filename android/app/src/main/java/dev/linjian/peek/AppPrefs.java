@@ -11,9 +11,11 @@ import java.util.Map;
 
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
-    public static final String APP_VERSION_NAME = "0.8.2-4";
-    public static final int APP_VERSION_CODE = 80204;
+    public static final String APP_VERSION_NAME = "0.8.2-5";
+    public static final int APP_VERSION_CODE = 80205;
     public static final String KEY_SERVER = "server_url";
+    public static final String CANONICAL_SERVER = "https://little-phone-backend.lahomamelton756743.workers.dev";
+    private static final String LEGACY_RENDER_HOST = "zhangxinchuang-server-yolp.onrender.com";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";
     public static final String KEY_INTERVAL = "poll_interval_ms";
@@ -102,7 +104,15 @@ public class AppPrefs {
         String server = server(ctx);
         return server.length() == 0 ? new String[0] : new String[]{server};
     }
-    public static String server(Context ctx) { return cleanServer(get(ctx).getString(KEY_SERVER, "")); }
+    public static String server(Context ctx) {
+        SharedPreferences prefs = get(ctx);
+        String raw = cleanServer(prefs.getString(KEY_SERVER, ""));
+        if (raw.isEmpty() || raw.toLowerCase(Locale.ROOT).contains(LEGACY_RENDER_HOST)) {
+            raw = CANONICAL_SERVER;
+            prefs.edit().putString(KEY_SERVER, raw).apply();
+        }
+        return raw;
+    }
     public static String token(Context ctx) { return get(ctx).getString(KEY_TOKEN, ""); }
     public static String device(Context ctx) { return get(ctx).getString(KEY_DEVICE, "android-phone"); }
     public static int interval(Context ctx) {

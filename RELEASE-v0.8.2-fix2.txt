@@ -1,0 +1,7 @@
+Little Phone v0.8.2 fix2
+
+- Diary search is fixed to the real top-right corner.
+- Dedicated 电话 app is guaranteed into migrated desktop layouts.
+- 手机 is renamed 状态 and still opens device status.
+- Call-specific settings live only inside 电话; Settings keeps local reminders only.
+- Desktop paging now tracks the actual page and no longer jumps back during background renders.

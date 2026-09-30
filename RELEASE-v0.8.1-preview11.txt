@@ -1,0 +1,9 @@
+Little Phone v0.8.1 preview11
+
+- diary search button pinned to the rounded-safe top-right corner
+- Settings adds Avatar & Identity: avatar, name, identity color and font for both people
+- incoming calls use the full-screen call UI as primary; no duplicate heads-up notification when full-screen starts
+- accept / reject / hang-up cancel the fallback call notification
+- app gate now reports accessibility_required instead of pretending a lock executed when Accessibility is off
+
+Android versionCode: 80111

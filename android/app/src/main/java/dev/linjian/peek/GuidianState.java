@@ -213,7 +213,8 @@ public class GuidianState {
             JSONArray kept = new JSONArray(); kept.put(item);
             for(int i=0;i<old.length()&&kept.length()<120;i++){JSONObject x=old.optJSONObject(i);if(x!=null&&!id.equals(x.optString("id")))kept.put(x);}
             prefs(ctx).edit().putString(KEY_CALL_RECORDS,kept.toString()).putString(KEY_CURRENT_CALL_ID,id).apply();
-            uploadCallAsync(ctx.getApplicationContext(), item);
+            // v0.8.2: ringing is local-only. Upload the final result once, so one call is one server record.
+            if (!"ringing".equals(status)) uploadCallAsync(ctx.getApplicationContext(), item);
         } catch (Exception ignored) { }
         return item;
     }
@@ -234,6 +235,7 @@ public class GuidianState {
                 .putLong(KEY_LAST_RETURN_AT, now)
                 .putString(KEY_LAST_RETURN_SOURCE, source == null ? "unknown" : source)
                 .apply();
+        cancelCallNotification(ctx);
         DebugState.append(ctx, "来电已记录接通：" + (source == null ? "unknown" : source));
         String cid=prefs(ctx).getString(KEY_CURRENT_CALL_ID,""); if(!cid.isEmpty()) recordCall(ctx,cid,prefs(ctx).getString(KEY_LAST_PROMPT_TEXT,""),"accepted","");
         if (!"target_foreground".equals(source))
@@ -246,6 +248,7 @@ public class GuidianState {
                 .putLong(KEY_LAST_REJECT_AT, now)
                 .putString(KEY_LAST_REJECT_REASON, reason == null ? "" : reason.trim())
                 .apply();
+        cancelCallNotification(ctx);
         DebugState.append(ctx, "来电已拒绝：" + (reason == null ? "" : reason.trim()));
         String cid=prefs(ctx).getString(KEY_CURRENT_CALL_ID,""); if(!cid.isEmpty()) recordCall(ctx,cid,prefs(ctx).getString(KEY_LAST_PROMPT_TEXT,""),"rejected",reason==null?"":reason.trim());
         ActivityEventStore.recordPhone(ctx, "guidian_reject", "拒绝来电", reason == null ? "" : reason.trim());
@@ -255,6 +258,7 @@ public class GuidianState {
         prefs(ctx).edit().putLong(KEY_LAST_REJECT_AT, System.currentTimeMillis()).apply();
         String cid=prefs(ctx).getString(KEY_CURRENT_CALL_ID,"");
         if(!cid.isEmpty()) recordCall(ctx,cid,prefs(ctx).getString(KEY_LAST_PROMPT_TEXT,""),"hung_up","");
+        cancelCallNotification(ctx);
         ActivityEventStore.recordPhone(ctx, "guidian_hangup", "挂断来电", "");
         DebugState.append(ctx, "来电已挂断");
     }
@@ -334,9 +338,10 @@ public class GuidianState {
             i.putExtra("prompt", prompt);
             boolean started = false;
             try { ctx.startActivity(i); started = true; } catch (Exception e) { DebugState.append(ctx, "来电全屏启动被系统拦截：" + ScreenshotService.shortMsg(e)); }
-            boolean notified = showFullScreenNotification(ctx, prompt);
-            DebugState.append(ctx, "来电触发：" + prompt + "，全屏=" + started + "，通知=" + notified);
-            out.put("ok", started || notified); out.put("fullscreen_started", started); out.put("notification_sent", notified); out.put("prompt", prompt); out.put("today_count", count);
+            // v0.8.2: the full-screen Activity is the only call surface. Never create a second call notification.
+            cancelCallNotification(ctx);
+            DebugState.append(ctx, "来电触发：" + prompt + "，全屏=" + started + "，通知=false");
+            out.put("ok", started); out.put("fullscreen_started", started); out.put("notification_sent", false); out.put("prompt", prompt); out.put("today_count", count);
             recordAutoCheck(ctx, System.currentTimeMillis(), 0, false, force ? "manual_prompt" : "prompt_shown", out.toString());
         } catch (Exception e) { try { out.put("ok", false).put("error", ScreenshotService.shortMsg(e)); } catch (Exception ignored) { } }
         return out;
@@ -427,6 +432,13 @@ public class GuidianState {
         if ("白色".equals(theme) || "黑色".equals(theme) || "粉色".equals(theme)) return theme;
         // 旧三套归电主题统一迁移到新的粉色主题。
         return "粉色";
+    }
+
+    private static void cancelCallNotification(Context ctx) {
+        try {
+            NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(NOTIFICATION_ID);
+        } catch (Exception ignored) { }
     }
 
     private static boolean showFullScreenNotification(Context ctx, String prompt) {

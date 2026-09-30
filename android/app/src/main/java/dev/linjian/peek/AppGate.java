@@ -183,7 +183,19 @@ public class AppGate {
         addGateApp(ctx, lock.optString("app_name", labelOf(ctx, pkg)), pkg);
         log(ctx, "锁定 " + lock.optString("app_name") + " 到 " + lock.optString("locked_until_local") + "：" + lock.optString("reason"));
         triggerCurrentForegroundIfNeeded(ctx, pkg);
-        return put(new JSONObject(), true, "locked_app:" + pkg + " until " + lock.optString("locked_until_local"));
+        JSONObject result = new JSONObject();
+        if (!ScreenshotService.ready()) {
+            // The rule is saved, but Android cannot observe foreground-app changes until accessibility is enabled.
+            result.put("ok", false);
+            result.put("result", "accessibility_required: lock_saved_for:" + pkg);
+            result.put("lock_saved", true);
+            result.put("accessibility_ready", false);
+            return result;
+        }
+        result.put("ok", true);
+        result.put("result", "locked_app:" + pkg + " until " + lock.optString("locked_until_local"));
+        result.put("accessibility_ready", true);
+        return result;
     }
 
     private static JSONObject unlockApp(Context ctx, JSONObject cmd, String why) throws Exception {

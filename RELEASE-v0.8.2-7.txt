@@ -1,0 +1,15 @@
+# Little Phone 0.8.2-7
+
+Gate rewrite: direct Palm Window port.
+
+- AppGate.java is ported directly from linzhi-524/linjian-peek-public v0.3.9.0.
+- LockActivity.java is ported directly from the same source.
+- ScreenshotService uses Palm Window's exact accessibility-event gate trigger path.
+- LockActivity manifest behavior matches Palm Window.
+- Enforcement order is unchanged from Palm Window: full-screen LockActivity -> SYSTEM_ALERT_WINDOW full-screen touch-blocking overlay -> Home fallback.
+- Palm Window's 1800ms duplicate guard and 700ms/1400ms fallback timing are preserved.
+- Little Phone's experimental GateOverlay/GatePageView path is no longer used for app-gate enforcement.
+- Commands still arrive through the Little Phone Cloudflare backend.
+- Namespace-only Android adaptation: com.littlephone.app replaces dev.linjian.peek.
+
+No extra gate verifier, timing tweak, or custom enforcement heuristic is layered on top.

@@ -5,8 +5,21 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,6 +48,12 @@ public class AppGate {
     private static final String SELF_PACKAGE = "com.littlephone.app";
     private static volatile String lastForegroundPackage = "";
     private static volatile long lastForegroundSince = 0;
+    private static volatile long lastGateAt = 0;
+    private static volatile String lastGatePackage = "";
+    private static volatile View overlayView = null;
+    private static volatile WindowManager overlayWindowManager = null;
+    private static volatile String visibleLockActivityPackage = "";
+    private static volatile long visibleLockActivityAt = 0;
 
     public static boolean enabled(Context ctx) { return AppPrefs.get(ctx).getBoolean(KEY_ENABLED, true); }
 
@@ -176,26 +195,10 @@ public class AppGate {
         if (pass.length() > 0) lock.put("emergency_hash", hash(pass));
         clearTemp(lock);
         JSONObject s = state(ctx); locks(s).put(pkg, lock); save(ctx, s);
-        // A remote lock is an explicit request to enforce the gate. Older local UI state could
-        // leave the master gate toggle off, making the lock appear in Little Phone while the
-        // target app remained usable. Re-enable enforcement whenever a lock is created.
-        AppPrefs.get(ctx).edit().putBoolean(KEY_ENABLED, true).apply();
         addGateApp(ctx, lock.optString("app_name", labelOf(ctx, pkg)), pkg);
         log(ctx, "锁定 " + lock.optString("app_name") + " 到 " + lock.optString("locked_until_local") + "：" + lock.optString("reason"));
         triggerCurrentForegroundIfNeeded(ctx, pkg);
-        JSONObject result = new JSONObject();
-        if (!ScreenshotService.ready()) {
-            // The rule is saved, but Android cannot observe foreground-app changes until accessibility is enabled.
-            result.put("ok", false);
-            result.put("result", "accessibility_required: lock_saved_for:" + pkg);
-            result.put("lock_saved", true);
-            result.put("accessibility_ready", false);
-            return result;
-        }
-        result.put("ok", true);
-        result.put("result", "locked_app:" + pkg + " until " + lock.optString("locked_until_local"));
-        result.put("accessibility_ready", true);
-        return result;
+        return put(new JSONObject(), true, "locked_app:" + pkg + " until " + lock.optString("locked_until_local"));
     }
 
     private static JSONObject unlockApp(Context ctx, JSONObject cmd, String why) throws Exception {
@@ -203,8 +206,6 @@ public class AppGate {
         JSONObject s = state(ctx); JSONObject l = locks(s).optJSONObject(pkg);
         if (l != null) { l.put("active", false); l.put("unlocked_at_ms", System.currentTimeMillis()); l.put("unlock_reason", why); }
         save(ctx, s); log(ctx, "解除门禁：" + pkg + "（" + why + "）");
-        if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
-        LockActivity.dismissVisible();
         return put(new JSONObject(), true, "unlocked_app:" + pkg);
     }
 
@@ -228,8 +229,6 @@ public class AppGate {
         l.put("temporary_session_started_ms", 0);
         l.put("temporary_one_time_used", false);
         save(ctx, s);
-        if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
-        LockActivity.dismissVisible();
         log(ctx, "临时放行 " + l.optString("app_name", pkg) + "：" + minutes + " 分钟，type=" + type);
         return put(new JSONObject(), true, "temporary_unlocked:" + pkg + " " + minutes + "min type=" + type);
     }
@@ -265,138 +264,227 @@ public class AppGate {
         return put(new JSONObject(), true, "emergency_passphrase_set:" + pkg);
     }
 
-    // Gate strategy follows the proven Palm Window ordering:
-    // full-screen Activity first, accessibility overlay second, Home as the final escape hatch.
-    // The implementation/UI remains Little Phone's own.
-    private static volatile String visibleLockActivityPackage = "";
-    private static volatile long visibleLockActivityAt = 0;
-    private static volatile String launchingLockPackage = "";
-    private static volatile long launchingLockAt = 0;
-
     public static void onForegroundPackage(Context ctx, String pkg) {
         if (pkg == null || pkg.trim().isEmpty()) return;
         pkg = pkg.trim();
+        if (!enabled(ctx)) return;
         long now = System.currentTimeMillis();
         try { accountUsageSwitch(ctx, pkg, now); } catch (Exception ignored) { }
-
-        if (!enabled(ctx) || isProtectedPackage(ctx, pkg) || SELF_PACKAGE.equals(pkg)) return;
-
+        if (isProtectedPackage(ctx, pkg)) return;
+        if (SELF_PACKAGE.equals(pkg)) return;
         try {
             JSONObject lock = activeLockFor(ctx, pkg, now);
             if (lock == null) return;
             if (isTemporarilyAllowed(ctx, lock, now, true)) return;
-
-            if (isLockActivityVisibleFor(pkg)) {
-                if (GateOverlay.isShowing()) GateOverlay.dismiss();
-                return;
-            }
-
+            if (pkg.equals(lastGatePackage) && now - lastGateAt < 1800) return;
+            lastGatePackage = pkg; lastGateAt = now;
             showGateByPriority(ctx, pkg, lock);
             log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（全屏页优先，遮罩兜底，Home 最后兜底）");
             ActivityEventStore.recordPhone(ctx, "screen_break_trigger", "应用门禁触发", lock.optString("app_name", pkg));
-        } catch (Exception e) {
-            DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e));
-        }
+        } catch (Exception e) { DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e)); }
+    }
+
+    private static boolean canDrawOverlay(Context ctx) {
+        try { return Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(ctx); }
+        catch (Exception e) { return false; }
     }
 
     public static void markLockActivityVisible(String pkg, boolean visible) {
         if (visible) {
-            visibleLockActivityPackage = pkg == null ? "" : pkg.trim();
+            visibleLockActivityPackage = pkg == null ? "" : pkg;
             visibleLockActivityAt = System.currentTimeMillis();
-            launchingLockPackage = "";
-            launchingLockAt = 0;
-            if (GateOverlay.isShowing()) GateOverlay.dismiss();
         } else {
-            if (pkg == null || pkg.trim().isEmpty() || pkg.trim().equals(visibleLockActivityPackage)) {
-                visibleLockActivityPackage = "";
-                visibleLockActivityAt = 0;
-            }
+            visibleLockActivityPackage = "";
+            visibleLockActivityAt = 0;
         }
     }
 
-    public static boolean isLockActivityVisibleFor(String pkg) {
+    private static boolean isLockActivityVisibleFor(String pkg) {
         return pkg != null
                 && pkg.equals(visibleLockActivityPackage)
-                && System.currentTimeMillis() - visibleLockActivityAt < 2500;
+                && System.currentTimeMillis() - visibleLockActivityAt < 3000;
     }
 
     private static void showGateByPriority(final Context ctx, final String pkg, final JSONObject lock) {
         final Context app = ctx.getApplicationContext();
-        final long now = System.currentTimeMillis();
-
-        // Accessibility can emit several events for the same transition. Launch the Activity once,
-        // then let the visibility callback decide whether fallback is needed.
-        if (!(pkg.equals(launchingLockPackage) && now - launchingLockAt < 450)) {
-            launchingLockPackage = pkg;
-            launchingLockAt = now;
-            showLockActivity(app, pkg);
-        }
-
         final Handler main = new Handler(Looper.getMainLooper());
-        main.postDelayed(() -> {
-            try {
-                if (isLockActivityVisibleFor(pkg)) return;
-                ScreenshotService svc = ScreenshotService.getInstance();
-                if (svc != null && !GateOverlay.isShowingFor(pkg)) {
-                    DebugState.append(app, "应用门禁：全屏页未确认显示，启用无障碍全屏遮罩：" + pkg);
-                    GateOverlay.show(svc, pkg);
-                }
-            } catch (Exception e) {
-                DebugState.append(app, "应用门禁遮罩兜底异常：" + ScreenshotService.shortMsg(e));
-            }
-        }, 350);
+
+        // v0.3.9.0：应用门禁优先级调整为「全屏锁定页 > 全屏悬浮遮罩 > 回到桌面」。
+        // 这样 OPPO/ColorOS 上即使悬浮窗或后台弹层被系统限制，也会先尝试最强的 Activity 拦截。
+        showLockActivity(app, pkg);
 
         main.postDelayed(() -> {
-            if (isLockActivityVisibleFor(pkg) || GateOverlay.isShowingFor(pkg)) return;
-            goHome(app, "全屏页和遮罩都未确认显示");
-        }, 900);
+            if (isLockActivityVisibleFor(pkg)) return;
+            if (canDrawOverlay(app)) {
+                DebugState.append(app, "应用门禁：全屏锁定页未确认显示，改用全屏悬浮遮罩兜底；目标=" + pkg);
+                showOverlayLock(app, pkg, lock);
+            } else {
+                goHome(app, "全屏锁定页未确认显示，且没有悬浮窗权限");
+            }
+        }, 700);
+
+        main.postDelayed(() -> {
+            if (isLockActivityVisibleFor(pkg)) return;
+            if (overlayView != null) return;
+            goHome(app, "全屏锁定页与悬浮遮罩均未确认显示");
+        }, 1400);
     }
 
-    private static void showLockActivity(Context ctx, String pkg) {
-        try {
-            Intent i = new Intent(ctx, LockActivity.class);
-            i.putExtra("package", pkg);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            ctx.startActivity(i);
-            DebugState.append(ctx, "应用门禁：立即启动全屏门禁页：" + pkg);
-        } catch (Exception e) {
-            DebugState.append(ctx, "应用门禁全屏页启动失败：" + ScreenshotService.shortMsg(e));
-        }
+    private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
+        final Context app = ctx.getApplicationContext();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                String current = ScreenshotService.currentPackage();
+                if (lockedPkg != null && lockedPkg.equals(current)) {
+                    DebugState.append(app, "应用门禁：锁定后发现目标已在前台，立即触发拦截：" + lockedPkg);
+                    onForegroundPackage(app, lockedPkg);
+                }
+            } catch (Exception e) {
+                DebugState.append(app, "应用门禁：锁定后前台检查失败：" + ScreenshotService.shortMsg(e));
+            }
+        }, 200);
     }
 
     private static void goHome(Context ctx, String reason) {
         try {
             ScreenshotService svc = ScreenshotService.getInstance();
-            if (svc != null && svc.doHome()) {
-                DebugState.append(ctx, "应用门禁 Home 兜底：" + reason);
-                return;
+            if (svc != null) {
+                svc.doHome();
+                DebugState.append(ctx, "应用门禁兜底 Home：" + reason);
+            } else {
+                DebugState.append(ctx, "应用门禁兜底 Home 失败：无障碍服务未连接；" + reason);
             }
-            Intent home = new Intent(Intent.ACTION_MAIN);
-            home.addCategory(Intent.CATEGORY_HOME);
-            home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ctx.startActivity(home);
-            DebugState.append(ctx, "应用门禁 Home Intent 兜底：" + reason);
         } catch (Exception e) {
-            DebugState.append(ctx, "应用门禁 Home 兜底异常：" + ScreenshotService.shortMsg(e));
+            DebugState.append(ctx, "应用门禁兜底 Home 异常：" + ScreenshotService.shortMsg(e));
         }
     }
 
-    private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
-        final Context app = ctx.getApplicationContext();
+    private static void showLockActivity(Context ctx, String pkg) {
         try {
-            String current = ScreenshotService.currentPackage();
-            if (lockedPkg != null && lockedPkg.equals(current)) onForegroundPackage(app, lockedPkg);
-        } catch (Exception e) {
-            DebugState.append(app, "应用门禁：锁定后前台检查失败：" + ScreenshotService.shortMsg(e));
-        }
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            markLockActivityVisible(pkg, false);
+            Intent i = new Intent(ctx, LockActivity.class);
+            i.putExtra("package", pkg);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            ctx.startActivity(i);
+            DebugState.append(ctx, "门禁启动全屏锁定页：" + pkg);
+        } catch (Exception e) { DebugState.append(ctx, "门禁启动全屏锁定页失败：" + ScreenshotService.shortMsg(e)); }
+    }
+
+    private static void showOverlayLock(final Context ctx, final String pkg, final JSONObject lock) {
+        new Handler(Looper.getMainLooper()).post(() -> {
             try {
-                String current = ScreenshotService.currentPackage();
-                if (lockedPkg != null && lockedPkg.equals(current) && !isLockActivityVisibleFor(lockedPkg)) {
-                    onForegroundPackage(app, lockedPkg);
-                }
-            } catch (Exception ignored) { }
-        }, 120);
+                final Context app = ctx.getApplicationContext();
+                final WindowManager wm = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
+                if (wm == null) { goHome(ctx, "WindowManager 为空，悬浮遮罩无法显示"); return; }
+                removeOverlay();
+
+                // 悬浮窗兜底必须是「全屏触摸拦截层」，不能只是中间一张卡片。
+                // 这样即使全屏 Activity 被系统限制弹不出来，底下的小红书/抖音也不会继续接到点击和滑动。
+                LinearLayout root = new LinearLayout(app);
+                root.setOrientation(LinearLayout.VERTICAL);
+                root.setGravity(Gravity.CENTER);
+                root.setPadding(dp(ctx, 22), dp(ctx, 22), dp(ctx, 22), dp(ctx, 22));
+                root.setClickable(true);
+                root.setFocusable(true);
+                root.setBackgroundColor(0x88F2EAFB);
+                root.setOnClickListener(v -> { /* 空白遮罩吃掉点击，不关闭也不透传 */ });
+
+                LinearLayout card = new LinearLayout(app);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setGravity(Gravity.CENTER);
+                card.setPadding(dp(ctx, 22), dp(ctx, 20), dp(ctx, 22), dp(ctx, 20));
+                GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFFFDF6F8, 0xFFEAF6F1});
+                bg.setCornerRadius(dp(ctx, 24));
+                bg.setStroke(dp(ctx, 1), 0x66B8A8D8);
+                card.setBackground(bg);
+                card.setClickable(true);
+                card.setOnClickListener(v -> { /* 卡片区域也不向下透传 */ });
+
+                TextView title = new TextView(app);
+                title.setText(lock.optString("app_name", labelOf(ctx, pkg)) + " 已被锁定");
+                title.setTextColor(0xFF2D3E39);
+                title.setTextSize(20);
+                title.setTypeface(Typeface.DEFAULT_BOLD);
+                title.setGravity(Gravity.CENTER);
+                card.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+                TextView msg = new TextView(app);
+                String text = lock.optString("message", "先休息一下，等会儿再回来。");
+                if (text == null || text.trim().isEmpty()) text = lock.optString("reason", "先休息一下，等会儿再回来。");
+                msg.setText(text + "\n到 " + lock.optString("locked_until_local", "稍后") + " 自动解除。");
+                msg.setTextColor(0xFF596D66);
+                msg.setTextSize(13);
+                msg.setGravity(Gravity.CENTER);
+                msg.setLineSpacing(dp(ctx, 3), 1f);
+                LinearLayout.LayoutParams msgLp = new LinearLayout.LayoutParams(-1, -2);
+                msgLp.topMargin = dp(ctx, 10);
+                card.addView(msg, msgLp);
+
+                LinearLayout row = new LinearLayout(app);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER);
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, dp(ctx, 38));
+                rowLp.topMargin = dp(ctx, 16);
+
+                Button home = overlayButton(app, "回到桌面", true);
+                home.setOnClickListener(v -> { ScreenshotService svc = ScreenshotService.getInstance(); if (svc != null) svc.doHome(); removeOverlay(); });
+                row.addView(home, new LinearLayout.LayoutParams(0, -1, 1f));
+
+                Button detail = overlayButton(app, "查看详情", false);
+                LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(0, -1, 1f);
+                detailLp.leftMargin = dp(ctx, 8);
+                detail.setOnClickListener(v -> {
+                    removeOverlay();
+                    showLockActivity(app, pkg);
+                });
+                row.addView(detail, detailLp);
+                card.addView(row, rowLp);
+
+                LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                        Math.max(dp(ctx, 280), app.getResources().getDisplayMetrics().widthPixels - dp(ctx, 34)),
+                        -2);
+                root.addView(card, cardLp);
+
+                int type = Build.VERSION.SDK_INT >= 26 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+                WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        type,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        PixelFormat.TRANSLUCENT);
+                lp.gravity = Gravity.CENTER;
+                wm.addView(root, lp);
+                overlayView = root;
+                overlayWindowManager = wm;
+                DebugState.append(app, "门禁悬浮层已启动：touch_blocking=true；目标=" + pkg);
+            } catch (Exception e) {
+                DebugState.append(ctx, "门禁悬浮层失败，回到桌面兜底：" + ScreenshotService.shortMsg(e));
+                goHome(ctx, "悬浮遮罩显示失败");
+            }
+        });
+    }
+
+    private static Button overlayButton(Context ctx, String text, boolean primary) {
+        Button b = new Button(ctx);
+        b.setText(text);
+        b.setTextSize(12);
+        b.setAllCaps(false);
+        b.setTextColor(primary ? Color.WHITE : 0xFF596D66);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(primary ? 0xFF8E74C8 : 0x22B8A8D8);
+        bg.setCornerRadius(dp(ctx, 18));
+        b.setBackground(bg);
+        return b;
+    }
+
+    private static int dp(Context ctx, float value) { return Math.round(value * ctx.getResources().getDisplayMetrics().density); }
+
+    private static void removeOverlay() {
+        try {
+            if (overlayWindowManager != null && overlayView != null) overlayWindowManager.removeView(overlayView);
+        } catch (Exception ignored) { }
+        overlayView = null;
+        overlayWindowManager = null;
     }
 
     private static void accountUsageSwitch(Context ctx, String nextPkg, long now) throws Exception {
@@ -456,23 +544,16 @@ public class AppGate {
         l.put("temporary_window_until_ms", 0); l.put("temporary_allowed_ms", 0); l.put("temporary_used_ms", 0); l.put("temporary_session_started_ms", 0); l.put("temporary_one_time_used", false);
     }
 
-    /**
-     * v0.6.3 紧急解锁改为“本机长按 5 秒”安全兜底，不再要求一条用户从未设置/不知道的口令。
-     * 这只临时放行 emergency_unlock_minutes（默认 5 分钟），并保留日志；远程正常解锁逻辑不变。
-     */
-    public static boolean tryEmergencyUnlock(Context ctx, String pkg) {
+    public static boolean tryEmergencyUnlock(Context ctx, String pkg, String passphrase) {
         try {
             JSONObject s = state(ctx); JSONObject l = locks(s).optJSONObject(pkg);
             if (l == null) return false;
+            String stored = l.optString("emergency_hash", "");
+            if (stored.length() == 0 || !stored.equals(hash(passphrase == null ? "" : passphrase))) return false;
             JSONObject cmd = new JSONObject(); cmd.put("package", pkg); cmd.put("minutes", Math.max(1, l.optInt("emergency_unlock_minutes", 5))); cmd.put("allow_type", "real_time");
-            temporaryUnlock(ctx, cmd); log(ctx, "紧急长按解锁成功：" + pkg);
+            temporaryUnlock(ctx, cmd); log(ctx, "紧急口令解锁成功：" + pkg);
             return true;
         } catch (Exception e) { return false; }
-    }
-
-    /** 旧调用兼容：口令参数自 v0.6.3 起不再参与本机紧急解锁。 */
-    public static boolean tryEmergencyUnlock(Context ctx, String pkg, String ignoredPassphrase) {
-        return tryEmergencyUnlock(ctx, pkg);
     }
 
     public static void submitUnlockRequest(final Context ctx, final String pkg, final String reason) {
@@ -485,30 +566,6 @@ public class AppGate {
             final String url = ScreenshotService.normalizeUrl(AppPrefs.server(ctx)); final String token = AppPrefs.token(ctx); final String body = req.toString();
             if (url.length() > 0 && token.length() > 0) new Thread(() -> postUnlockRequest(url, token, body)).start();
         } catch (Exception e) { DebugState.append(ctx, "解锁申请保存失败：" + ScreenshotService.shortMsg(e)); }
-    }
-
-    /**
-     * Gate-page primary escape: create a real Cloudflare unlock request, then open ChatGPT using
-     * the same package-opening path used by the incoming-call "接通" flow. No text form is needed.
-     */
-    public static void requestUnlockAndOpenGpt(final Context ctx, final String pkg) {
-        final Context app = ctx.getApplicationContext();
-        final String appName = labelOf(app, pkg);
-        submitUnlockRequest(app, pkg, "从门禁页找 GPT 申请解锁 " + appName);
-        // Keep the overlay attached until ChatGPT actually becomes foreground. Dismissing it
-        // first lets the local gate verifier see the still-foreground locked app and re-attach
-        // the gate before ChatGPT has time to open, which looks like a frozen gate page.
-        String result = CompanionService.openPackageResult(app, "com.openai.chatgpt");
-        DebugState.append(app, "门禁找 GPT：" + result + "；package=" + pkg);
-        if (!result.startsWith("opened_")) {
-            try {
-                Intent web = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://chatgpt.com/"));
-                web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                app.startActivity(web);
-            } catch (Exception e) {
-                DebugState.append(app, "门禁找 GPT 打开失败：" + ScreenshotService.shortMsg(e));
-            }
-        }
     }
 
     private static void postUnlockRequest(String serverUrl, String token, String body) {
@@ -589,7 +646,6 @@ public class AppGate {
     private static String[] protectedPackages(Context ctx) {
         ArrayList<String> packages = new ArrayList<>();
         packages.add(SELF_PACKAGE);
-        packages.add("com.openai.chatgpt");
         String companionTarget = AppPrefs.homeTargetPackage(ctx);
         if (!companionTarget.isEmpty()) packages.add(companionTarget);
         packages.add("com.android.settings");

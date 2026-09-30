@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.littlephone.app"
-    android:versionCode="80206"
-    android:versionName="0.8.2-6">
+    android:versionCode="80207"
+    android:versionName="0.8.2-7">
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 
@@ -116,10 +116,6 @@
             android:name=".LockActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:launchMode="singleTask"
-            android:resizeableActivity="true"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 
         <activity

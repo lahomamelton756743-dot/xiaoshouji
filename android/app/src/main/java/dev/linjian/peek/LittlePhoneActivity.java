@@ -164,9 +164,6 @@ public class LittlePhoneActivity extends Activity {
         super.onResume();
         // Opening Little Phone is also an explicit keep-alive signal for the remote command bridge.
         CompanionService.ensureRunning(this, "little_phone_onResume");
-        // Opening Little Phone always wins over a gate Activity/overlay.
-        LockActivity.dismissVisible();
-        GateOverlay.dismiss();
         applyImmersiveMode();
         if (hasLocationPermission()) {
             refreshWeatherFromBestLocation();

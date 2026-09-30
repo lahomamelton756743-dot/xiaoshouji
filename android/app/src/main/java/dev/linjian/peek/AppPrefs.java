@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
-    public static final String APP_VERSION_NAME = "0.8.2-6";
-    public static final int APP_VERSION_CODE = 80206;
+    public static final String APP_VERSION_NAME = "0.8.2-7";
+    public static final int APP_VERSION_CODE = 80207;
     public static final String KEY_SERVER = "server_url";
     public static final String CANONICAL_SERVER = "https://little-phone-backend.lahomamelton756743.workers.dev";
     private static final String LEGACY_RENDER_HOST = "zhangxinchuang-server-yolp.onrender.com";

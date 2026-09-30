@@ -37,7 +37,6 @@ public class ScreenshotService extends AccessibilityService {
     private static volatile String screenNodesJson = "[]";
     private final Executor executor = Executors.newSingleThreadExecutor();
     private Handler watchdog;
-    private Handler gateEnforcer;
     private HandlerThread backgroundPollThread;
     private Handler backgroundPollHandler;
 
@@ -65,29 +64,6 @@ public class ScreenshotService extends AccessibilityService {
                 DebugState.append(ScreenshotService.this, "看门狗异常：" + shortMsg(e));
             }
             if (watchdog != null) watchdog.postDelayed(this, 30000);
-        }
-    };
-
-    // 0.8.2-3 gate verifier. Accessibility events are the primary trigger; this only closes the
-    // tiny OEM gap where an existing task is resumed without a useful window-state event. It
-    // never waits on the network. A locked foreground package is rechecked within 300 ms.
-    private final Runnable gateEnforceTick = new Runnable() {
-        @Override public void run() {
-            try {
-                if (!GateOverlay.isShowing()) {
-                    AccessibilityNodeInfo root = getRootInActiveWindow();
-                    if (root != null && root.getPackageName() != null) {
-                        String activePkg = root.getPackageName().toString().trim();
-                        if (!activePkg.isEmpty()) {
-                            currentPackage = activePkg;
-                            AppGate.onForegroundPackage(ScreenshotService.this, activePkg);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                DebugState.append(ScreenshotService.this, "门禁前台复检异常：" + shortMsg(e));
-            }
-            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 120);
         }
     };
 
@@ -127,8 +103,6 @@ public class ScreenshotService extends AccessibilityService {
         CompanionService.ensureRunning(this, "accessibility_connected");
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
-        gateEnforcer = new Handler(Looper.getMainLooper());
-        gateEnforcer.postDelayed(gateEnforceTick, 60);
         startBackgroundPolling();
     }
 
@@ -137,31 +111,18 @@ public class ScreenshotService extends AccessibilityService {
         CharSequence pkg = event.getPackageName();
         if (pkg != null) currentPackage = pkg.toString();
         int t = event.getEventType();
-        boolean gateSignal = t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED || t == AccessibilityEvent.TYPE_VIEW_SCROLLED) updateScreenText();
+        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != null) {
+            ActivityEventStore.recordForegroundChange(this, pkg.toString());
+            FocusMode.onForegroundPackage(this, pkg.toString());
+        }
+        if (pkg != null && (
+                t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED;
-
-        // Gate first. Do not traverse the active accessibility tree before deciding whether a
-        // locked app must be blocked; video/feed UIs can make that traversal noticeably slower.
-        if (pkg != null && gateSignal) {
-            String observedPkg = pkg.toString().trim();
-            if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)) {
-                AppGate.onForegroundPackage(this, observedPkg);
-            }
+                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED)) {
+            AppGate.onForegroundPackage(this, pkg.toString());
         }
-
-        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != null) {
-            String changedPkg = pkg.toString().trim();
-            ActivityEventStore.recordForegroundChange(this, changedPkg);
-            FocusMode.onForegroundPackage(this, changedPkg);
-            if (GateOverlay.isShowing()
-                    && !GateOverlay.isShowingFor(changedPkg)
-                    && !getPackageName().equals(changedPkg)) {
-                GateOverlay.dismiss();
-            }
-        }
-        if (gateSignal) updateScreenText();
     }
     @Override public void onInterrupt() { DebugState.append(this, "无障碍服务被中断"); }
 
@@ -173,7 +134,6 @@ public class ScreenshotService extends AccessibilityService {
         screenText = "";
         screenNodesJson = "[]";
         if (watchdog != null) { watchdog.removeCallbacksAndMessages(null); watchdog = null; }
-        if (gateEnforcer != null) { gateEnforcer.removeCallbacksAndMessages(null); gateEnforcer = null; }
         if (backgroundPollHandler != null) { backgroundPollHandler.removeCallbacksAndMessages(null); backgroundPollHandler = null; }
         if (backgroundPollThread != null) { backgroundPollThread.quitSafely(); backgroundPollThread = null; }
     }

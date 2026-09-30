@@ -56,6 +56,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish build pointer
+        if: always()
         shell: bash
         env:
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
@@ -63,6 +64,7 @@ jobs:
         run: |
           cat > BUILD-v0.8.2-8.txt <<EOF
           version=0.8.2-8
+          job_status=${{ job.status }}
           commit=${GITHUB_SHA}
           run_id=${GITHUB_RUN_ID}
           artifact_id=${ARTIFACT_ID}
@@ -73,5 +75,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add BUILD-v0.8.2-8.txt
-          git commit -m "build: publish v0.8.2-8 artifact pointer"
-          git push
+          git commit -m "build: publish v0.8.2-8 artifact pointer" || true
+          git push || true

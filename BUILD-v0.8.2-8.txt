@@ -1,7 +1,7 @@
 version=0.8.2-8
 job_status=failure
-commit=de4cb54f20998c618397a982db4dab99e6175941
-run_id=36729339579
+commit=db4c2db0539b2b280262bad7b06f1e3053b02a2b
+run_id=36729456864
 artifact_id=
 artifact_url=
 zip=little-phone-v0.8.2-8-build.zip

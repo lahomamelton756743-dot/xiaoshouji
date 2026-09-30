@@ -2209,6 +2209,47 @@ body.desktopEditMode .desktopPage{
   body.desktopEditMode .desktopPage{grid-template-rows:repeat(7,minmax(50px,1fr))!important}
 }
 
+
+/* =========================================================
+   v0.8.1 preview10 — rounded-screen top Together safe inset
+   Keep the decorative Together strip clear of the physical rounded corners:
+   title shifts inward from the left, day count shifts inward from the right.
+   ========================================================= */
+.desktopTopTogether{
+  padding-left:max(22px, env(safe-area-inset-left))!important;
+  padding-right:max(26px, env(safe-area-inset-right))!important;
+}
+.desktopTopTogether .togetherVisual{
+  width:100%!important;
+  box-sizing:border-box!important;
+  grid-template-columns:minmax(0,1fr) 76px!important;
+}
+.desktopTopTogether .togetherScript{
+  margin-left:7px!important;
+  width:min(225px,64vw)!important;
+}
+.desktopTopTogether .togetherPoem{
+  margin-left:41px!important;
+}
+.desktopTopTogether .togetherDays{
+  justify-self:end!important;
+  transform:translateX(-8px)!important;
+}
+.desktopTopTogether .togetherCaption{
+  justify-self:end!important;
+  transform:translateX(-8px)!important;
+}
+@media(max-width:420px){
+  .desktopTopTogether{
+    padding-left:max(20px, env(safe-area-inset-left))!important;
+    padding-right:max(24px, env(safe-area-inset-right))!important;
+  }
+  .desktopTopTogether .togetherVisual{grid-template-columns:minmax(0,1fr) 72px!important}
+  .desktopTopTogether .togetherScript{margin-left:6px!important;width:min(208px,62vw)!important}
+  .desktopTopTogether .togetherPoem{margin-left:37px!important}
+  .desktopTopTogether .togetherDays,.desktopTopTogether .togetherCaption{transform:translateX(-7px)!important}
+}
+
 </style>
 </head>
 <body>

@@ -1,0 +1,8 @@
+Little Phone v0.8.1 preview10
+
+- rounded-screen safe inset for the top Together strip
+- move Together artwork inward from the left rounded corner
+- move day count / Days With You inward from the right rounded corner
+- keep Little Phone status bar and desktop grid unchanged
+
+Android versionCode: 80110

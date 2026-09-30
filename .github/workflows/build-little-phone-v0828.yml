@@ -26,13 +26,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android 34 toolchain
-        shell: bash
-        run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
-
       - name: Build signed APK
         shell: bash
         run: |

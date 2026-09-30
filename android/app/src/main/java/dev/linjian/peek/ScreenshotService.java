@@ -128,7 +128,6 @@ public class ScreenshotService extends AccessibilityService {
 
     private void markDisconnected(String reason) {
         DebugState.append(this, reason);
-        GateOverlay.dismiss();
         instance = null;
         currentPackage = "";
         screenText = "";

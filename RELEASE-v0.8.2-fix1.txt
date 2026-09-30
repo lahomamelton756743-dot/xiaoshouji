@@ -1,0 +1,5 @@
+Little Phone v0.8.2 fix1
+- Restore 手机 as its own 手机状态 app; it no longer opens 电话.
+- Add 电话 as a separate desktop app with recent call history.
+- Call history follows companion identity avatar, name, color/font.
+- Show complete call prompt/note text without truncation.

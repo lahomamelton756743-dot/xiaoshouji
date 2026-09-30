@@ -2259,7 +2259,7 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 #page-diary.active .journalIntegratedHead>div{display:none!important}
 #page-diary.active .journalSearchBtn{display:grid!important;position:static!important;width:42px!important;height:42px!important;margin:0!important;pointer-events:auto!important}
 .phoneAppPage .miniAppHead{position:sticky;top:0;z-index:8;padding-top:max(8px,env(safe-area-inset-top));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.phoneSettingsButton{width:42px;height:42px;border-radius:50%;font-size:18px}.phoneCallList{display:grid;gap:0}.phoneCallRow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid rgba(117,132,166,.11)}.phoneCallRow:last-child{border-bottom:0}.phoneCallAvatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.62)}.phoneCallWho{font-size:14px;font-weight:680}.phoneCallSub{font-size:10px;color:#8d95a7;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.phoneCallWhen{font-size:9px;color:#9aa2b2;text-align:right}.phoneSettingsPanel{padding:16px;border-radius:28px}.phoneSettingsPanel .field{margin-bottom:9px}
+.phoneSettingsButton{width:42px;height:42px;border-radius:50%;font-size:18px}.phoneCallList{display:grid;gap:0}.phoneCallRow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid rgba(117,132,166,.11)}.phoneCallRow:last-child{border-bottom:0}.phoneCallAvatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.62)}.phoneCallWho{font-size:14px;font-weight:680}.phoneCallSub{font-size:10px;color:#8d95a7;margin-top:5px;white-space:normal;overflow:visible;line-height:1.55}.phoneCallMessage{display:block;margin-top:5px;color:#667087;white-space:pre-wrap;word-break:break-word}.phoneCallAvatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}.phoneCallWhen{font-size:9px;color:#9aa2b2;text-align:right}.phoneSettingsPanel{padding:16px;border-radius:28px}.phoneSettingsPanel .field{margin-bottom:9px}
 </style>
 </head>
 <body>
@@ -2579,7 +2579,7 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false};
-const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-health':['小米健康',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['手机',''],settings:['设置',''],"settings-detail":['设置','']};
+const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-health':['小米健康',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -2633,14 +2633,13 @@ function setUsHubTab(tab,scrollTop=false){
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }
 function openMiniApp(app){
-  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',health:'app-health',calendar:'app-calendar',todo:'app-todo',phone:'app-phone',settings:'settings'};
+  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',health:'app-health',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
   const page=map[app]||'desktop';go(page);
 }
 function go(page,push=true){
   if(page==='home')page='desktop';
   if(page==='traces')page='app-river';
   if(page==='mail')page='app-mail';
-  if(page==='status')page='app-phone';
   if(!pageMeta[page])return;
   const same=page===state.page;
   if(!same&&push&&state.page)state.navHistory.push(state.page);
@@ -3181,8 +3180,8 @@ function renderPhoneApp(){
     $('#phoneCallSave').onclick=savePhoneCallSettings;return;
   }
   if(title)title.childNodes[0].nodeValue='电话';if(sub)sub.textContent='最近通话';if(gear)gear.textContent='⚙';
-  const label={accepted:'已接通',rejected:'已拒绝',hung_up:'已挂断',ringing:'来电中',missed:'未接'};const calls=mergeCalls(state.calls||[]);
-  root.innerHTML=`<div class="appSectionTitle">最近通话</div><div class="glass phoneSettingsPanel phoneCallList">${calls.length?calls.map(c=>`<div class="phoneCallRow"><span class="phoneCallAvatar">${esc((c.caller||dn||'G').slice(0,1))}</span><span><div class="phoneCallWho">${esc(c.caller||dn)}</div><div class="phoneCallSub"><span class="callState ${esc(c.status||'')}">${label[c.status]||esc(c.status||'来电')}</span>${c.prompt?` · ${esc(String(c.prompt).slice(0,42))}`:''}${c.note?` · ${esc(String(c.note).slice(0,24))}`:''}</div></span><time class="phoneCallWhen">${fmt(c.updated_at||c.created_at)}</time></div>`).join(''):'<div class="meta" style="padding:18px 4px">还没有通话记录。</div>'}</div>`;
+  const label={accepted:'已接通',rejected:'已拒绝',hung_up:'已挂断',ringing:'来电中',missed:'未接'};const calls=mergeCalls(state.calls||[]),avatar=getAvatarSrc('daddy'),displayName=actorName('daddy')||dn;
+  root.innerHTML=`<div class="appSectionTitle">最近通话</div><div class="glass phoneSettingsPanel phoneCallList">${calls.length?calls.map(c=>{const message=[c.prompt,c.note].filter(Boolean).join('\n');return `<div class="phoneCallRow"><span class="phoneCallAvatar">${avatar?`<img src="${esc(avatar)}" alt="">`:esc((displayName||'G').slice(0,1))}</span><span><div class="phoneCallWho identityDaddy">${esc(displayName)}</div><div class="phoneCallSub"><span class="callState ${esc(c.status||'')}">${label[c.status]||esc(c.status||'来电')}</span>${message?`<span class="phoneCallMessage authoredText daddy">${esc(message)}</span>`:''}</div></span><time class="phoneCallWhen">${fmt(c.updated_at||c.created_at)}</time></div>`}).join(''):'<div class="meta" style="padding:18px 4px">还没有通话记录。</div>'}</div>`;
 }
 function savePhoneCallSettings(){if(!hasNative()||!window.LittlePhoneNative.setGuidianConfig)return toast('只在 Android App 内可设置');const g={enabled:$('#phoneCallEnabled').checked,allow_remote:$('#phoneCallRemote').checked,fullscreen:true,caller_name:$('#phoneCallerName').value.trim(),caller_subtitle:$('#phoneCallerSubtitle').value.trim(),prompts:$('#phonePrompts').value,target_package:$('#phoneTargetPackage').value.trim(),cooldown_minutes:Number($('#phoneCooldown').value||60),daily_max:Number($('#phoneDaily').value||3),quiet_enabled:$('#phoneQuiet').checked,quiet_start:$('#phoneQuietStart').value||'23:30',quiet_end:$('#phoneQuietEnd').value||'08:00'};const ok=window.LittlePhoneNative.setGuidianConfig(JSON.stringify(g));if(ok){state.guidian={...state.guidian,...g};toast('来电设置已保存');renderPhoneApp()}else toast('来电设置没有保存成功')}
 
@@ -3266,7 +3265,7 @@ function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings
 
 
 const DESKTOP_LAYOUT_KEY='lp_v081_desktop_layout_v3';
-const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'手机',icon:'▣'},settings:{app:'settings',label:'设置',icon:'⚙'}};
+const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'手机',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},settings:{app:'settings',label:'设置',icon:'⚙'}};
 const DESKTOP_WIDGETS={
   weather:{label:'时钟天气',w:4,h:2,open:'status',desc:'时间、城市和天气。',mode:'compact'},
   together:{label:'相伴天数',w:2,h:2,open:'desktop',desc:'在一起的天数。',mode:'compact'},
@@ -3300,7 +3299,8 @@ function desktopDefaultLayout(){return{pages:2,items:[
 {id:'app:calendar',kind:'app',app:'calendar',area:'page',page:0,col:3,row:2,w:1,h:1},
 {id:'app:todo',kind:'app',app:'todo',area:'page',page:0,col:4,row:2,w:1,h:1},
 {id:'app:phone',kind:'app',app:'phone',area:'page',page:1,col:1,row:1,w:1,h:1},
-{id:'app:settings',kind:'app',app:'settings',area:'page',page:1,col:2,row:1,w:1,h:1},
+{id:'app:calls',kind:'app',app:'calls',area:'page',page:1,col:2,row:1,w:1,h:1},
+{id:'app:settings',kind:'app',app:'settings',area:'page',page:1,col:3,row:1,w:1,h:1},
 {id:'dock:diary',kind:'app',app:'diary',area:'dock',slot:1,w:1,h:1},
 {id:'dock:mail',kind:'app',app:'mail',area:'dock',slot:2,w:1,h:1},
 {id:'dock:todo',kind:'app',app:'todo',area:'dock',slot:3,w:1,h:1},

@@ -204,6 +204,7 @@ public class AppGate {
         if (l != null) { l.put("active", false); l.put("unlocked_at_ms", System.currentTimeMillis()); l.put("unlock_reason", why); }
         save(ctx, s); log(ctx, "解除门禁：" + pkg + "（" + why + "）");
         if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
+        LockActivity.dismissVisible();
         return put(new JSONObject(), true, "unlocked_app:" + pkg);
     }
 
@@ -228,6 +229,7 @@ public class AppGate {
         l.put("temporary_one_time_used", false);
         save(ctx, s);
         if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
+        LockActivity.dismissVisible();
         log(ctx, "临时放行 " + l.optString("app_name", pkg) + "：" + minutes + " 分钟，type=" + type);
         return put(new JSONObject(), true, "temporary_unlocked:" + pkg + " " + minutes + "min type=" + type);
     }
@@ -263,59 +265,138 @@ public class AppGate {
         return put(new JSONObject(), true, "emergency_passphrase_set:" + pkg);
     }
 
-    /**
-     * 0.8.2-3 runtime rule: the gate has exactly one owner -- the locked foreground package.
-     * No LockActivity, no delayed fallback, no "show later" timer. If a locked package is the
-     * foreground package, the accessibility overlay is present; otherwise it is not.
-     */
+    // Gate strategy follows the proven Palm Window ordering:
+    // full-screen Activity first, accessibility overlay second, Home as the final escape hatch.
+    // The implementation/UI remains Little Phone's own.
+    private static volatile String visibleLockActivityPackage = "";
+    private static volatile long visibleLockActivityAt = 0;
+    private static volatile String launchingLockPackage = "";
+    private static volatile long launchingLockAt = 0;
+
     public static void onForegroundPackage(Context ctx, String pkg) {
         if (pkg == null || pkg.trim().isEmpty()) return;
         pkg = pkg.trim();
         long now = System.currentTimeMillis();
         try { accountUsageSwitch(ctx, pkg, now); } catch (Exception ignored) { }
 
-        // Little Phone itself and protected apps must never be covered by the app gate.
-        if (!enabled(ctx) || isProtectedPackage(ctx, pkg) || SELF_PACKAGE.equals(pkg)) {
-            if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
-            return;
-        }
+        if (!enabled(ctx) || isProtectedPackage(ctx, pkg) || SELF_PACKAGE.equals(pkg)) return;
 
         try {
             JSONObject lock = activeLockFor(ctx, pkg, now);
-            if (lock == null) {
-                if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
-                return;
-            }
-            if (isTemporarilyAllowed(ctx, lock, now, true)) {
-                if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
+            if (lock == null) return;
+            if (isTemporarilyAllowed(ctx, lock, now, true)) return;
+
+            if (isLockActivityVisibleFor(pkg)) {
+                if (GateOverlay.isShowing()) GateOverlay.dismiss();
                 return;
             }
 
-            ScreenshotService svc = ScreenshotService.getInstance();
-            if (svc == null) {
-                DebugState.append(ctx, "应用门禁：规则有效，但无障碍未连接：" + pkg);
-                return;
-            }
-            if (!GateOverlay.isShowingFor(pkg)) {
-                GateOverlay.show(svc, pkg);
-                log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（0.8.2-3 覆盖层）");
-                ActivityEventStore.recordPhone(ctx, "screen_break_trigger", "应用门禁触发", lock.optString("app_name", pkg));
-            }
+            showGateByPriority(ctx, pkg, lock);
+            log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（全屏页优先，遮罩兜底，Home 最后兜底）");
+            ActivityEventStore.recordPhone(ctx, "screen_break_trigger", "应用门禁触发", lock.optString("app_name", pkg));
         } catch (Exception e) {
             DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e));
         }
     }
 
-    /** Legacy compatibility only. 0.8.2-3 no longer uses LockActivity visibility as gate state. */
-    public static void markLockActivityVisible(String pkg, boolean visible) { }
+    public static void markLockActivityVisible(String pkg, boolean visible) {
+        if (visible) {
+            visibleLockActivityPackage = pkg == null ? "" : pkg.trim();
+            visibleLockActivityAt = System.currentTimeMillis();
+            launchingLockPackage = "";
+            launchingLockAt = 0;
+            if (GateOverlay.isShowing()) GateOverlay.dismiss();
+        } else {
+            if (pkg == null || pkg.trim().isEmpty() || pkg.trim().equals(visibleLockActivityPackage)) {
+                visibleLockActivityPackage = "";
+                visibleLockActivityAt = 0;
+            }
+        }
+    }
+
+    public static boolean isLockActivityVisibleFor(String pkg) {
+        return pkg != null
+                && pkg.equals(visibleLockActivityPackage)
+                && System.currentTimeMillis() - visibleLockActivityAt < 2500;
+    }
+
+    private static void showGateByPriority(final Context ctx, final String pkg, final JSONObject lock) {
+        final Context app = ctx.getApplicationContext();
+        final long now = System.currentTimeMillis();
+
+        // Accessibility can emit several events for the same transition. Launch the Activity once,
+        // then let the visibility callback decide whether fallback is needed.
+        if (!(pkg.equals(launchingLockPackage) && now - launchingLockAt < 450)) {
+            launchingLockPackage = pkg;
+            launchingLockAt = now;
+            showLockActivity(app, pkg);
+        }
+
+        final Handler main = new Handler(Looper.getMainLooper());
+        main.postDelayed(() -> {
+            try {
+                if (isLockActivityVisibleFor(pkg)) return;
+                ScreenshotService svc = ScreenshotService.getInstance();
+                if (svc != null && !GateOverlay.isShowingFor(pkg)) {
+                    DebugState.append(app, "应用门禁：全屏页未确认显示，启用无障碍全屏遮罩：" + pkg);
+                    GateOverlay.show(svc, pkg);
+                }
+            } catch (Exception e) {
+                DebugState.append(app, "应用门禁遮罩兜底异常：" + ScreenshotService.shortMsg(e));
+            }
+        }, 350);
+
+        main.postDelayed(() -> {
+            if (isLockActivityVisibleFor(pkg) || GateOverlay.isShowingFor(pkg)) return;
+            goHome(app, "全屏页和遮罩都未确认显示");
+        }, 900);
+    }
+
+    private static void showLockActivity(Context ctx, String pkg) {
+        try {
+            Intent i = new Intent(ctx, LockActivity.class);
+            i.putExtra("package", pkg);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            ctx.startActivity(i);
+            DebugState.append(ctx, "应用门禁：立即启动全屏门禁页：" + pkg);
+        } catch (Exception e) {
+            DebugState.append(ctx, "应用门禁全屏页启动失败：" + ScreenshotService.shortMsg(e));
+        }
+    }
+
+    private static void goHome(Context ctx, String reason) {
+        try {
+            ScreenshotService svc = ScreenshotService.getInstance();
+            if (svc != null && svc.doHome()) {
+                DebugState.append(ctx, "应用门禁 Home 兜底：" + reason);
+                return;
+            }
+            Intent home = new Intent(Intent.ACTION_MAIN);
+            home.addCategory(Intent.CATEGORY_HOME);
+            home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(home);
+            DebugState.append(ctx, "应用门禁 Home Intent 兜底：" + reason);
+        } catch (Exception e) {
+            DebugState.append(ctx, "应用门禁 Home 兜底异常：" + ScreenshotService.shortMsg(e));
+        }
+    }
 
     private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
+        final Context app = ctx.getApplicationContext();
         try {
             String current = ScreenshotService.currentPackage();
-            if (lockedPkg != null && lockedPkg.equals(current)) onForegroundPackage(ctx, lockedPkg);
+            if (lockedPkg != null && lockedPkg.equals(current)) onForegroundPackage(app, lockedPkg);
         } catch (Exception e) {
-            DebugState.append(ctx, "应用门禁：锁定后前台检查失败：" + ScreenshotService.shortMsg(e));
+            DebugState.append(app, "应用门禁：锁定后前台检查失败：" + ScreenshotService.shortMsg(e));
         }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                String current = ScreenshotService.currentPackage();
+                if (lockedPkg != null && lockedPkg.equals(current) && !isLockActivityVisibleFor(lockedPkg)) {
+                    onForegroundPackage(app, lockedPkg);
+                }
+            } catch (Exception ignored) { }
+        }, 120);
     }
 
     private static void accountUsageSwitch(Context ctx, String nextPkg, long now) throws Exception {

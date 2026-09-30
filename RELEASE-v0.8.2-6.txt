@@ -1,0 +1,13 @@
+# Little Phone 0.8.2-6
+
+App gate enforcement rewrite based on the proven Palm Window enforcement architecture, while keeping Little Phone's own UI and GPT request flow.
+
+- Full-screen LockActivity is the first gate surface again.
+- Accessibility full-screen overlay is fallback #2.
+- Home is fallback #3 if neither surface can be confirmed.
+- Window state, windows changed, content changed and scroll events all trigger gate checks.
+- Gate checks run before accessibility-tree text extraction so feed/video apps cannot delay blocking.
+- A 120 ms local foreground verifier closes OEM resume-event gaps.
+- Lock commands immediately re-check the current foreground package.
+- Opening Little Phone dismisses both the gate Activity and overlay.
+- "找 GPT" still submits the unlock request and opens ChatGPT.

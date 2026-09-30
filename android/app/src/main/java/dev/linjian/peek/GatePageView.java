@@ -118,6 +118,8 @@ public class GatePageView extends ScrollView {
             askGpt.setEnabled(false);
             Toast.makeText(ctx, "已提交解锁申请，正在打开 GPT", Toast.LENGTH_SHORT).show();
             AppGate.requestUnlockAndOpenGpt(ctx, pkg);
+            // Activity-hosted gate must leave the foreground before ChatGPT opens.
+            handler.postDelayed(this::closePage, 60);
             handler.postDelayed(() -> askGpt.setEnabled(true), 1500);
         });
         root.addView(askGpt, lp(-1, dp(48), 0, 0, 0, 10));

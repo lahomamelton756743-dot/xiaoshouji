@@ -87,7 +87,7 @@ public class ScreenshotService extends AccessibilityService {
             } catch (Exception e) {
                 DebugState.append(ScreenshotService.this, "门禁前台复检异常：" + shortMsg(e));
             }
-            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 300);
+            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 120);
         }
     };
 
@@ -128,7 +128,7 @@ public class ScreenshotService extends AccessibilityService {
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
         gateEnforcer = new Handler(Looper.getMainLooper());
-        gateEnforcer.postDelayed(gateEnforceTick, 100);
+        gateEnforcer.postDelayed(gateEnforceTick, 60);
         startBackgroundPolling();
     }
 
@@ -137,30 +137,31 @@ public class ScreenshotService extends AccessibilityService {
         CharSequence pkg = event.getPackageName();
         if (pkg != null) currentPackage = pkg.toString();
         int t = event.getEventType();
-        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED || t == AccessibilityEvent.TYPE_VIEW_SCROLLED) updateScreenText();
+        boolean gateSignal = t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED;
+
+        // Gate first. Do not traverse the active accessibility tree before deciding whether a
+        // locked app must be blocked; video/feed UIs can make that traversal noticeably slower.
+        if (pkg != null && gateSignal) {
+            String observedPkg = pkg.toString().trim();
+            if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)) {
+                AppGate.onForegroundPackage(this, observedPkg);
+            }
+        }
+
         if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != null) {
             String changedPkg = pkg.toString().trim();
             ActivityEventStore.recordForegroundChange(this, changedPkg);
             FocusMode.onForegroundPackage(this, changedPkg);
-
-            // Overlay-owned Little Phone events are ignored. Any other real window transition
-            // away from the locked target means Home, Recents or another app, so remove it now.
             if (GateOverlay.isShowing()
                     && !GateOverlay.isShowingFor(changedPkg)
                     && !getPackageName().equals(changedPkg)) {
                 GateOverlay.dismiss();
             }
         }
-        if (pkg != null && (
-                t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-                || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED)) {
-            String observedPkg = pkg.toString().trim();
-            if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)) {
-                AppGate.onForegroundPackage(this, observedPkg);
-            }
-        }
+        if (gateSignal) updateScreenText();
     }
     @Override public void onInterrupt() { DebugState.append(this, "无障碍服务被中断"); }
 

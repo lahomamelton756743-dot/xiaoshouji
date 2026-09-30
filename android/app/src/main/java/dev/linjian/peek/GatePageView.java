@@ -118,14 +118,23 @@ public class GatePageView extends ScrollView {
             askGpt.setEnabled(false);
             Toast.makeText(ctx, "已提交解锁申请，正在打开 GPT", Toast.LENGTH_SHORT).show();
             AppGate.requestUnlockAndOpenGpt(ctx, pkg);
+            handler.postDelayed(() -> askGpt.setEnabled(true), 1500);
         });
         root.addView(askGpt, lp(-1, dp(48), 0, 0, 0, 10));
 
         Button home = button("回到桌面", false, companionColor);
         home.setOnClickListener(v -> {
-            closePage();
             ScreenshotService svc = ScreenshotService.getInstance();
-            if (svc != null) svc.doHome();
+            boolean sentHome = svc != null && svc.doHome();
+            if (!sentHome) {
+                try {
+                    android.content.Intent homeIntent = new android.content.Intent(android.content.Intent.ACTION_MAIN);
+                    homeIntent.addCategory(android.content.Intent.CATEGORY_HOME);
+                    homeIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ctx.startActivity(homeIntent);
+                } catch (Exception ignored) { }
+            }
+            handler.postDelayed(this::closePage, 80);
         });
         root.addView(home, lp(-1, dp(46), 0, 0, 0, 16));
 

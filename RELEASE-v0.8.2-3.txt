@@ -11,3 +11,11 @@
 Android versionName: 0.8.2-3
 Android versionCode: 80203
 APK: LittlePhone-v0.8.2-3.apk
+
+
+0.8.2-3 gate runtime correction:
+- interactive Cloudflare command poll: 500ms; screen-off poll: 5s
+- overlay no longer takes window focus or extends beyond system navigation
+- Home action executes before overlay removal, with launcher fallback
+- "找 GPT" keeps the gate attached until ChatGPT really opens, preventing instant re-lock/frozen-page races
+- local gate foreground verifier starts after 100ms and continues at 300ms fallback

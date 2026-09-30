@@ -142,7 +142,7 @@ public class ScreenshotService extends AccessibilityService {
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
         gateEnforcer = new Handler(Looper.getMainLooper());
-        gateEnforcer.postDelayed(gateEnforceTick, 650);
+        gateEnforcer.postDelayed(gateEnforceTick, 100);
         startBackgroundPolling();
     }
 

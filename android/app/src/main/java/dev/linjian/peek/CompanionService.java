@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.provider.AlarmClock;
 
 import org.json.JSONArray;
@@ -94,7 +95,7 @@ public class CompanionService extends Service {
     private void pollLoop() {
         if (!running) return;
         long now = System.currentTimeMillis();
-        long delay = AppPrefs.interval(this);
+        long delay = commandPollDelayMs();
         try {
             // v0.5: 被动轮询只等命令，不再周期性读取/上传 LifeState。
             // 设备快照只在 little_phone_visit 到达时采集一次。
@@ -112,6 +113,16 @@ public class CompanionService extends Service {
             }
         } catch (Exception e) { DebugState.append(this, "轮询异常：" + ScreenshotService.shortMsg(e)); }
         if (running) pollHandler.postDelayed(this::pollLoop, Math.max(AppPrefs.MIN_POLL_INTERVAL_MS, delay));
+    }
+
+    private long commandPollDelayMs() {
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            // Remote gate commands should feel immediate while the phone is being used, but do
+            // not burn the Cloudflare request budget while the screen is off.
+            if (pm != null && pm.isInteractive()) return 500L;
+        } catch (Exception ignored) { }
+        return 5000L;
     }
 
     private String pollServer() throws Exception {

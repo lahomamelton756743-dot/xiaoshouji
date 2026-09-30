@@ -414,20 +414,20 @@ public class AppGate {
         final Context app = ctx.getApplicationContext();
         final String appName = labelOf(app, pkg);
         submitUnlockRequest(app, pkg, "从门禁页找 GPT 申请解锁 " + appName);
-        GateOverlay.dismiss();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            String result = CompanionService.openPackageResult(app, "com.openai.chatgpt");
-            DebugState.append(app, "门禁找 GPT：" + result + "；package=" + pkg);
-            if (!result.startsWith("opened_")) {
-                try {
-                    Intent web = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://chatgpt.com/"));
-                    web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    app.startActivity(web);
-                } catch (Exception e) {
-                    DebugState.append(app, "门禁找 GPT 打开失败：" + ScreenshotService.shortMsg(e));
-                }
+        // Keep the overlay attached until ChatGPT actually becomes foreground. Dismissing it
+        // first lets the local gate verifier see the still-foreground locked app and re-attach
+        // the gate before ChatGPT has time to open, which looks like a frozen gate page.
+        String result = CompanionService.openPackageResult(app, "com.openai.chatgpt");
+        DebugState.append(app, "门禁找 GPT：" + result + "；package=" + pkg);
+        if (!result.startsWith("opened_")) {
+            try {
+                Intent web = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://chatgpt.com/"));
+                web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                app.startActivity(web);
+            } catch (Exception e) {
+                DebugState.append(app, "门禁找 GPT 打开失败：" + ScreenshotService.shortMsg(e));
             }
-        }, 120L);
+        }
     }
 
     private static void postUnlockRequest(String serverUrl, String token, String body) {

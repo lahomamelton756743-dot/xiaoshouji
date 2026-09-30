@@ -1,0 +1,11 @@
+Little Phone v0.8.1 preview8
+
+Changes:
+- optimize desktop drag path: lightweight drag ghost, cached geometry, no full desktop rebuild after every drop
+- preserve the current desktop page after moving an icon or widget
+- expand desktop grid from 4x6 to 4x7
+- enforce one icon per app across desktop and Dock; moving an app into/out of Dock moves the same icon instead of creating duplicates
+- migrate preview7 layouts by preferring the existing Dock copy when duplicate app shortcuts exist
+- update add/remove-page placement logic to use all seven rows
+
+Android versionCode: 80108

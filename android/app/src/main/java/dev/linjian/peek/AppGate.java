@@ -305,33 +305,21 @@ public class AppGate {
         final Context app = ctx.getApplicationContext();
         final Handler main = new Handler(Looper.getMainLooper());
 
-        // Only keep the single existing LockActivity UI, but enforcement must happen before
-        // relying on a background Activity launch. Android may reject/delay that launch; in the
-        // broken build this left the locked app fully usable. Accessibility can always perform
-        // HOME, so leave the target app first, then present the same gate page.
+        // The gate belongs on top of the locked app. Do not send the user Home first: doing that
+        // changes the foreground package and makes the gate look like a Little Phone screen.
+        // Try the existing Activity immediately while the target app is still foreground.
         ScreenshotService svc = ScreenshotService.getInstance();
-        if (svc != null) {
-            try {
-                svc.doHome();
-                DebugState.append(app, "应用门禁：已先离开被锁 App：" + pkg);
-            } catch (Exception e) {
-                DebugState.append(app, "应用门禁：离开被锁 App 失败：" + ScreenshotService.shortMsg(e));
-            }
-        }
-        main.postDelayed(() -> {
-            ScreenshotService live = ScreenshotService.getInstance();
-            showLockActivity(live != null ? live : app, pkg);
-        }, 180);
+        showLockActivity(svc != null ? svc : app, pkg);
 
-        // One retry only. No second overlay/UI is introduced.
+        // Android may block a background Activity launch. Accessibility overlays are explicitly
+        // designed to intercept interaction over another app, so use the exact same GatePageView
+        // as a reliable fallback. Only one visible gate UI exists at a time.
         main.postDelayed(() -> {
             if (isLockActivityVisibleFor(pkg)) return;
             ScreenshotService live = ScreenshotService.getInstance();
-            if (live != null) {
-                try { live.doHome(); } catch (Exception ignored) { }
-                showLockActivity(live, pkg);
-            }
-        }, 900);
+            if (live != null) GateOverlay.show(live, pkg);
+            else DebugState.append(app, "应用门禁：无障碍未连接，无法覆盖目标 App：" + pkg);
+        }, 260);
     }
 
     private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {

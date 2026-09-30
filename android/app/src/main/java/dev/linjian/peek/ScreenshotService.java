@@ -129,6 +129,14 @@ public class ScreenshotService extends AccessibilityService {
         if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != null) {
             ActivityEventStore.recordForegroundChange(this, pkg.toString());
             FocusMode.onForegroundPackage(this, pkg.toString());
+            // If the user leaves the locked target via Home/Recents, remove the cross-app gate.
+            // Ignore the brief self-window transition created while the overlay is attaching.
+            String changedPkg = pkg.toString();
+            if (GateOverlay.isShowing()
+                    && !GateOverlay.isShowingFor(changedPkg)
+                    && !("com.littlephone.app".equals(changedPkg) && System.currentTimeMillis() - GateOverlay.shownAt() < 900)) {
+                GateOverlay.dismiss();
+            }
         }
         if (pkg != null && (
                 t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
@@ -142,6 +150,7 @@ public class ScreenshotService extends AccessibilityService {
 
     private void markDisconnected(String reason) {
         DebugState.append(this, reason);
+        GateOverlay.dismiss();
         instance = null;
         currentPackage = "";
         screenText = "";

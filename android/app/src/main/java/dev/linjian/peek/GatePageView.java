@@ -10,10 +10,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -22,177 +20,119 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
-/** Shared full-screen app-gate page used by both LockActivity and the accessibility overlay fallback. */
+/**
+ * 0.8.2-3 single app-gate page.
+ * It is only hosted by GateOverlay over the locked target app. There is no form, no delayed
+ * LockActivity and no gate inside Little Phone. The two user actions are Home or "找 GPT".
+ */
 public class GatePageView extends ScrollView {
     private final Context ctx;
     private final Runnable dismiss;
-    private String pkg;
+    private final String pkg;
     private TextView titleView, ownerView, remainView, reasonView, messageView, ownerNameView;
     private ImageView ownerAvatarView;
-    private EditText requestReasonInput;
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private boolean running = false;
+    private boolean running;
 
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             if (!running) return;
             refresh();
-            if (running) handler.postDelayed(this, 1000);
+            if (running) handler.postDelayed(this, 500);
         }
     };
 
     public GatePageView(Context context, String packageName, Runnable onDismiss) {
         super(context);
         this.ctx = context;
-        this.pkg = packageName == null ? "" : packageName;
+        this.pkg = packageName == null ? "" : packageName.trim();
         this.dismiss = onDismiss;
         buildUi();
         refresh();
     }
 
-    public void setPackageName(String packageName) {
-        this.pkg = packageName == null ? "" : packageName;
-        refresh();
-    }
-
     public String getPackageNameForGate() { return pkg; }
+    public void start() { running = true; handler.removeCallbacks(tick); handler.post(tick); }
+    public void stop() { running = false; handler.removeCallbacksAndMessages(null); }
 
-    public void start() {
-        running = true;
-        handler.removeCallbacks(tick);
-        handler.post(tick);
-    }
+    @Override protected void onDetachedFromWindow() { stop(); super.onDetachedFromWindow(); }
 
-    public void stop() {
-        running = false;
-        handler.removeCallbacksAndMessages(null);
-    }
-
-    @Override protected void onDetachedFromWindow() {
-        stop();
-        super.onDetachedFromWindow();
-    }
-
-    private void closePage() {
-        stop();
-        if (dismiss != null) dismiss.run();
-    }
+    private void closePage() { stop(); if (dismiss != null) dismiss.run(); }
 
     private void buildUi() {
-        final int daddyColor = parseColor(AppPrefs.companionIdentityColor(ctx), 0xFF6E83C1);
+        final int companionColor = parseColor(AppPrefs.companionIdentityColor(ctx), 0xFF6E83C1);
         setFillViewport(true);
         setBackgroundColor(0xFFF1F7FF);
+        setOverScrollMode(OVER_SCROLL_NEVER);
 
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(22), dp(36), dp(22), dp(28));
-        addView(root, new ScrollView.LayoutParams(-1, -2));
+        root.setPadding(dp(22), dp(42), dp(22), dp(30));
+        addView(root, new ScrollView.LayoutParams(-1, -1));
+        root.addView(new View(ctx), new LinearLayout.LayoutParams(1, 0, .25f));
 
         LinearLayout owner = new LinearLayout(ctx);
         owner.setOrientation(LinearLayout.HORIZONTAL);
         owner.setGravity(Gravity.CENTER_VERTICAL);
         owner.setPadding(dp(12), dp(8), dp(14), dp(8));
-        owner.setBackground(rounded(0x99FFFFFF, 26, withAlpha(daddyColor, 75), 1));
+        owner.setBackground(rounded(0x99FFFFFF, 26, withAlpha(companionColor, 75), 1));
 
         ownerAvatarView = new ImageView(ctx);
         ownerAvatarView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        ownerAvatarView.setBackground(oval(0xDFFFFFFF, withAlpha(daddyColor, 120), 1));
+        ownerAvatarView.setBackground(oval(0xDFFFFFFF, withAlpha(companionColor, 120), 1));
         ownerAvatarView.setClipToOutline(true);
-        owner.addView(ownerAvatarView, new LinearLayout.LayoutParams(dp(38), dp(38)));
+        owner.addView(ownerAvatarView, new LinearLayout.LayoutParams(dp(40), dp(40)));
 
-        ownerNameView = text(AppPrefs.companionName(ctx), 12, daddyColor, true);
+        ownerNameView = text(AppPrefs.companionName(ctx), 12, companionColor, true);
         LinearLayout.LayoutParams ownerNameLp = new LinearLayout.LayoutParams(-2, -2);
         ownerNameLp.leftMargin = dp(9);
         owner.addView(ownerNameView, ownerNameLp);
-        root.addView(owner, lp(-2, -2, 0, 0, 0, 25));
+        root.addView(owner, lp(-2, -2, 0, 0, 0, 26));
 
-        titleView = text("", 25, 0xFF263044, true);
+        titleView = text("", 26, 0xFF263044, true);
         titleView.setGravity(Gravity.CENTER_HORIZONTAL);
         root.addView(titleView, lp(-1, -2, 0, 0, 0, 8));
 
         ownerView = text("", 12, 0xFF6F778C, false);
         ownerView.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.addView(ownerView, lp(-1, -2, 0, 0, 0, 12));
+        root.addView(ownerView, lp(-1, -2, 0, 0, 0, 13));
 
-        remainView = text("", 12, daddyColor, true);
+        remainView = text("", 12, companionColor, true);
         remainView.setGravity(Gravity.CENTER_HORIZONTAL);
-        remainView.setBackground(rounded(0xB8FFFFFF, 18, withAlpha(daddyColor, 70), 1));
+        remainView.setBackground(rounded(0xB8FFFFFF, 18, withAlpha(companionColor, 70), 1));
         remainView.setPadding(dp(15), dp(8), dp(15), dp(8));
-        root.addView(remainView, lp(-2, -2, 0, 0, 0, 20));
+        root.addView(remainView, lp(-2, -2, 0, 0, 0, 22));
 
         reasonView = glassInfo("");
         root.addView(reasonView, lp(-1, -2, 0, 0, 0, 9));
         messageView = glassInfo("");
-        root.addView(messageView, lp(-1, -2, 0, 0, 0, 18));
+        root.addView(messageView, lp(-1, -2, 0, 0, 0, 22));
 
-        TextView prompt = text("想现在打开？写一句理由给 " + AppPrefs.companionName(ctx), 11, 0xFF7B8497, false);
-        root.addView(prompt, lp(-1, -2, 2, 0, 2, 8));
+        TextView prompt = text("想现在打开？可以直接来找 GPT 申请解锁。", 11, 0xFF7B8497, false);
+        prompt.setGravity(Gravity.CENTER);
+        root.addView(prompt, lp(-1, -2, 4, 0, 4, 13));
 
-        requestReasonInput = new EditText(ctx);
-        requestReasonInput.setHint("写下申请解锁的理由");
-        requestReasonInput.setHintTextColor(0xFF9AA3B5);
-        requestReasonInput.setTextColor(0xFF263044);
-        requestReasonInput.setTextSize(13);
-        requestReasonInput.setSingleLine(false);
-        requestReasonInput.setMinLines(2);
-        requestReasonInput.setPadding(dp(15), dp(12), dp(15), dp(12));
-        requestReasonInput.setBackground(rounded(0xBFFFFFFF, 20, 0xB8FFFFFF, 1));
-        root.addView(requestReasonInput, lp(-1, dp(78), 0, 0, 0, 13));
-
-        LinearLayout actions = new LinearLayout(ctx);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.CENTER);
-
-        Button request = button("申请解锁", true, daddyColor);
-        request.setOnClickListener(v -> {
-            String reason = requestReasonInput.getText().toString().trim();
-            if (reason.length() == 0) {
-                Toast.makeText(ctx, "先写一句解锁理由", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            AppGate.submitUnlockRequest(ctx, pkg, reason);
-            requestReasonInput.setText("");
-            Toast.makeText(ctx, "已经交给 " + AppPrefs.companionName(ctx), Toast.LENGTH_LONG).show();
+        Button askGpt = button("找 GPT", true, companionColor);
+        askGpt.setOnClickListener(v -> {
+            askGpt.setEnabled(false);
+            Toast.makeText(ctx, "已提交解锁申请，正在打开 GPT", Toast.LENGTH_SHORT).show();
+            AppGate.requestUnlockAndOpenGpt(ctx, pkg);
         });
-        actions.addView(request, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        root.addView(askGpt, lp(-1, dp(48), 0, 0, 0, 10));
 
-        Button home = button("回到桌面", false, daddyColor);
-        LinearLayout.LayoutParams homeLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        homeLp.leftMargin = dp(9);
+        Button home = button("回到桌面", false, companionColor);
         home.setOnClickListener(v -> {
             closePage();
             ScreenshotService svc = ScreenshotService.getInstance();
             if (svc != null) svc.doHome();
         });
-        actions.addView(home, homeLp);
-        root.addView(actions, lp(-1, dp(44), 0, 0, 0, 14));
+        root.addView(home, lp(-1, dp(46), 0, 0, 0, 16));
 
-        Button emergency = textButton("长按 5 秒紧急解锁");
-        emergency.setSingleLine(true);
-        emergency.setGravity(Gravity.CENTER);
-        final Runnable emergencyRunnable = () -> {
-            boolean ok = AppGate.tryEmergencyUnlock(ctx, pkg);
-            Toast.makeText(ctx, ok ? "紧急解锁成功，已临时放行" : "紧急解锁失败，请稍后重试", Toast.LENGTH_LONG).show();
-            if (ok) closePage();
-        };
-        emergency.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                handler.postDelayed(emergencyRunnable, 5000);
-                Toast.makeText(ctx, "继续按住 5 秒即可紧急解锁，不需要口令", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-            if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                handler.removeCallbacks(emergencyRunnable);
-                return true;
-            }
-            return true;
-        });
-        root.addView(emergency, lp(-1, dp(40), 16, 0, 16, 8));
-
-        TextView foot = text("时间结束后会自动解除 · 紧急解锁会临时放行并写入记录", 9, 0xFF9AA3B4, false);
+        TextView foot = text("门禁结束前，每次打开这个 App 都会回到这里。", 9, 0xFF9AA3B4, false);
         foot.setGravity(Gravity.CENTER_HORIZONTAL);
         root.addView(foot, lp(-1, -2, 0, 0, 0, 0));
+        root.addView(new View(ctx), new LinearLayout.LayoutParams(1, 0, .34f));
         applyOwnerAvatar();
     }
 
@@ -204,13 +144,13 @@ public class GatePageView extends ScrollView {
         long remain = Math.max(0, until - now);
         String appName = lock.optString("app_name", AppGate.labelOf(ctx, pkg));
         String companion = AppPrefs.companionName(ctx);
-        titleView.setText(appName + " 暂时休息一下");
-        ownerView.setText(companion + " 给它关上了一会儿");
+        titleView.setText(appName + " 暂时不能打开");
+        ownerView.setText(companion + " 给它上了门禁");
         ownerNameView.setText(companion);
         remainView.setText("剩余 " + remainText(remain));
         String reason = lock.optString("reason", "").trim();
         String message = lock.optString("message", "").trim();
-        reasonView.setText(reason.isEmpty() ? "" : "为什么暂时关上\n" + reason);
+        reasonView.setText(reason.isEmpty() ? "" : "门禁原因\n" + reason);
         messageView.setText(message.isEmpty() ? "" : companion + " 留的话\n" + message);
         reasonView.setVisibility(reason.isEmpty() ? View.GONE : View.VISIBLE);
         messageView.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
@@ -251,15 +191,7 @@ public class GatePageView extends ScrollView {
         b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setTextColor(primary ? Color.WHITE : accent);
         b.setMinHeight(0); b.setPadding(dp(10), 0, dp(10), 0);
-        b.setBackground(rounded(primary ? accent : 0xBFFFFFFF, 22, primary ? accent : withAlpha(accent, 70), 1));
-        return b;
-    }
-
-    private Button textButton(String s) {
-        Button b = new Button(ctx);
-        b.setText(s); b.setAllCaps(false); b.setTextSize(10); b.setTextColor(0xFF7F889B);
-        b.setMinHeight(0); b.setPadding(dp(8), 0, dp(8), 0);
-        b.setBackground(rounded(0x00FFFFFF, 16, 0x00FFFFFF, 0));
+        b.setBackground(rounded(primary ? accent : 0xBFFFFFFF, 23, primary ? accent : withAlpha(accent, 70), 1));
         return b;
     }
 

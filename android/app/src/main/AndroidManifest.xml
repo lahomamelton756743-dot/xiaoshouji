@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.littlephone.app"
-    android:versionCode="80202"
-    android:versionName="0.8.2-fix2">
+    android:versionCode="80203"
+    android:versionName="0.8.2-3">
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 
@@ -35,6 +35,7 @@
         <package android:name="com.tencent.mm" />
         <package android:name="com.tencent.mobileqq" />
         <package android:name="com.ss.android.ugc.aweme" />
+        <package android:name="com.openai.chatgpt" />
         <package android:name="com.sina.weibo" />
         <package android:name="com.twitter.android" />
         <package android:name="com.sankuai.meituan" />

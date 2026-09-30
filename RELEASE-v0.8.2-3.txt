@@ -1,0 +1,13 @@
+小手机 0.8.2-3
+
+应用门禁重写：
+- 门禁只由无障碍 TYPE_ACCESSIBILITY_OVERLAY 承担，不再依赖 LockActivity / 延迟兜底。
+- 被锁 App 每次进入前台都会立即显示同一张门禁页；离开目标 App 立即移除。
+- 打开小手机本体永远主动移除门禁层，不会在小手机里弹门禁。
+- 门禁页移除留言输入和紧急解锁入口，只保留“找 GPT”和“回到桌面”。
+- “找 GPT”会先向 Cloudflare 提交真实解锁申请，再按来电接通相同的包启动逻辑打开 ChatGPT。
+- ChatGPT 被加入门禁保护名单，避免申请解锁入口本身被锁。
+
+Android versionName: 0.8.2-3
+Android versionCode: 80203
+APK: LittlePhone-v0.8.2-3.apk

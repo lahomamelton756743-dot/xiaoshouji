@@ -161,6 +161,8 @@ public class LittlePhoneActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 0.8.2-3 invariant: opening Little Phone itself must never show an app-gate surface.
+        GateOverlay.dismiss();
         applyImmersiveMode();
         if (hasLocationPermission()) {
             refreshWeatherFromBestLocation();

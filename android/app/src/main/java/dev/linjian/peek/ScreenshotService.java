@@ -68,26 +68,26 @@ public class ScreenshotService extends AccessibilityService {
         }
     };
 
-    // Accessibility events are usually immediate, but some launchers/apps resume an existing
-    // task without a reliable WINDOW_STATE event. This lightweight heartbeat only reads the
-    // active root package and re-applies an already-persisted gate; it does not poll the network.
+    // 0.8.2-3 gate verifier. Accessibility events are the primary trigger; this only closes the
+    // tiny OEM gap where an existing task is resumed without a useful window-state event. It
+    // never waits on the network. A locked foreground package is rechecked within 300 ms.
     private final Runnable gateEnforceTick = new Runnable() {
         @Override public void run() {
             try {
                 if (!GateOverlay.isShowing()) {
                     AccessibilityNodeInfo root = getRootInActiveWindow();
                     if (root != null && root.getPackageName() != null) {
-                        String activePkg = root.getPackageName().toString();
+                        String activePkg = root.getPackageName().toString().trim();
                         if (!activePkg.isEmpty()) {
                             currentPackage = activePkg;
                             AppGate.onForegroundPackage(ScreenshotService.this, activePkg);
                         }
                     }
-            }
+                }
             } catch (Exception e) {
                 DebugState.append(ScreenshotService.this, "门禁前台复检异常：" + shortMsg(e));
             }
-            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 650);
+            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 300);
         }
     };
 
@@ -153,14 +153,15 @@ public class ScreenshotService extends AccessibilityService {
         int t = event.getEventType();
         if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED || t == AccessibilityEvent.TYPE_VIEW_SCROLLED) updateScreenText();
         if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != null) {
-            ActivityEventStore.recordForegroundChange(this, pkg.toString());
-            FocusMode.onForegroundPackage(this, pkg.toString());
-            // If the user leaves the locked target via Home/Recents, remove the cross-app gate.
-            // Ignore the brief self-window transition created while the overlay is attaching.
-            String changedPkg = pkg.toString();
+            String changedPkg = pkg.toString().trim();
+            ActivityEventStore.recordForegroundChange(this, changedPkg);
+            FocusMode.onForegroundPackage(this, changedPkg);
+
+            // Overlay-owned Little Phone events are ignored. Any other real window transition
+            // away from the locked target means Home, Recents or another app, so remove it now.
             if (GateOverlay.isShowing()
                     && !GateOverlay.isShowingFor(changedPkg)
-                    && !("com.littlephone.app".equals(changedPkg) && System.currentTimeMillis() - GateOverlay.shownAt() < 900)) {
+                    && !getPackageName().equals(changedPkg)) {
                 GateOverlay.dismiss();
             }
         }
@@ -169,7 +170,10 @@ public class ScreenshotService extends AccessibilityService {
                 || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
                 || t == AccessibilityEvent.TYPE_VIEW_SCROLLED)) {
-            AppGate.onForegroundPackage(this, pkg.toString());
+            String observedPkg = pkg.toString().trim();
+            if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)) {
+                AppGate.onForegroundPackage(this, observedPkg);
+            }
         }
     }
     @Override public void onInterrupt() { DebugState.append(this, "无障碍服务被中断"); }

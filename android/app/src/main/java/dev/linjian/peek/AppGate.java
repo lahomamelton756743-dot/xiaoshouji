@@ -35,10 +35,6 @@ public class AppGate {
     private static final String SELF_PACKAGE = "com.littlephone.app";
     private static volatile String lastForegroundPackage = "";
     private static volatile long lastForegroundSince = 0;
-    private static volatile long lastGateAt = 0;
-    private static volatile String lastGatePackage = "";
-    private static volatile String visibleLockActivityPackage = "";
-    private static volatile long visibleLockActivityAt = 0;
 
     public static boolean enabled(Context ctx) { return AppPrefs.get(ctx).getBoolean(KEY_ENABLED, true); }
 
@@ -207,6 +203,7 @@ public class AppGate {
         JSONObject s = state(ctx); JSONObject l = locks(s).optJSONObject(pkg);
         if (l != null) { l.put("active", false); l.put("unlocked_at_ms", System.currentTimeMillis()); l.put("unlock_reason", why); }
         save(ctx, s); log(ctx, "解除门禁：" + pkg + "（" + why + "）");
+        if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
         return put(new JSONObject(), true, "unlocked_app:" + pkg);
     }
 
@@ -230,6 +227,7 @@ public class AppGate {
         l.put("temporary_session_started_ms", 0);
         l.put("temporary_one_time_used", false);
         save(ctx, s);
+        if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
         log(ctx, "临时放行 " + l.optString("app_name", pkg) + "：" + minutes + " 分钟，type=" + type);
         return put(new JSONObject(), true, "temporary_unlocked:" + pkg + " " + minutes + "min type=" + type);
     }
@@ -265,107 +263,59 @@ public class AppGate {
         return put(new JSONObject(), true, "emergency_passphrase_set:" + pkg);
     }
 
+    /**
+     * 0.8.2-3 runtime rule: the gate has exactly one owner -- the locked foreground package.
+     * No LockActivity, no delayed fallback, no "show later" timer. If a locked package is the
+     * foreground package, the accessibility overlay is present; otherwise it is not.
+     */
     public static void onForegroundPackage(Context ctx, String pkg) {
         if (pkg == null || pkg.trim().isEmpty()) return;
         pkg = pkg.trim();
-        if (!enabled(ctx)) return;
         long now = System.currentTimeMillis();
         try { accountUsageSwitch(ctx, pkg, now); } catch (Exception ignored) { }
-        if (isProtectedPackage(ctx, pkg)) return;
-        if (SELF_PACKAGE.equals(pkg)) return;
+
+        // Little Phone itself and protected apps must never be covered by the app gate.
+        if (!enabled(ctx) || isProtectedPackage(ctx, pkg) || SELF_PACKAGE.equals(pkg)) {
+            if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
+            return;
+        }
+
         try {
             JSONObject lock = activeLockFor(ctx, pkg, now);
-            if (lock == null) return;
-            if (isTemporarilyAllowed(ctx, lock, now, true)) return;
-            if (pkg.equals(lastGatePackage) && now - lastGateAt < 1800) return;
-            lastGatePackage = pkg; lastGateAt = now;
-            showGateByPriority(ctx, pkg, lock);
-            log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（仅统一全屏门禁页）");
-            ActivityEventStore.recordPhone(ctx, "screen_break_trigger", "应用门禁触发", lock.optString("app_name", pkg));
-        } catch (Exception e) { DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e)); }
-    }
-
-    public static void markLockActivityVisible(String pkg, boolean visible) {
-        if (visible) {
-            visibleLockActivityPackage = pkg == null ? "" : pkg;
-            visibleLockActivityAt = System.currentTimeMillis();
-        } else {
-            // Leaving the gate (for example "回到桌面") must allow the same locked app
-            // to be intercepted again immediately when the user re-opens it.
-            if (pkg != null && pkg.equals(lastGatePackage)) {
-                lastGatePackage = "";
-                lastGateAt = 0;
+            if (lock == null) {
+                if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
+                return;
             }
-            visibleLockActivityPackage = "";
-            visibleLockActivityAt = 0;
-        }
-    }
-
-    private static boolean isLockActivityVisibleFor(String pkg) {
-        return pkg != null
-                && pkg.equals(visibleLockActivityPackage)
-                && System.currentTimeMillis() - visibleLockActivityAt < 3000;
-    }
-
-    private static void showGateByPriority(final Context ctx, final String pkg, final JSONObject lock) {
-        final Context app = ctx.getApplicationContext();
-        final Handler main = new Handler(Looper.getMainLooper());
-
-        // The gate belongs on top of the locked app. Do not send the user Home first: doing that
-        // changes the foreground package and makes the gate look like a Little Phone screen.
-        // Try the existing Activity immediately while the target app is still foreground.
-        ScreenshotService svc = ScreenshotService.getInstance();
-        showLockActivity(svc != null ? svc : app, pkg);
-
-        // Android may block a background Activity launch. Accessibility overlays are explicitly
-        // designed to intercept interaction over another app, so use the exact same GatePageView
-        // as a reliable fallback. Only one visible gate UI exists at a time.
-        main.postDelayed(() -> {
-            if (isLockActivityVisibleFor(pkg)) return;
-            ScreenshotService live = ScreenshotService.getInstance();
-            if (live != null) GateOverlay.show(live, pkg);
-            else DebugState.append(app, "应用门禁：无障碍未连接，无法覆盖目标 App：" + pkg);
-        }, 260);
-    }
-
-    private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
-        final Context app = ctx.getApplicationContext();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            try {
-                String current = ScreenshotService.currentPackage();
-                if (lockedPkg != null && lockedPkg.equals(current)) {
-                    DebugState.append(app, "应用门禁：锁定后发现目标已在前台，立即触发拦截：" + lockedPkg);
-                    onForegroundPackage(app, lockedPkg);
-                }
-            } catch (Exception e) {
-                DebugState.append(app, "应用门禁：锁定后前台检查失败：" + ScreenshotService.shortMsg(e));
+            if (isTemporarilyAllowed(ctx, lock, now, true)) {
+                if (GateOverlay.isShowingFor(pkg)) GateOverlay.dismiss();
+                return;
             }
-        }, 200);
-    }
 
-    private static void goHome(Context ctx, String reason) {
-        try {
             ScreenshotService svc = ScreenshotService.getInstance();
-            if (svc != null) {
-                svc.doHome();
-                DebugState.append(ctx, "应用门禁兜底 Home：" + reason);
-            } else {
-                DebugState.append(ctx, "应用门禁兜底 Home 失败：无障碍服务未连接；" + reason);
+            if (svc == null) {
+                DebugState.append(ctx, "应用门禁：规则有效，但无障碍未连接：" + pkg);
+                return;
+            }
+            if (!GateOverlay.isShowingFor(pkg)) {
+                GateOverlay.show(svc, pkg);
+                log(ctx, "门禁拦截：" + lock.optString("app_name", pkg) + "（0.8.2-3 覆盖层）");
+                ActivityEventStore.recordPhone(ctx, "screen_break_trigger", "应用门禁触发", lock.optString("app_name", pkg));
             }
         } catch (Exception e) {
-            DebugState.append(ctx, "应用门禁兜底 Home 异常：" + ScreenshotService.shortMsg(e));
+            DebugState.append(ctx, "门禁检查异常：" + ScreenshotService.shortMsg(e));
         }
     }
 
-    private static void showLockActivity(Context ctx, String pkg) {
+    /** Legacy compatibility only. 0.8.2-3 no longer uses LockActivity visibility as gate state. */
+    public static void markLockActivityVisible(String pkg, boolean visible) { }
+
+    private static void triggerCurrentForegroundIfNeeded(final Context ctx, final String lockedPkg) {
         try {
-            markLockActivityVisible(pkg, false);
-            Intent i = new Intent(ctx, LockActivity.class);
-            i.putExtra("package", pkg);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            ctx.startActivity(i);
-            DebugState.append(ctx, "门禁启动全屏锁定页：" + pkg);
-        } catch (Exception e) { DebugState.append(ctx, "门禁启动全屏锁定页失败：" + ScreenshotService.shortMsg(e)); }
+            String current = ScreenshotService.currentPackage();
+            if (lockedPkg != null && lockedPkg.equals(current)) onForegroundPackage(ctx, lockedPkg);
+        } catch (Exception e) {
+            DebugState.append(ctx, "应用门禁：锁定后前台检查失败：" + ScreenshotService.shortMsg(e));
+        }
     }
 
     private static void accountUsageSwitch(Context ctx, String nextPkg, long now) throws Exception {
@@ -456,6 +406,30 @@ public class AppGate {
         } catch (Exception e) { DebugState.append(ctx, "解锁申请保存失败：" + ScreenshotService.shortMsg(e)); }
     }
 
+    /**
+     * Gate-page primary escape: create a real Cloudflare unlock request, then open ChatGPT using
+     * the same package-opening path used by the incoming-call "接通" flow. No text form is needed.
+     */
+    public static void requestUnlockAndOpenGpt(final Context ctx, final String pkg) {
+        final Context app = ctx.getApplicationContext();
+        final String appName = labelOf(app, pkg);
+        submitUnlockRequest(app, pkg, "从门禁页找 GPT 申请解锁 " + appName);
+        GateOverlay.dismiss();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            String result = CompanionService.openPackageResult(app, "com.openai.chatgpt");
+            DebugState.append(app, "门禁找 GPT：" + result + "；package=" + pkg);
+            if (!result.startsWith("opened_")) {
+                try {
+                    Intent web = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://chatgpt.com/"));
+                    web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    app.startActivity(web);
+                } catch (Exception e) {
+                    DebugState.append(app, "门禁找 GPT 打开失败：" + ScreenshotService.shortMsg(e));
+                }
+            }
+        }, 120L);
+    }
+
     private static void postUnlockRequest(String serverUrl, String token, String body) {
         try {
             HttpURLConnection conn = (HttpURLConnection)new URL(serverUrl + "/api/appgate/unlock_request").openConnection();
@@ -534,6 +508,7 @@ public class AppGate {
     private static String[] protectedPackages(Context ctx) {
         ArrayList<String> packages = new ArrayList<>();
         packages.add(SELF_PACKAGE);
+        packages.add("com.openai.chatgpt");
         String companionTarget = AppPrefs.homeTargetPackage(ctx);
         if (!companionTarget.isEmpty()) packages.add(companionTarget);
         packages.add("com.android.settings");

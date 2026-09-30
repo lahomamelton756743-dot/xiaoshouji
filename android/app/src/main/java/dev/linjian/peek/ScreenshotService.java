@@ -96,6 +96,25 @@ public class ScreenshotService extends AccessibilityService {
         instance = this;
         NowState.start(this);
         DebugState.append(this, "无障碍服务已连接：读屏/节点坐标/活动轨迹/远程息屏/专注模式可用（截图已关闭） v0.3.8.9");
+
+        // Opening/enabling Little Phone must restore the command bridge automatically.
+        // Older builds could leave user_stopped=true in SharedPreferences, which made the
+        // accessibility fallback refuse to poll forever even while the app was open.
+        SharedPreferences prefs = getSharedPreferences(AppPrefs.PREFS, MODE_PRIVATE);
+        String savedUrl = normalizeUrl(prefs.getString(AppPrefs.KEY_SERVER, ""));
+        String savedToken = prefs.getString(AppPrefs.KEY_TOKEN, "");
+        if (!savedUrl.isEmpty() && !savedToken.isEmpty()) {
+            prefs.edit().putBoolean("user_stopped", false).apply();
+            try {
+                Intent i = new Intent(this, CompanionService.class);
+                i.putExtra("server_url", savedUrl);
+                i.putExtra("token", savedToken);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i); else startService(i);
+                DebugState.append(this, "无障碍已连接：自动恢复小手机命令轮询");
+            } catch (Exception e) {
+                DebugState.append(this, "自动恢复轮询失败：" + shortMsg(e));
+            }
+        }
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
         startBackgroundPolling();

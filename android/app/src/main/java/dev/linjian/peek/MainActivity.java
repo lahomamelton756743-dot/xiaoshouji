@@ -141,6 +141,10 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 13);
         serviceRunning = CompanionService.isRunning();
         updateUI();
+        // A visible Little Phone should never sit disconnected just because an older
+        // session persisted user_stopped=true. Re-opening the app is an explicit reconnect.
+        getSharedPreferences(AppPrefs.PREFS, MODE_PRIVATE).edit().putBoolean("user_stopped", false).apply();
+        uiHandler.postDelayed(this::ensureCommandBridge, 400);
 
         if (accessibilityButton != null) accessibilityButton.setOnClickListener(v -> { if (recentlyOpenedAccessibilitySettings() && !isAccessibilityServiceEnabled()) showAccessibilityHelpDialog(); else openAccessibilitySettings(); });
         if (usageAccessButton != null) usageAccessButton.setOnClickListener(v -> openUsageAccessSettings());
@@ -2317,7 +2321,27 @@ public class MainActivity extends Activity {
 
     private int dp(float v) { return (int) (v * getResources().getDisplayMetrics().density + 0.5f); }
 
-    @Override protected void onResume() { super.onResume(); serviceRunning = CompanionService.isRunning(); updateUI(); refreshSharedPreviews(); if (recentlyOpenedAccessibilitySettings()) scheduleAccessibilityFollowupChecks(); uiHandler.removeCallbacks(refreshTick); uiHandler.post(refreshTick); }
+    @Override protected void onResume() { super.onResume(); serviceRunning = CompanionService.isRunning(); updateUI(); refreshSharedPreviews(); if (recentlyOpenedAccessibilitySettings()) scheduleAccessibilityFollowupChecks(); ensureCommandBridge(); uiHandler.removeCallbacks(refreshTick); uiHandler.post(refreshTick); }
+
+    private void ensureCommandBridge() {
+        if (CompanionService.isRunning() || ScreenshotService.getInstance() == null) return;
+        String url = AppPrefs.server(this);
+        String tk = AppPrefs.token(this);
+        if (url.isEmpty() || tk.isEmpty()) {
+            DebugState.append(this, "自动连接跳过：服务器地址或 Token 为空");
+            return;
+        }
+        getSharedPreferences(AppPrefs.PREFS, MODE_PRIVATE).edit().putBoolean("user_stopped", false).apply();
+        try {
+            Intent i = new Intent(this, CompanionService.class);
+            i.putExtra("server_url", url);
+            i.putExtra("token", tk);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i); else startService(i);
+            DebugState.append(this, "小手机前台：自动恢复命令轮询");
+        } catch (Exception e) {
+            DebugState.append(this, "小手机前台自动连接失败：" + ScreenshotService.shortMsg(e));
+        }
+    }
     private void refreshSharedPreviews() {
         final String server = AppPrefs.server(this);
         if (homeMessagePreview == null || homeTracePreview == null) return;

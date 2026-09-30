@@ -1,0 +1,16 @@
+# Little Phone 0.8.2-9
+
+Fix delayed app-gate presentation on fast-changing accessibility trees such as Douyin.
+
+Root cause found in 0.8.2-8:
+- ScreenshotService called updateScreenText() before AppGate.onForegroundPackage().
+- updateScreenText() recursively traverses up to 140 accessibility nodes.
+- On Douyin, window-content and scroll events can expose a large, rapidly changing tree, so the accessibility main thread could spend seconds collecting nodes before the gate code ran.
+- This exactly produces the observed behavior: the app is usable briefly, then the gate appears after several seconds or after scrolling videos.
+
+0.8.2-9:
+- Runs AppGate.onForegroundPackage() first for window-state, windows-changed, content-changed and scroll events.
+- If the locked package is covered, returns immediately and does not traverse the target app tree.
+- Screen-model collection is now secondary work and never runs ahead of gate enforcement.
+- Keeps the 0.8.2-8 direct TYPE_ACCESSIBILITY_OVERLAY enforcement and 180 ms local verifier.
+- Cloudflare transport is unchanged.

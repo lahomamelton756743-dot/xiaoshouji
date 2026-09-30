@@ -140,38 +140,33 @@ public class ScreenshotService extends AccessibilityService {
         CharSequence pkg = event.getPackageName();
         int t = event.getEventType();
         String observedPkg = pkg == null ? "" : pkg.toString().trim();
-
-        // TYPE_ACCESSIBILITY_OVERLAY can generate events owned by Little Phone itself.
-        // Never let those synthetic events replace the real foreground package.
-        if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)) {
-            currentPackage = observedPkg;
-        }
-
-        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+        boolean realPackage = !observedPkg.isEmpty() && !getPackageName().equals(observedPkg);
+        boolean gateSignal = t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            updateScreenText();
+                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED;
+
+        // 0.8.2-9: gate enforcement must run before accessibility-tree traversal.
+        // Douyin can expose a large/changing tree; collecting it first can block the
+        // accessibility main thread for seconds and was the source of delayed gates.
+        if (realPackage) currentPackage = observedPkg;
+        if (realPackage && gateSignal) {
+            AppGate.onForegroundPackage(this, observedPkg);
+            if (GateOverlay.isShowingFor(observedPkg)) return;
         }
 
-        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && !observedPkg.isEmpty()
-                && !getPackageName().equals(observedPkg)) {
+        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && realPackage) {
             ActivityEventStore.recordForegroundChange(this, observedPkg);
             FocusMode.onForegroundPackage(this, observedPkg);
-
-            // A real transition away from the locked target (Home/Recents/another app)
-            // removes the overlay. Reopening the target is caught immediately again.
             if (GateOverlay.isShowing() && !GateOverlay.isShowingFor(observedPkg)) {
                 GateOverlay.dismiss();
             }
         }
 
-        if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)
-                && (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-                || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED)) {
-            AppGate.onForegroundPackage(this, observedPkg);
+        // Screen-model collection is secondary work and may be expensive. Never put it
+        // in front of the local gate path.
+        if (gateSignal && !GateOverlay.isShowing()) {
+            updateScreenText();
         }
     }
     @Override public void onInterrupt() { DebugState.append(this, "无障碍服务被中断"); }

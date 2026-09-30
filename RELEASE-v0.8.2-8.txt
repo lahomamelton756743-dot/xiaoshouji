@@ -1,0 +1,14 @@
+# Little Phone 0.8.2-8
+
+App gate enforcement rewrite for immediate local blocking.
+
+- Removed Activity-first gate enforcement from the runtime path.
+- Removed the 1800 ms duplicate guard and 700/1400 ms fallback delays.
+- A locked foreground app is covered directly by TYPE_ACCESSIBILITY_OVERLAY owned by ScreenshotService.
+- Added a 180 ms local active-root verifier for OEM task-resume gaps; it does not wait on the network.
+- Accessibility-overlay events from Little Phone are ignored so they do not replace the real foreground package.
+- Leaving the locked app dismisses the overlay; reopening it immediately recreates the overlay while the lock is active.
+- Opening Little Phone dismisses any gate overlay and Little Phone itself is never gateable.
+- ChatGPT is protected from app-gate locking.
+- Restored the gate page primary action to “找 GPT”, which submits an unlock request and opens ChatGPT.
+- Cloudflare connection migration and command-bridge keepalive from 0.8.2-5/0.8.2-4 remain intact.

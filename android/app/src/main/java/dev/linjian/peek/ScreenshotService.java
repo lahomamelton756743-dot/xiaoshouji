@@ -37,6 +37,7 @@ public class ScreenshotService extends AccessibilityService {
     private static volatile String screenNodesJson = "[]";
     private final Executor executor = Executors.newSingleThreadExecutor();
     private Handler watchdog;
+    private Handler gateEnforcer;
     private HandlerThread backgroundPollThread;
     private Handler backgroundPollHandler;
 
@@ -64,6 +65,32 @@ public class ScreenshotService extends AccessibilityService {
                 DebugState.append(ScreenshotService.this, "看门狗异常：" + shortMsg(e));
             }
             if (watchdog != null) watchdog.postDelayed(this, 30000);
+        }
+    };
+
+    // Local gate verifier: network-independent. Some OEMs resume an existing task without
+    // delivering a useful window-state event immediately, so verify the active root locally.
+    // 180 ms keeps the target app from becoming interactable for seconds while avoiding a busy loop.
+    private final Runnable gateEnforceTick = new Runnable() {
+        @Override public void run() {
+            AccessibilityNodeInfo root = null;
+            try {
+                if (!GateOverlay.isShowing()) {
+                    root = getRootInActiveWindow();
+                    if (root != null && root.getPackageName() != null) {
+                        String activePkg = root.getPackageName().toString().trim();
+                        if (!activePkg.isEmpty() && !getPackageName().equals(activePkg)) {
+                            currentPackage = activePkg;
+                            AppGate.onForegroundPackage(ScreenshotService.this, activePkg);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                DebugState.append(ScreenshotService.this, "门禁前台复检异常：" + shortMsg(e));
+            } finally {
+                try { if (root != null) root.recycle(); } catch (Exception ignored) { }
+            }
+            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 180);
         }
     };
 
@@ -103,36 +130,61 @@ public class ScreenshotService extends AccessibilityService {
         CompanionService.ensureRunning(this, "accessibility_connected");
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
+        gateEnforcer = new Handler(Looper.getMainLooper());
+        gateEnforcer.post(gateEnforceTick);
         startBackgroundPolling();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
         CharSequence pkg = event.getPackageName();
-        if (pkg != null) currentPackage = pkg.toString();
         int t = event.getEventType();
-        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED || t == AccessibilityEvent.TYPE_VIEW_SCROLLED) updateScreenText();
-        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != null) {
-            ActivityEventStore.recordForegroundChange(this, pkg.toString());
-            FocusMode.onForegroundPackage(this, pkg.toString());
+        String observedPkg = pkg == null ? "" : pkg.toString().trim();
+
+        // TYPE_ACCESSIBILITY_OVERLAY can generate events owned by Little Phone itself.
+        // Never let those synthetic events replace the real foreground package.
+        if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)) {
+            currentPackage = observedPkg;
         }
-        if (pkg != null && (
-                t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+
+        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+                || t == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            updateScreenText();
+        }
+
+        if (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && !observedPkg.isEmpty()
+                && !getPackageName().equals(observedPkg)) {
+            ActivityEventStore.recordForegroundChange(this, observedPkg);
+            FocusMode.onForegroundPackage(this, observedPkg);
+
+            // A real transition away from the locked target (Home/Recents/another app)
+            // removes the overlay. Reopening the target is caught immediately again.
+            if (GateOverlay.isShowing() && !GateOverlay.isShowingFor(observedPkg)) {
+                GateOverlay.dismiss();
+            }
+        }
+
+        if (!observedPkg.isEmpty() && !getPackageName().equals(observedPkg)
+                && (t == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOWS_CHANGED
                 || t == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
                 || t == AccessibilityEvent.TYPE_VIEW_SCROLLED)) {
-            AppGate.onForegroundPackage(this, pkg.toString());
+            AppGate.onForegroundPackage(this, observedPkg);
         }
     }
     @Override public void onInterrupt() { DebugState.append(this, "无障碍服务被中断"); }
 
     private void markDisconnected(String reason) {
         DebugState.append(this, reason);
+        GateOverlay.dismiss();
         instance = null;
         currentPackage = "";
         screenText = "";
         screenNodesJson = "[]";
         if (watchdog != null) { watchdog.removeCallbacksAndMessages(null); watchdog = null; }
+        if (gateEnforcer != null) { gateEnforcer.removeCallbacksAndMessages(null); gateEnforcer = null; }
         if (backgroundPollHandler != null) { backgroundPollHandler.removeCallbacksAndMessages(null); backgroundPollHandler = null; }
         if (backgroundPollThread != null) { backgroundPollThread.quitSafely(); backgroundPollThread = null; }
     }

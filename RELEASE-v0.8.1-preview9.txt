@@ -1,0 +1,9 @@
+Little Phone v0.8.1 preview9
+
+Fix:
+- desktop 4x7 grid now uses the entire vertical area from below the status bar to immediately above the Dock
+- removed fixed-height row behavior that left a large unusable blank area below the icons
+- normal and edit mode both distribute all seven rows through the available height
+- drag/drop grid metrics continue to follow the rendered grid tracks
+
+Android versionCode: 80109

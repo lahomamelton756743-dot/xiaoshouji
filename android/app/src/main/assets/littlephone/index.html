@@ -2178,6 +2178,37 @@ body.desktopDragging .desktopViewport{scroll-snap-type:none!important;scroll-beh
   .desktopAppItem .desktopAppLabel{font-size:9.5px!important}
 }
 
+
+/* =========================================================
+   v0.8.1 preview9 — use the full desktop height above Dock
+   ========================================================= */
+/* The desktop grid now stretches from the status bar all the way down to the
+   Dock safe zone. Seven rows share the available height instead of stopping
+   after seven fixed 58/60px tracks near the top. */
+.desktopPage{
+  height:100%!important;
+  min-height:100%!important;
+  box-sizing:border-box!important;
+  padding-top:8px!important;
+  padding-bottom:calc(100px + env(safe-area-inset-bottom))!important;
+  grid-template-rows:repeat(7,minmax(58px,1fr))!important;
+  row-gap:4px!important;
+  align-items:center!important;
+}
+.desktopPage .desktopItem{align-self:center!important}
+body.desktopEditMode .desktopPage{
+  padding-top:54px!important;
+  grid-template-rows:repeat(7,minmax(54px,1fr))!important;
+}
+@media(max-width:420px){
+  .desktopPage{
+    padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;
+    grid-template-rows:repeat(7,minmax(54px,1fr))!important;
+    row-gap:3px!important;
+  }
+  body.desktopEditMode .desktopPage{grid-template-rows:repeat(7,minmax(50px,1fr))!important}
+}
+
 </style>
 </head>
 <body>

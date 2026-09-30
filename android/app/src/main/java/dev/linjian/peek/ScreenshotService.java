@@ -37,6 +37,7 @@ public class ScreenshotService extends AccessibilityService {
     private static volatile String screenNodesJson = "[]";
     private final Executor executor = Executors.newSingleThreadExecutor();
     private Handler watchdog;
+    private Handler gateEnforcer;
     private HandlerThread backgroundPollThread;
     private Handler backgroundPollHandler;
 
@@ -64,6 +65,29 @@ public class ScreenshotService extends AccessibilityService {
                 DebugState.append(ScreenshotService.this, "看门狗异常：" + shortMsg(e));
             }
             if (watchdog != null) watchdog.postDelayed(this, 60000);
+        }
+    };
+
+    // Accessibility events are usually immediate, but some launchers/apps resume an existing
+    // task without a reliable WINDOW_STATE event. This lightweight heartbeat only reads the
+    // active root package and re-applies an already-persisted gate; it does not poll the network.
+    private final Runnable gateEnforceTick = new Runnable() {
+        @Override public void run() {
+            try {
+                if (!GateOverlay.isShowing()) {
+                    AccessibilityNodeInfo root = getRootInActiveWindow();
+                    if (root != null && root.getPackageName() != null) {
+                        String activePkg = root.getPackageName().toString();
+                        if (!activePkg.isEmpty()) {
+                            currentPackage = activePkg;
+                            AppGate.onForegroundPackage(ScreenshotService.this, activePkg);
+                        }
+                    }
+            }
+            } catch (Exception e) {
+                DebugState.append(ScreenshotService.this, "门禁前台复检异常：" + shortMsg(e));
+            }
+            if (gateEnforcer != null) gateEnforcer.postDelayed(this, 650);
         }
     };
 
@@ -117,6 +141,8 @@ public class ScreenshotService extends AccessibilityService {
         }
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
+        gateEnforcer = new Handler(Looper.getMainLooper());
+        gateEnforcer.postDelayed(gateEnforceTick, 650);
         startBackgroundPolling();
     }
 
@@ -156,6 +182,7 @@ public class ScreenshotService extends AccessibilityService {
         screenText = "";
         screenNodesJson = "[]";
         if (watchdog != null) { watchdog.removeCallbacksAndMessages(null); watchdog = null; }
+        if (gateEnforcer != null) { gateEnforcer.removeCallbacksAndMessages(null); gateEnforcer = null; }
         if (backgroundPollHandler != null) { backgroundPollHandler.removeCallbacksAndMessages(null); backgroundPollHandler = null; }
         if (backgroundPollThread != null) { backgroundPollThread.quitSafely(); backgroundPollThread = null; }
     }

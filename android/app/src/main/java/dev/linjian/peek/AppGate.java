@@ -290,6 +290,12 @@ public class AppGate {
             visibleLockActivityPackage = pkg == null ? "" : pkg;
             visibleLockActivityAt = System.currentTimeMillis();
         } else {
+            // Leaving the gate (for example "回到桌面") must allow the same locked app
+            // to be intercepted again immediately when the user re-opens it.
+            if (pkg != null && pkg.equals(lastGatePackage)) {
+                lastGatePackage = "";
+                lastGateAt = 0;
+            }
             visibleLockActivityPackage = "";
             visibleLockActivityAt = 0;
         }

@@ -60,6 +60,37 @@ public class CompanionService extends Service {
     }
     public static long lastPollAttemptMs() { return lastPollAttemptMs; }
     public static long lastPollSuccessMs() { return lastPollSuccessMs; }
+
+    /**
+     * Single entry point for keeping the Cloudflare command bridge alive.
+     * App open, accessibility connect, boot and package update all call this.
+     * This avoids the old failure mode where an APK update killed the process
+     * and remote commands stayed pending until the user manually reconnected.
+     */
+    public static boolean ensureRunning(Context ctx, String reason) {
+        if (ctx == null) return false;
+        Context app = ctx.getApplicationContext();
+        String url = ScreenshotService.normalizeUrl(AppPrefs.server(app));
+        String tk = AppPrefs.token(app);
+        if (url.isEmpty() || tk.isEmpty()) {
+            DebugState.append(app, "命令桥未启动：连接配置为空；来源=" + reason);
+            return false;
+        }
+        try {
+            AppPrefs.get(app).edit().putBoolean("user_stopped", false).apply();
+            Intent i = new Intent(app, CompanionService.class);
+            i.putExtra("server_url", url);
+            i.putExtra("token", tk);
+            i.putExtra("start_reason", reason == null ? "" : reason);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) app.startForegroundService(i);
+            else app.startService(i);
+            DebugState.append(app, "命令桥确保运行；来源=" + reason);
+            return true;
+        } catch (Exception e) {
+            DebugState.append(app, "命令桥启动失败：" + ScreenshotService.shortMsg(e) + "；来源=" + reason);
+            return false;
+        }
+    }
     @Override public IBinder onBind(Intent intent) { return null; }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -80,7 +111,7 @@ public class CompanionService extends Service {
             stopSelf(); return START_NOT_STICKY;
         }
         DebugState.append(this, "小手机 v" + AppPrefs.APP_VERSION_NAME + " 服务已启动，目标：" + serverUrl);
-        if (!running) { running = true; startPolling(); } else DebugState.append(this, "服务已在运行，继续轮询");
+        if (!running || pollThread == null || !pollThread.isAlive()) { running = true; startPolling(); } else DebugState.append(this, "服务已在运行，继续轮询");
         return START_STICKY;
     }
 

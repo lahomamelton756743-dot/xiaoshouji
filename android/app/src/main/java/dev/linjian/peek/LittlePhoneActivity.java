@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 小手机 v0.7.6 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
+ * 小手机 v0.8.2-4 Web/PWA 外壳（基于稳定 v0.6.3 重建）。
  *
  * 视觉层使用本地 HTML/CSS/JS；设备能力和现有掌心窗模块继续由 Android 原生层提供。
  * Web 层只能通过这个 Activity 暴露的受控 bridge 访问本机状态和自建 server。
@@ -104,6 +104,7 @@ public class LittlePhoneActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        CompanionService.ensureRunning(this, "little_phone_onCreate");
         applyImmersiveMode();
 
         webView = new WebView(this);
@@ -161,7 +162,9 @@ public class LittlePhoneActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 0.8.2-3 invariant: opening Little Phone itself must never show an app-gate surface.
+        // Opening Little Phone is also an explicit keep-alive signal for the remote command bridge.
+        CompanionService.ensureRunning(this, "little_phone_onResume");
+        // Gate invariant: opening Little Phone itself must never show an app-gate surface.
         GateOverlay.dismiss();
         applyImmersiveMode();
         if (hasLocationPermission()) {

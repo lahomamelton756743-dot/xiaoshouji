@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AppPrefs {
     public static final String PREFS = "linjian_peek";
-    public static final String APP_VERSION_NAME = "0.8.2-3";
-    public static final int APP_VERSION_CODE = 80203;
+    public static final String APP_VERSION_NAME = "0.8.2-4";
+    public static final int APP_VERSION_CODE = 80204;
     public static final String KEY_SERVER = "server_url";
     public static final String KEY_TOKEN = "token";
     public static final String KEY_DEVICE = "device_id";
@@ -21,7 +21,7 @@ public class AppPrefs {
     public static final int MIN_POLL_INTERVAL_MS = 500;
     public static final int MAX_POLL_INTERVAL_MS = 15000;
     public static final int STATE_UPLOAD_INTERVAL_MS = 10000;
-    public static final int ACCESSIBILITY_FALLBACK_INTERVAL_MS = 12000;
+    public static final int ACCESSIBILITY_FALLBACK_INTERVAL_MS = 1500;
     public static final String KEY_CITY = "life_city";
     public static final String KEY_WEATHER_NOTE = "life_weather_note";
     public static final String KEY_WEATHER_LOCATIONS = "weather_locations_lines";

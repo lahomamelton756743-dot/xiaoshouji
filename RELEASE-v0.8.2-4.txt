@@ -1,0 +1,13 @@
+# Little Phone 0.8.2-4
+
+This build changes the gate transport, not the gate artwork.
+
+- The remote command bridge starts whenever Little Phone opens.
+- It also restarts when Accessibility reconnects.
+- BOOT_COMPLETED and MY_PACKAGE_REPLACED restore the bridge after reboot/update.
+- Accessibility has its own fast 1.5s watchdog poll when the foreground service is unhealthy.
+- The watchdog starts after 250ms instead of waiting 6 seconds.
+- A dead foreground poll thread is recreated even if the Service object still exists.
+- Gate enforcement remains local: once a lock command is received, foreground detection and blocking do not depend on the network.
+
+Reason for rewrite: a lock command was confirmed pending in Cloudflare while the phone snapshot was already expired, proving the phone had not received the command at all. The previous gate UI could not enforce a command that never reached the device.

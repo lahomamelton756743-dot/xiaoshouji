@@ -64,7 +64,7 @@ public class ScreenshotService extends AccessibilityService {
             } catch (Exception e) {
                 DebugState.append(ScreenshotService.this, "看门狗异常：" + shortMsg(e));
             }
-            if (watchdog != null) watchdog.postDelayed(this, 60000);
+            if (watchdog != null) watchdog.postDelayed(this, 30000);
         }
     };
 
@@ -109,8 +109,9 @@ public class ScreenshotService extends AccessibilityService {
                 DebugState.append(ScreenshotService.this, "无障碍后台轮询异常：" + shortMsg(e));
             }
             if (backgroundPollHandler != null) {
-                int fallbackDelay = Math.max(AppPrefs.ACCESSIBILITY_FALLBACK_INTERVAL_MS, AppPrefs.interval(ScreenshotService.this) * 4);
-                backgroundPollHandler.postDelayed(this, fallbackDelay);
+                // Do not inherit an old saved poll interval here. This is a watchdog path:
+                // if the foreground service is unhealthy, retry quickly and independently.
+                backgroundPollHandler.postDelayed(this, AppPrefs.ACCESSIBILITY_FALLBACK_INTERVAL_MS);
             }
         }
     };
@@ -121,24 +122,9 @@ public class ScreenshotService extends AccessibilityService {
         NowState.start(this);
         DebugState.append(this, "无障碍服务已连接：读屏/节点坐标/活动轨迹/远程息屏/专注模式可用（截图已关闭） v0.3.8.9");
 
-        // Opening/enabling Little Phone must restore the command bridge automatically.
-        // Older builds could leave user_stopped=true in SharedPreferences, which made the
-        // accessibility fallback refuse to poll forever even while the app was open.
-        SharedPreferences prefs = getSharedPreferences(AppPrefs.PREFS, MODE_PRIVATE);
-        String savedUrl = normalizeUrl(prefs.getString(AppPrefs.KEY_SERVER, ""));
-        String savedToken = prefs.getString(AppPrefs.KEY_TOKEN, "");
-        if (!savedUrl.isEmpty() && !savedToken.isEmpty()) {
-            prefs.edit().putBoolean("user_stopped", false).apply();
-            try {
-                Intent i = new Intent(this, CompanionService.class);
-                i.putExtra("server_url", savedUrl);
-                i.putExtra("token", savedToken);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i); else startService(i);
-                DebugState.append(this, "无障碍已连接：自动恢复小手机命令轮询");
-            } catch (Exception e) {
-                DebugState.append(this, "自动恢复轮询失败：" + shortMsg(e));
-            }
-        }
+        // Accessibility is the same always-on anchor used by the gate itself.
+        // Whenever Android reconnects it, restore the Cloudflare command bridge immediately.
+        CompanionService.ensureRunning(this, "accessibility_connected");
         watchdog = new Handler(Looper.getMainLooper());
         watchdog.postDelayed(watchdogTick, 15000);
         gateEnforcer = new Handler(Looper.getMainLooper());
@@ -207,7 +193,7 @@ public class ScreenshotService extends AccessibilityService {
         backgroundPollThread.start();
         backgroundPollHandler = new Handler(backgroundPollThread.getLooper());
         DebugState.append(this, "无障碍兜底轮询已启动 v0.3.8.9（前台服务运行时不重复轮询）");
-        backgroundPollHandler.postDelayed(backgroundPollTick, 6000);
+        backgroundPollHandler.postDelayed(backgroundPollTick, 250);
     }
 
     private String pollServerFromAccessibility(String serverUrl, String token) throws Exception {

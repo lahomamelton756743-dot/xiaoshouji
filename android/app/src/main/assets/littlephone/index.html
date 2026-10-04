@@ -2784,7 +2784,7 @@ function go(page,push=true){
   if(page==='app-memory')renderMemoryApp();
   if(page==='app-mail')renderMailApp();
   if(page==='app-river')renderRiverApp();
-  if(page==='app-chat')renderChatApp();
+  if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
   if(page==='app-health'){renderHealthApp()}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
@@ -2837,8 +2837,8 @@ function friendlyRemoteError(msg=''){const m=String(msg||'').toLowerCase();if(!m
 function updateOfflineBanner(){const b=$('#offlineBanner');if(!b)return;if(!state.conn.connected){b.textContent='还没有保存 server / Token。点这里打开连接设置。';b.classList.add('show');return}if(state.remoteError){b.textContent=`暂时无法连接 server（${friendlyRemoteError(state.lastRemoteError)}）。本机保存仍可用，恢复后自动同步；点这里重试。`;b.classList.add('show')}else b.classList.remove('show')}
 async function addLocalTrace(title,content='',type='local'){const key=[type,title,content].join('\u241f'),nowMs=Date.now();if(state.lastTraceKey===key&&nowMs-(state.lastTraceAt||0)<4000)return null;state.lastTraceKey=key;state.lastTraceAt=nowMs;const author=state.native.user_name||state.profile.ryan_name||'瑞安';const now=new Date(nowMs);const ev={id:`local_${nowMs}_${Math.random().toString(36).slice(2,7)}`,actor:'user',author,type,title,content,created_at:now.toISOString(),expires_at:new Date(now.getTime()+7*86400000).toISOString(),pending:true};state.pendingEvents.unshift(ev);savePendingEvents();mergePendingEvents();renderHome();renderEvents();renderUs();if(state.conn.connected&&!state.remoteError)await flushPendingEvents();return ev}
 async function flushPendingEvents(){if(!state.conn.connected||!state.pendingEvents.length)return false;let changed=false;for(const ev of [...state.pendingEvents].reverse()){try{await nativeRequest('POST','/api/littlephone/events',{author:ev.author||state.native.user_name||'瑞安',title:ev.title,content:ev.content||'',client_id:ev.id,type:ev.type||'local'});state.pendingEvents=state.pendingEvents.filter(x=>x.id!==ev.id);changed=true}catch(e){state.lastRemoteError=e.message||'request_failed';state.remoteError=true;break}}if(changed)savePendingEvents();mergePendingEvents();return changed}
-function loadCache(){let raw='';if(hasNative()&&window.LittlePhoneNative.getLocalCache){try{raw=window.LittlePhoneNative.getLocalCache()||''}catch{}}if(!raw)raw=localStorage.getItem(CACHE_KEY)||'';const c=parse(raw,null);if(!c)return;for(const k of ['visit','events','papers','mail','capsules','dailybook','diaries','todos','dates','cycle','statuses','calls','memories','health','profile'])if(c[k]!==undefined)state[k]=c[k]}
-function saveCache(){try{const raw=JSON.stringify({visit:state.visit,events:state.events,papers:state.papers,mail:state.mail,capsules:state.capsules,dailybook:state.dailybook,diaries:state.diaries,todos:state.todos,dates:state.dates,cycle:state.cycle,statuses:state.statuses,calls:state.calls,memories:state.memories,health:state.health,profile:state.profile,saved_at:Date.now()});localStorage.setItem(CACHE_KEY,raw);if(hasNative()&&window.LittlePhoneNative.setLocalCache){try{window.LittlePhoneNative.setLocalCache(raw)}catch{}}}catch{}}
+function loadCache(){let raw='';if(hasNative()&&window.LittlePhoneNative.getLocalCache){try{raw=window.LittlePhoneNative.getLocalCache()||''}catch{}}if(!raw)raw=localStorage.getItem(CACHE_KEY)||'';const c=parse(raw,null);if(!c)return;for(const k of ['visit','events','papers','mail','capsules','dailybook','diaries','chats','todos','dates','cycle','statuses','calls','memories','health','profile'])if(c[k]!==undefined)state[k]=c[k]}
+function saveCache(){try{const raw=JSON.stringify({visit:state.visit,events:state.events,papers:state.papers,mail:state.mail,capsules:state.capsules,dailybook:state.dailybook,diaries:state.diaries,chats:state.chats,todos:state.todos,dates:state.dates,cycle:state.cycle,statuses:state.statuses,calls:state.calls,memories:state.memories,health:state.health,profile:state.profile,saved_at:Date.now()});localStorage.setItem(CACHE_KEY,raw);if(hasNative()&&window.LittlePhoneNative.setLocalCache){try{window.LittlePhoneNative.setLocalCache(raw)}catch{}}}catch{}}
 function renderAll(){
   const jobs=[renderHome,renderTraceHub,renderMail,renderCapsules,renderRiver,renderTodos,renderUs,renderPaperBox,renderDates,renderJournal,renderHealth,renderMiniApps,renderDesktopSystemBar];
   for(const job of jobs){try{job()}catch(e){console.warn('render failed',job.name,e)}}
@@ -3218,7 +3218,24 @@ function renderMailApp(){
 }
 function chatTime(iso){const d=new Date(iso);if(Number.isNaN(+d))return esc(iso||'');const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}年${p(d.getMonth()+1)}月${p(d.getDate())}日 ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
 function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items=[...(state.chats||[])].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));box.innerHTML=items.length?items.map(m=>{const side=authorSide(m.author),who=side==='daddy'?'daddy':'ryan';return `<div class="chatRow ${side}"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload"><div class="chatBubble">${esc(m.content).replace(/\n/g,'<br>')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`}).join(''):'<div class="empty chatEmpty">这里还没有消息。</div>';applyAvatars();if($('#chatPartnerName'))$('#chatPartnerName').textContent=actorName('daddy');requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
-async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message)state.chats=[...(state.chats||[]),r.message];input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
+const CHAT_CACHE_KEY='lp_v083_chat_history_r1';
+function chatSorted(items){return [...(items||[])].filter(x=>x&&x.id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.id).localeCompare(String(b.id)))}
+function loadChatCache(){const cached=parse(localDataGet(CHAT_CACHE_KEY),[]);if(Array.isArray(cached)&&cached.length){const map=new Map(chatSorted([...(state.chats||[]),...cached]).map(x=>[String(x.id),x]));state.chats=chatSorted([...map.values()])}}
+function saveChatCache(){localDataSet(CHAT_CACHE_KEY,JSON.stringify(chatSorted(state.chats||[])))}
+function mergeChatMessages(incoming){const before=(state.chats||[]).length,map=new Map(chatSorted(state.chats||[]).map(x=>[String(x.id),x]));for(const m of incoming||[])if(m?.id)map.set(String(m.id),m);state.chats=chatSorted([...map.values()]);if(state.chats.length!==before)saveChatCache();return state.chats.length-before}
+async function refreshChatMessages(){
+  if(!state.conn.connected||document.hidden||state.page!=='app-chat'||state.chatRefreshing)return 0;
+  state.chatRefreshing=true;
+  try{
+    loadChatCache();
+    const items=chatSorted(state.chats||[]),last=items[items.length-1];
+    const q=last?`?limit=100&after_created_at=${encodeURIComponent(last.created_at||'')}&after_id=${encodeURIComponent(last.id||'')}`:'?limit=500';
+    const r=await nativeRequest('GET','/api/littlephone/chat'+q),added=mergeChatMessages(r.messages||[]);
+    if(added){renderChatApp();saveCache()}
+    return added;
+  }catch(e){return 0}finally{state.chatRefreshing=false}
+}
+async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message){mergeChatMessages([r.message]);saveCache()}input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
   if(!state.conn.connected&&!state.dailybook.length){root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
@@ -3594,7 +3611,8 @@ saveReminders=function(){if(!hasNative()||!window.LittlePhoneNative.setReminderC
 function bindDesktopStablePaging(){const vp=$('#desktopViewport');if(!vp||vp.dataset.stablePaging==='1')return;vp.dataset.stablePaging='1';let raf=0;vp.addEventListener('scroll',()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;const w=Math.max(1,vp.clientWidth),idx=Math.max(0,Math.min(desktopPagesCount()-1,Math.round(vp.scrollLeft/w)));state.desktopCurrentPage=idx;$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx));});},{passive:true});}
 const __lp082RenderDesktopShell=renderDesktopShell;renderDesktopShell=function(){__lp082RenderDesktopShell();bindDesktopStablePaging();};
 
-mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();loadGlassPrefs();loadDesktopLayout();tick();setInterval(tick,1000);calcDays();applyAvatars();go('desktop',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}if(document.hidden||state.page==='desktop')return;loadRemote().catch(()=>{})},60000);
+mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadChatCache();loadBackgrounds();loadGlassPrefs();loadDesktopLayout();tick();setInterval(tick,1000);calcDays();applyAvatars();go('desktop',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}if(document.hidden||state.page==='desktop')return;loadRemote().catch(()=>{})},60000);
+setInterval(()=>{refreshChatMessages().catch(()=>{})},3000);
 })();
 </script>
 </body>

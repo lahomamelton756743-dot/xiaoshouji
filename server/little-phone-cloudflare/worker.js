@@ -1,4 +1,4 @@
-const VERSION = "0.8.2-16-little-phone-shell";
+const VERSION = "0.8.3-little-phone-shell";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -65,6 +65,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/dailybook") return listDailybookApi(env, url);
     if (path === "/api/littlephone/diaries") return listDiariesApi(env, url);
     if (path === "/api/littlephone/diary-annotations") return listDiaryAnnotationsApi(env, url);
+    if (path === "/api/littlephone/chat") return listChatMessagesApi(env, url);
     if (path === "/api/littlephone/todos") return listTodosApi(env, url);
     if (path === "/api/littlephone/dates") return listDatesApi(env, url);
     if (path === "/api/littlephone/cycle") return getCycleApi(env);
@@ -94,6 +95,8 @@ async function handle(request, env) {
     if (path === "/api/littlephone/diaries") return addDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries/update") return updateDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diary-annotations") return addDiaryAnnotationApi(env, await readJson(request));
+    if (path === "/api/littlephone/chat") return addChatMessageApi(env, await readJson(request));
+    if (path === "/api/littlephone/chat/delete") return deleteRowApi(env, "lp_chat_messages", await readJson(request));
     if (path === "/api/littlephone/diary-annotations/delete") return deleteRowApi(env, "lp_diary_annotations", await readJson(request));
     if (path === "/api/littlephone/diaries/delete") return deleteRowApi(env, "lp_diaries", await readJson(request));
     if (path === "/api/littlephone/todos") return addTodoApi(env, await readJson(request));
@@ -472,6 +475,8 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_diaries_date ON lp_diaries(event_date DESC,created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_diary_annotations (id TEXT PRIMARY KEY, diary_id TEXT NOT NULL, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
       `CREATE INDEX IF NOT EXISTS idx_lp_diary_annotations_diary ON lp_diary_annotations(diary_id,created_at ASC)`,
+      `CREATE TABLE IF NOT EXISTS lp_chat_messages (id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_chat_messages_created ON lp_chat_messages(created_at ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_todos (
         id TEXT PRIMARY KEY, author TEXT NOT NULL, title TEXT NOT NULL,
         due_at TEXT NOT NULL DEFAULT '', remind_at TEXT NOT NULL DEFAULT '',
@@ -780,9 +785,19 @@ async function addDiary(env,body){const title=clip(body.title||"今天",160).tri
 async function addDiaryApi(env,body){const item=await addDiary(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,diary:item});}
 async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const title=clip(body.title!==undefined?body.title:old.title,160).trim()||old.title,content=clip(body.content!==undefined?body.content:old.content,20000).trim(),date=clip(body.date!==undefined?body.date:old.event_date,20);if(!content)return json({ok:false,error:"content_required"},400);if(!validDate(date))return json({ok:false,error:"invalid_date"},400);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return json({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
 
+async function addChatMessage(env,body){
+  const content=clip(body.content||"",6000).trim();if(!content)return {error:"content_required"};
+  const id=clientId(body),existing=await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first();if(existing)return existing;
+  const item={id,author:clip(body.author||"用户",40),content,created_at:nowIso()};
+  await env.DB.prepare("INSERT OR IGNORE INTO lp_chat_messages(id,author,content,created_at) VALUES(?,?,?,?)").bind(item.id,item.author,item.content,item.created_at).run();return (await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first())||item;
+}
+async function addChatMessageApi(env,body){const item=await addChatMessage(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,message:item});}
+async function listChatMessages(env,limit=300){const rows=await env.DB.prepare("SELECT * FROM lp_chat_messages ORDER BY created_at ASC,id ASC LIMIT ?").bind(limit).all();return rows.results||[];}
+async function listChatMessagesApi(env,url){return json({ok:true,messages:await listChatMessages(env,asLimit(url,300,1000))});}
+
 async function bootstrapApi(env){
-  const [visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listMemories(env,80),listUnlockRequests(env,30)]);
-  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests});
+  const [visit,events,papers,mail,capsules,dailybook,diaries,chats,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listChatMessages(env,500),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listMemories(env,80),listUnlockRequests(env,30)]);
+  return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,chats,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests});
 }
 
 function rowTodo(r){return {...r,done:Boolean(r.done)};}
@@ -1087,6 +1102,9 @@ const MCP_TOOLS = [
   tool("list_little_phone_events","读取最近 7 天的小手机留痕事件。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("leave_little_phone_trace","留一条手动痕迹。",{title:{type:"string"},content:{type:"string",default:""},author:{type:"string",default:"daddy"}},["title"]),
   tool("leave_little_phone_paper","往纸条箱写一张纸条；可通过 reply_to 回复已有纸条。",{content:{type:"string"},author:{type:"string",default:"daddy"},reply_to:{type:"string",default:""}},["content"]),
+  tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
+  tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
+  tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
   tool("list_little_phone_papers","读取纸条箱。",{limit:{type:"integer",minimum:1,maximum:500,default:200}}),
   tool("send_little_phone_letter","给小手机写一封普通信。",{content:{type:"string"},author:{type:"string",default:"daddy"},reply_to:{type:"string",default:""}},["content"]),
   tool("list_little_phone_mail","读取信箱里的普通信。读取列表不会自动标记 daddy 已拆。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
@@ -1230,6 +1248,9 @@ async function callTool(name,args,env){
     case "list_little_phone_events": return mcpText({ok:true,events:await listEvents(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "leave_little_phone_trace": return mcpText({ok:true,event:await insertEvent(env,{actor:actorFromAuthor(args.author||"daddy"),type:"manual",title:clip(args.title||"daddy 留下一条痕迹",120),content:clip(args.content||"",1000),metadata:{source:"mcp"}})});
     case "leave_little_phone_paper": {const paper=await addPaper(env,{...args,author:args.author||"daddy"});return mcpText(paper.error?{ok:false,error:paper.error}:{ok:true,paper},Boolean(paper.error));}
+    case "send_chat_message": {const message=await addChatMessage(env,{...args,author:args.author||"daddy"});return mcpText(message.error?{ok:false,error:message.error}:{ok:true,message},Boolean(message.error));}
+    case "list_chat_messages": return mcpText({ok:true,messages:await listChatMessages(env,Math.max(1,Math.min(1000,Number(args.limit||300))))});
+    case "delete_chat_message": {const id=clip(args.id||"",100);const r=await env.DB.prepare("DELETE FROM lp_chat_messages WHERE id=?").bind(id).run();return mcpText({ok:Number(r.meta?.changes||0)>0,id},Number(r.meta?.changes||0)<1);}
     case "list_little_phone_papers": return mcpText({ok:true,papers:await listPapers(env,Math.max(1,Math.min(500,Number(args.limit||200))))});
     case "send_little_phone_letter": {const mail=await addMail(env,args);return mcpText(mail.error?{ok:false,error:mail.error}:{ok:true,mail},Boolean(mail.error));}
     case "list_little_phone_mail": return mcpText({ok:true,mail:await listMail(env,Math.max(1,Math.min(300,Number(args.limit||80))))});

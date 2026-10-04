@@ -1,4 +1,4 @@
-const VERSION = "0.8.2-12-little-phone-shell";
+const VERSION = "0.8.2-13-little-phone-shell";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -1091,7 +1091,6 @@ const MCP_TOOLS = [
   tool("get_sleep","读取小米健康睡眠数据；可按 YYYY-MM-DD 查询；refresh=true 会先主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
   tool("get_heart_rate","读取小米健康心率数据；可按 YYYY-MM-DD 查询；refresh=true 会先主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
   tool("get_steps","读取小米健康步数、距离与卡路里；可按 YYYY-MM-DD 查询；refresh=true 会先主动刷新该日期。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
-  tool("get_sleep_summary","兼容入口：读取睡眠摘要；可按 YYYY-MM-DD 查询。",{date:{type:"string",description:"YYYY-MM-DD；留空读取最新同步",default:""},refresh:{type:"boolean",default:false}}),
   tool("refresh_health_data","通过私密 Xiaomi Health Bridge 主动刷新指定日期的睡眠、心率和步数到 D1；必须提供日期。",{date:{type:"string",description:"YYYY-MM-DD"}},["date"]),
   tool("delete_little_phone_item","删除小手机里一条可删除内容。",{kind:{type:"string",enum:["event","paper","mail","capsule","dailybook","diary","todo","date","call","memory"]},id:{type:"string"}},["kind","id"]),
   tool("list_important_dates","读取纪念日/重要日期。",{limit:{type:"integer",minimum:1,maximum:500,default:300}}),
@@ -1103,30 +1102,12 @@ const MCP_TOOLS = [
   tool("get_little_phone_profiles","读取双方当前显示名、头像、身份色和身份字体。",{}),
   tool("get_gpt_profile","读取 GPT 当前头像、显示名、身份色和身份字体。",{}),
   tool("set_gpt_profile","修改 GPT 的头像、显示名、身份色或身份字体。",{display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}}),
-  tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}},["actor"]),
-  tool("write_gpt_memory","写入一条 GPT 记得，保存到 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
-  tool("list_memories","读取“{display_name} 记得”的真实记忆条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
-  tool("create_memory","新增一条“记得”，真正写入 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
-  tool("update_memory","修改已有“记得”，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
-  tool("confirm_memory","确认一条“记得”为正确，保持原 ID。",{id:{type:"string"}},["id"]),
-  tool("correct_memory","纠正一条“记得”的内容并确认，保持原 ID。",{id:{type:"string"},content:{type:"string"}},["id","content"]),
-  tool("delete_memory","删除一条“记得”。",{id:{type:"string"}},["id"]),
-  tool("remember_about_user","给“{display_name} 记得”写入一条真正的理解/记忆；不要用于简单复制事件。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
-  tool("list_daddy_memories","读取“记得”里的条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
-  tool("update_daddy_memory","修改一条已有理解，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
-  tool("list_little_phone_memories","读取“{display_name} 记得”的真实记忆条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
-  tool("create_little_phone_memory","新增一条“记得”，写入现有 lp_memories，不新建替代数据表。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
-  tool("update_little_phone_memory","更新一条“记得”，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
-  tool("confirm_little_phone_memory","把一条“记得”确认为“对”，保持原 ID。",{id:{type:"string"}},["id"]),
-  tool("correct_little_phone_memory","把一条“记得”纠正为新的内容并确认，保持原 ID。",{id:{type:"string"},content:{type:"string"}},["id","content"]),
-  tool("delete_little_phone_memory","删除一条“记得”。",{id:{type:"string"}},["id"]),
   tool("list_little_phone_unlock_requests","读取应用门禁解锁申请。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("respond_little_phone_unlock_request","回复一条应用门禁解锁申请；approve 会实际下发解锁命令。",{id:{type:"string"},decision:{type:"string",enum:["approve","deny"]},response:{type:"string",default:""}},["id","decision"]),
   tool("phone_home","让手机回到桌面。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("phone_back","执行一次返回。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("phone_recents","打开最近任务。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("open_little_phone_app","通过当前 Cloudflare command queue 打开 App；不转发旧 Render。package / app 至少提供一个。",{package:{type:"string",default:""},app:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}}),
-  tool("open_app","兼容入口：同样通过当前 Cloudflare command queue 打开 App，不转发旧 Render。",{package:{type:"string",default:""},app:{type:"string",default:""},device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("list_screen_break_apps","请求 Android 返回可用于门禁的应用列表。返回 command id 后，可用 get_little_phone_command_status 读取 Android 回传结果。",{device_id:{type:"string",default:DEFAULT_DEVICE},max:{type:"integer",minimum:1,maximum:500,default:200}})
 ];
 function inferToolAnnotations(name){

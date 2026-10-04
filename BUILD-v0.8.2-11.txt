@@ -1,8 +1,8 @@
 version=0.8.2-9
 job_status=success
-commit=4d810f2a1034df75d48fc49ff06d3f620a895ff5
-run_id=37204286045
-artifact_id=11304640409
-artifact_url=https://github.com/lahomamelton756743-dot/xiaoshouji/actions/runs/37204286045/artifacts/11304640409
+commit=0c2a12405b00467bd299532f5b45cdcce55dc2a0
+run_id=37204449817
+artifact_id=11304540818
+artifact_url=https://github.com/lahomamelton756743-dot/xiaoshouji/actions/runs/37204449817/artifacts/11304540818
 zip=little-phone-v0.8.2-11-build.zip
 apk=LittlePhone-v0.8.2-11.apk

@@ -1,4 +1,4 @@
-const VERSION = "0.8.2-13-little-phone-shell";
+const VERSION = "0.8.2-14-little-phone-shell";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -753,7 +753,7 @@ async function updateDailybook(env,body,editor="user"){
 async function updateDailybookApi(env,body){const item=await updateDailybook(env,body,"user");return item.error?json({ok:false,error:item.error},item.error==="forbidden"?403:404):json({ok:true,entry:item});}
 
 function rowDiary(r){return {id:r.id,author:r.author,title:r.title,content:r.content,date:r.event_date,created_at:r.created_at,updated_at:r.updated_at};}
-async function listDiaries(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_diaries ORDER BY event_date DESC,created_at DESC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDiary);}
+async function listDiaries(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_diaries ORDER BY event_date ASC,created_at ASC,id ASC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDiary);}
 async function listDiariesApi(env,url){return json({ok:true,diaries:await listDiaries(env,asLimit(url,100,300))});}
 async function addDiary(env,body){const title=clip(body.title||"今天",160).trim()||"今天",content=clip(body.content||"",20000).trim(),date=clip(body.date||todayUtc(),20),author=clip(body.author||"daddy",40);if(!content)return {error:"content_required"};if(!validDate(date))return {error:"invalid_date"};const now=nowIso(),item={id:uuid(),author,title,content,date,created_at:now,updated_at:now};await env.DB.prepare("INSERT INTO lp_diaries(id,author,title,content,event_date,created_at,updated_at) VALUES(?,?,?,?,?,?,?)").bind(item.id,item.author,item.title,item.content,item.date,item.created_at,item.updated_at).run();await insertEvent(env,{actor:actorFromAuthor(item.author),type:"diary",title:`${item.author} 写了一篇日记`,content:item.title,metadata:{diary_id:item.id}});return item;}
 async function addDiaryApi(env,body){const item=await addDiary(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,diary:item});}

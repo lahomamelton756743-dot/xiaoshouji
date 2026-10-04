@@ -2411,6 +2411,18 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 .riverWindingBubble b{display:block!important;height:auto!important;max-height:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;overflow-wrap:anywhere;word-break:break-word}
 .riverWindingNode.right .riverWindingBubble{left:11px!important;right:auto!important}.riverWindingNode.left .riverWindingBubble{right:11px!important;left:auto!important}
 
+
+/* v0.8.2-23 — rebuilt Time River: two lives growing upward together */
+.riverTwin,.riverTwinGlow,.riverWaterGlow,.riverWater,.riverShimmer{display:none!important}
+.riverLifeLine{fill:none;stroke-width:.62;stroke-linecap:round;stroke-linejoin:round;opacity:.72}
+.riverLifeLine.daddyLine{stroke:url(#riverDaddy);filter:drop-shadow(0 0 1.2px rgba(155,176,218,.18))}
+.riverLifeLine.userLine{stroke:url(#riverUser);filter:drop-shadow(0 0 1.2px rgba(215,166,191,.16))}
+.riverFirefly{fill:none;stroke-width:.28;stroke-linecap:round;stroke-dasharray:.45 23;opacity:.76;animation:riverFireflyUp 5.8s linear infinite}
+.riverFirefly.daddyGlow{stroke:rgba(229,237,255,.92);filter:drop-shadow(0 0 .8px rgba(206,220,250,.65))}
+.riverFirefly.userGlow{stroke:rgba(255,231,242,.88);filter:drop-shadow(0 0 .8px rgba(244,211,226,.58));animation-delay:-2.9s}
+@keyframes riverFireflyUp{from{stroke-dashoffset:0}to{stroke-dashoffset:72}}
+.riverWindingDot{width:3px!important;height:3px!important;box-shadow:0 0 2px rgba(255,255,255,.82)!important}
+
 </style>
 </head>
 <body>
@@ -3245,17 +3257,18 @@ function renderRiverApp(){
   if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
   const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
   if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
-  const step=118,h=Math.max(440,items.length*step+84),cx=i=>50+Math.sin(i*1.08+.35)*18+Math.sin(i*.47)*7,cy=i=>52+i*step;
-  let p1=`M ${cx(0)-.8} ${cy(0)}`,p2=`M ${cx(0)+.8} ${cy(0)}`;
-  for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=cx(i-1),x1=cx(i),m=(y0+y1)/2,tw=Math.sin(i*1.75)*1.8;p1+=` C ${x0-1.2-tw} ${m-18}, ${x1-.8+tw} ${m+18}, ${x1-.8} ${y1}`;p2+=` C ${x0+1.2+tw} ${m-18}, ${x1+.8-tw} ${m+18}, ${x1+.8} ${y1}`}
-  const bubbleFor=(e,i)=>{const x=cx(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return {x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
+  const step=118,h=Math.max(440,items.length*step+84);
+  const center=i=>50+Math.sin(i*.91+.42)*13+Math.sin(i*.37+1.3)*8+Math.sin(i*1.73)*3.5;
+  const twist=i=>2.2*Math.sin(i*1.39+.25)+1.05*Math.sin(i*.63+2.1);
+  const cy=i=>52+i*step;
+  const ax=i=>center(i)+twist(i), bx=i=>center(i)-twist(i);
+  const curve=(fn)=>{let p=`M ${fn(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=fn(i-1),x1=fn(i),m=(y0+y1)/2,drift=Math.sin(i*.79)*9;p+=` C ${x0} ${m-22+drift}, ${x1} ${m+22-drift}, ${x1} ${y1}`}return p};
+  const pa=curve(ax),pb=curve(bx);
+  const bubbleFor=i=>{const x=center(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return{x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverWindingFlow" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverTwinA" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(173,205,242,.28)"/><stop offset=".5" stop-color="rgba(226,239,255,.72)"/><stop offset="1" stop-color="rgba(232,195,226,.38)"/></linearGradient><linearGradient id="riverTwinB" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(231,192,220,.26)"/><stop offset=".5" stop-color="rgba(255,255,255,.72)"/><stop offset="1" stop-color="rgba(177,215,244,.36)"/></linearGradient></defs><path class="riverTwin riverTwinA" d="${p1}"/><path class="riverTwin riverTwinB" d="${p2}"/><path class="riverTwinGlow glowA" d="${p1}"/><path class="riverTwinGlow glowB" d="${p2}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(e,i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(151,171,214,.30)"/><stop offset=".55" stop-color="rgba(166,184,220,.43)"/><stop offset="1" stop-color="rgba(178,193,224,.25)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(211,157,184,.27)"/><stop offset=".55" stop-color="rgba(219,171,194,.40)"/><stop offset="1" stop-color="rgba(226,186,204,.24)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
-  requestAnimationFrame(()=>{
-    root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});
-    if(state.page==='app-river')sc.scrollTop=0
-  })
+  requestAnimationFrame(()=>{root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
 }
 function healthReadableValue(key,value){
   if(value===null||value===undefined||value==='')return '暂无数据';

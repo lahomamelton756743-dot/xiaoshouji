@@ -2305,7 +2305,7 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .chatBubble{position:relative;padding:10px 13px;border-radius:19px;line-height:1.55;font-size:13px;white-space:normal;word-break:break-word;overflow:hidden;background:rgba(var(--chat-daddy-rgb,246,247,250),var(--chat-bubble-alpha,.18));border:1px solid rgba(255,255,255,var(--chat-bubble-border,.48));box-shadow:inset 0 1px 0 rgba(255,255,255,var(--chat-bubble-highlight,.42)),0 7px 20px rgba(78,91,128,.06);backdrop-filter:blur(var(--chat-bubble-blur,18px));-webkit-backdrop-filter:blur(var(--chat-bubble-blur,18px))}
 .chatRow.user .chatBubble{background:rgba(var(--chat-user-rgb,250,244,247),var(--chat-bubble-alpha,.18))}
 .chatBubble:after{content:"";position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,var(--chat-bubble-shine,.17)),transparent 42%);pointer-events:none}
-.chatTimestamp{font-size:8px;color:#939aaa;margin:4px 4px 0}.chatRow.user .chatTimestamp{text-align:right}.chatEmpty{text-align:center;padding-top:38px}
+.chatBubbleStack{display:grid;gap:4px}.chatBubblePart{animation:chatPartIn .18s ease both;animation-delay:var(--chat-part-delay,0ms)}.chatBubblePart:not(.first){border-top-left-radius:14px}.chatRow.user .chatBubblePart:not(.first){border-top-left-radius:19px;border-top-right-radius:14px}.chatBubblePart:not(.last){border-bottom-left-radius:14px}.chatRow.user .chatBubblePart:not(.last){border-bottom-left-radius:19px;border-bottom-right-radius:14px}@keyframes chatPartIn{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:none}}.chatTimestamp{font-size:8px;color:#939aaa;margin:4px 4px 0}.chatRow.user .chatTimestamp{text-align:right}.chatEmpty{text-align:center;padding-top:38px}
 .chatComposer{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:8;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;padding:7px;border-radius:24px;margin-top:8px}
 .chatComposer textarea{width:100%;min-height:38px;max-height:108px;resize:none;border:0;outline:0;border-radius:18px;padding:9px 11px;background:rgba(255,255,255,.24);font-size:13px}.chatComposer button{height:38px;padding:0 15px;border-radius:18px;background:rgba(255,255,255,.42);font-size:12px}
 .chatSettingsLayer[hidden]{display:none!important}.chatSettingsLayer{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;background:rgba(224,231,244,.20);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
@@ -3217,7 +3217,39 @@ function renderMailApp(){
   future.querySelectorAll('[data-app-future]').forEach(c=>{const m=futures.find(x=>String(x.id)===String(c.dataset.appFuture));c.onclick=()=>openUnifiedMail(m?{...m,_kind:'capsule',future:true}:null)});
 }
 function chatTime(iso){const d=new Date(iso);if(Number.isNaN(+d))return esc(iso||'');const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}年${p(d.getMonth()+1)}月${p(d.getDate())}日 ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
-function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items=[...(state.chats||[])].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));box.innerHTML=items.length?items.map(m=>{const side=authorSide(m.author),who=side==='daddy'?'daddy':'ryan';return `<div class="chatRow ${side}"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload"><div class="chatBubble">${esc(m.content).replace(/\n/g,'<br>')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`}).join(''):'<div class="empty chatEmpty">这里还没有消息。</div>';applyAvatars();if($('#chatPartnerName'))$('#chatPartnerName').textContent=actorName('daddy');requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
+function splitChatDisplay(content,side){
+  const raw=String(content||'').trim();
+  if(!raw)return [''];
+  if(side!=='daddy')return [raw];
+  const protectedBlocks=[];
+  let text=raw.replace(/```[\\s\\S]*?```/g,m=>{const key='__LPBLOCK_'+protectedBlocks.length+'__';protectedBlocks.push(m);return key});
+  const restore=s=>s.replace(/__LPBLOCK_(\\d+)__/g,(_,i)=>protectedBlocks[+i]||'');
+  const paragraphs=text.split(/\\n{2,}/).map(x=>x.trim()).filter(Boolean),out=[];
+  for(const p0 of paragraphs){
+    const p=restore(p0);
+    if(/^```/.test(p)||/^(?:[-*•]|\\d+[.)])\\s/m.test(p)||/https?:\\/\\//i.test(p)||p.length>220){out.push(p);continue}
+    const lines=p.split(/\\n+/).map(x=>x.trim()).filter(Boolean);
+    for(const line of lines){
+      if(line.length<=34){out.push(line);continue}
+      const parts=line.match(/[^。！？!?…]+(?:[。！？!?…]+|$)/g)?.map(x=>x.trim()).filter(Boolean)||[line];
+      let buf='';
+      for(const part of parts){
+        if(!buf){buf=part;continue}
+        if(buf.length<18&&buf.length+part.length<=38){buf+=part;continue}
+        out.push(buf);buf=part;
+      }
+      if(buf)out.push(buf);
+    }
+  }
+  const compact=[];
+  for(const s of out.map(restore).filter(Boolean)){
+    const prev=compact[compact.length-1];
+    if(prev&&prev.length<8&&s.length<12&&prev.length+s.length<=18)compact[compact.length-1]=prev+s;
+    else compact.push(s);
+  }
+  return compact.length?compact:[raw];
+}
+function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items=[...(state.chats||[])].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));box.innerHTML=items.length?items.map(m=>{const side=authorSide(m.author),who=side==='daddy'?'daddy':'ryan',parts=splitChatDisplay(m.content,side);return `<div class="chatRow chatGroup ${side}" data-chat-id="${esc(m.id)}"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload"><div class="chatBubbleStack">${parts.map((part,i)=>`<div class="chatBubble chatBubblePart ${i===0?'first':''} ${i===parts.length-1?'last':''}" style="--chat-part-delay:${i*55}ms">${esc(part).replace(/\\n/g,'<br>')}</div>`).join('')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`}).join(''):'<div class="empty chatEmpty">这里还没有消息。</div>';applyAvatars();if($('#chatPartnerName'))$('#chatPartnerName').textContent=actorName('daddy');requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
 const CHAT_CACHE_KEY='lp_v083_chat_history_r1';
 function chatSorted(items){return [...(items||[])].filter(x=>x&&x.id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.id).localeCompare(String(b.id)))}
 function loadChatCache(){const cached=parse(localDataGet(CHAT_CACHE_KEY),[]);if(Array.isArray(cached)&&cached.length){const map=new Map(chatSorted([...(state.chats||[]),...cached]).map(x=>[String(x.id),x]));state.chats=chatSorted([...map.values()])}}

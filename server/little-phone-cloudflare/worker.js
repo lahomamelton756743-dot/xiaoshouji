@@ -1,4 +1,4 @@
-const VERSION = "0.8.3-little-phone-shell";
+const VERSION = "0.8.3-chat-mcp-1";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -1087,6 +1087,9 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
+  tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
+  tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
+  tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
   tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("gpt_remember","把 GPT 当前形成的一条理解写入“GPT记得”。这是 GPT 记得的首选写入工具。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("edit_gpt_memory","修改一条 GPT 记得，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1102,9 +1105,6 @@ const MCP_TOOLS = [
   tool("list_little_phone_events","读取最近 7 天的小手机留痕事件。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("leave_little_phone_trace","留一条手动痕迹。",{title:{type:"string"},content:{type:"string",default:""},author:{type:"string",default:"daddy"}},["title"]),
   tool("leave_little_phone_paper","往纸条箱写一张纸条；可通过 reply_to 回复已有纸条。",{content:{type:"string"},author:{type:"string",default:"daddy"},reply_to:{type:"string",default:""}},["content"]),
-  tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
-  tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
-  tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
   tool("list_little_phone_papers","读取纸条箱。",{limit:{type:"integer",minimum:1,maximum:500,default:200}}),
   tool("send_little_phone_letter","给小手机写一封普通信。",{content:{type:"string"},author:{type:"string",default:"daddy"},reply_to:{type:"string",default:""}},["content"]),
   tool("list_little_phone_mail","读取信箱里的普通信。读取列表不会自动标记 daddy 已拆。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
@@ -1175,7 +1175,7 @@ function tool(name,description,properties={},required=[]){
 function mcpText(data,isError=false){return{isError,content:[{type:"text",text:JSON.stringify(data,null,2)}],structuredContent:data};}
 function rpcResult(id,result){return{jsonrpc:"2.0",id,result};}
 function rpcError(id,code,message,data){return{jsonrpc:"2.0",id,error:{code,message,...(data===undefined?{}:{data})}};}
-function mcpServerInfo(){return{name:"little-phone",title:"Daddy的小手机",version:VERSION,description:"瑞安与 daddy 私人使用的小手机 MCP。"};}
+function mcpServerInfo(){return{name:"little-phone",title:"Daddy的小手机",version:VERSION,description:"瑞安与 daddy 私人使用的小手机 MCP；包含聊天 App 的读取、发送与删除工具。"};}
 function mcpResultMeta(){return{"io.modelcontextprotocol/serverInfo":mcpServerInfo()};}
 function modernEnvelopeVersion(msg,request){
   return String(request.headers.get("MCP-Protocol-Version")||msg?.params?._meta?.["io.modelcontextprotocol/protocolVersion"]||"");

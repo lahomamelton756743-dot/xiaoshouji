@@ -2382,6 +2382,20 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 .riverWindingDot{width:3.5px!important;height:3.5px!important;box-shadow:0 0 3px 1px rgba(255,255,255,.9),0 0 7px 2px rgba(172,207,245,.38)!important;border:0!important}
 .riverWindingNode.daddy .riverWindingDot{background:#e7efff!important}.riverWindingNode.user .riverWindingDot{background:#ffe7f2!important}
 
+
+/* v0.8.2-20 — twin intertwined light streams + fixed-size bubbles */
+.riverWaterGlow,.riverWater,.riverShimmer{display:none!important}
+.riverTwin{fill:none;stroke-width:.72;stroke-linecap:round;opacity:.74}
+.riverTwinA{stroke:url(#riverTwinA)}.riverTwinB{stroke:url(#riverTwinB)}
+.riverTwinGlow{fill:none;stroke:rgba(255,255,255,.96);stroke-width:.55;stroke-linecap:round;stroke-dasharray:.7 16;filter:drop-shadow(0 0 2px rgba(255,255,255,.95));animation:riverTwinFlow 2.35s linear infinite}
+.glowB{animation-delay:-1.15s;stroke-dasharray:.7 19}
+@keyframes riverTwinFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:44}}
+.riverWindingBubble{width:174px!important;height:58px!important;min-height:58px!important;max-height:58px!important;box-sizing:border-box!important;padding:9px 12px!important;overflow:hidden!important}
+.riverWindingBubble small{height:13px;line-height:13px;margin-bottom:4px!important;white-space:nowrap;overflow:hidden}
+.riverWindingBubble b{display:-webkit-box!important;height:28px;line-height:14px!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.riverWindingNode.left .riverWindingBubble{right:12px!important;left:auto!important}.riverWindingNode.right .riverWindingBubble{left:12px!important;right:auto!important}
+@media(max-width:370px){.riverWindingBubble{width:154px!important}}
+
 </style>
 </head>
 <body>
@@ -3217,9 +3231,10 @@ function renderRiverApp(){
   const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
   if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
   const step=118,h=Math.max(440,items.length*step+84),cx=i=>50+Math.sin(i*1.08+.35)*18+Math.sin(i*.47)*7,cy=i=>52+i*step;
-  let path=`M ${cx(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=cx(i-1),x1=cx(i),m=(y0+y1)/2;path+=` C ${x0} ${m-18}, ${x1} ${m+18}, ${x1} ${y1}`}
+  let p1=`M ${cx(0)-.8} ${cy(0)}`,p2=`M ${cx(0)+.8} ${cy(0)}`;
+  for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=cx(i-1),x1=cx(i),m=(y0+y1)/2,tw=Math.sin(i*1.75)*1.8;p1+=` C ${x0-1.2-tw} ${m-18}, ${x1-.8+tw} ${m+18}, ${x1-.8} ${y1}`;p2+=` C ${x0+1.2+tw} ${m-18}, ${x1+.8-tw} ${m+18}, ${x1+.8} ${y1}`}
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverWindingFlow" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverUp" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(155,193,232,.22)"/><stop offset=".5" stop-color="rgba(190,224,242,.48)"/><stop offset="1" stop-color="rgba(231,181,215,.36)"/></linearGradient></defs><path class="riverWaterGlow" d="${path}"/><path class="riverWater" d="${path}"/><path class="riverShimmer" d="${path}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),x=cx(i),y=cy(i),pos=i%2?'left':'right';return `<article class="riverWindingNode ${side} ${pos}" data-app-book-id="${esc(e.id)}" style="--rx:${x}%;--ry:${y}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.innerHTML=`<div class="riverWindingFlow" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverTwinA" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(173,205,242,.28)"/><stop offset=".5" stop-color="rgba(226,239,255,.72)"/><stop offset="1" stop-color="rgba(232,195,226,.38)"/></linearGradient><linearGradient id="riverTwinB" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(231,192,220,.26)"/><stop offset=".5" stop-color="rgba(255,255,255,.72)"/><stop offset="1" stop-color="rgba(177,215,244,.36)"/></linearGradient></defs><path class="riverTwin riverTwinA" d="${p1}"/><path class="riverTwin riverTwinB" d="${p2}"/><path class="riverTwinGlow glowA" d="${p1}"/><path class="riverTwinGlow glowB" d="${p2}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),x=cx(i),y=cy(i),pos=i%2?'left':'right';return `<article class="riverWindingNode ${side} ${pos}" data-app-book-id="${esc(e.id)}" style="--rx:${x}%;--ry:${y}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
   requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollTop=0})
 }

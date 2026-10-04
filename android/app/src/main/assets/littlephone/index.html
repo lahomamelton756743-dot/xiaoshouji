@@ -2288,196 +2288,20 @@ html,body,.shell,.page{background-color:transparent!important}
 .desktopLegacyWidget.legacy_music .statusPill{display:none!important}
 .desktopLegacyWidget.legacy_music .avatarName{margin-top:5px!important;font-size:11px!important;font-weight:650!important}
 
-/* v0.8.2-15 — calm desktop refresh + upward-growing vertical Time River */
-#page-app-river .riverAppVerticalShell{padding:14px 12px 22px!important;overflow:visible!important}
-#page-app-river .riverAppVerticalScroller{overflow:visible!important;max-width:100%!important;height:auto!important;max-height:none!important;padding:0!important}
-#page-app-river .riverAppVerticalTrack{height:auto!important;min-height:180px!important;width:100%!important;position:relative!important}
-.riverVerticalFlow{position:relative;padding:12px 2px 18px 72px}
-.riverVerticalFlow:before{content:"";position:absolute;left:48px;top:5px;bottom:4px;width:7px;border-radius:999px;background:linear-gradient(0deg,rgba(126,165,224,.34),rgba(255,255,255,.72) 48%,rgba(216,154,190,.38));box-shadow:0 0 18px rgba(160,183,224,.16)}
-.riverVerticalFlow:after{content:"↑";position:absolute;left:40px;top:-12px;width:23px;height:25px;text-align:center;font-size:18px;line-height:25px;color:rgba(151,112,143,.62);font-weight:700}
-.riverVerticalNode{position:relative;margin:0 0 22px;min-height:86px}
-.riverVerticalNode:before{content:"";position:absolute;left:-24px;top:30px;width:24px;height:1px;background:rgba(135,151,187,.24)}
-.riverVerticalDot{position:absolute;left:-30px;top:25px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.42),0 2px 9px rgba(101,123,168,.18)}
-.riverVerticalNode.daddy .riverVerticalDot{background:#a6b5dc}.riverVerticalNode.user .riverVerticalDot{background:#d8a6bf}
-.riverVerticalDate{font-size:10px;color:#8992a5;margin:0 0 6px 3px;letter-spacing:.02em}
-.riverVerticalBubble{display:block;width:100%;text-align:left;border:0;border-radius:22px;padding:14px 15px;min-height:76px;position:relative}
-.riverVerticalThumb{float:right;width:58px;height:58px;object-fit:cover;border-radius:15px;margin:0 0 8px 10px}
-.riverVerticalBubble .bookTitle{font-size:13px;font-weight:680}.riverVerticalBubble .bookMood{font-size:10px;color:#9198a8;margin-top:3px}.riverVerticalBubble .riverPeek{font-size:11px;line-height:1.55;margin-top:7px;color:#697286}
-@media(max-width:390px){.riverVerticalFlow{padding-left:62px}.riverVerticalFlow:before{left:40px}.riverVerticalNode:before{left:-22px;width:22px}.riverVerticalDot{left:-28px}}
 
-/* v0.8.2-16 — diary annotations as tucked page bookmarks */
-.journalBookmarks{position:absolute;top:-2px;right:24px;z-index:16;display:flex;align-items:flex-start;gap:5px;max-width:72%;overflow:visible}
-.journalBookmarkTab,.journalBookmarkAdd{border:0;cursor:pointer;box-shadow:0 5px 12px rgba(80,79,103,.13);transition:transform .18s ease,height .18s ease}
-.journalBookmarkTab{width:38px;height:28px;padding:5px 4px 3px;border-radius:0 0 9px 9px;background:linear-gradient(180deg,#d8e4f5,#b9cbe8);color:#59677f;font-size:9px;font-weight:700;position:relative}
-.journalBookmarkTab.user{background:linear-gradient(180deg,#f2d7e2,#ddb1c5);color:#765469}.journalBookmarkTab.daddy{background:linear-gradient(180deg,#dbe2f4,#b9c7e6);color:#53617e}
-.journalBookmarkTab:hover,.journalBookmarkTab:active{transform:translateY(4px)}.journalBookmarkTab i{position:absolute;right:3px;bottom:2px;font-style:normal;font-size:7px;opacity:.55}.journalBookmarkTab span{display:block;white-space:nowrap;overflow:hidden}
-.journalBookmarkAdd{width:27px;height:24px;border-radius:0 0 9px 9px;background:rgba(255,255,255,.78);color:#7b8190;font-size:15px;line-height:20px}
-.journalAnnotationDrawer{position:absolute;z-index:15;top:32px;right:18px;width:min(82%,300px);max-height:0;opacity:0;overflow:hidden;pointer-events:none;transform:translateY(-10px) scale(.98);transform-origin:top right;transition:max-height .28s ease,opacity .2s ease,transform .28s ease;padding:0 7px}
-.journalAnnotationDrawer.open{max-height:360px;opacity:1;overflow:auto;pointer-events:auto;transform:translateY(0) scale(1);padding-bottom:10px}
-.journalAnnotationCard{display:none;margin:0 0 8px;padding:13px 14px 11px;border-radius:5px 5px 16px 16px;background:linear-gradient(145deg,rgba(255,253,246,.97),rgba(247,241,231,.95));box-shadow:0 12px 28px rgba(77,72,82,.14);border:1px solid rgba(145,129,126,.10);transform:rotate(-.35deg)}
-.journalAnnotationCard.active{display:block}.journalAnnotationCard.user{background:linear-gradient(145deg,rgba(255,247,250,.98),rgba(248,232,239,.96))}.journalAnnotationCard.daddy{background:linear-gradient(145deg,rgba(248,250,255,.98),rgba(232,238,250,.96))}
-.journalAnnotationWho{font-size:9px;color:#8b8790;margin-bottom:7px}.journalAnnotationText{font-size:12px;line-height:1.75;color:#5f5d66;white-space:pre-wrap}.journalAnnotationDelete{display:block;margin:8px 0 0 auto;border:0;background:transparent;color:#a28d94;font-size:9px}
-.journalAnnotationComposer{padding:10px;border-radius:14px;background:rgba(255,255,255,.91);box-shadow:0 9px 24px rgba(73,79,101,.11);display:grid;gap:7px}
-.journalAnnotationComposer textarea{width:100%;resize:none;border:1px solid rgba(126,135,157,.13);border-radius:11px;background:rgba(250,250,250,.76);padding:9px 10px;font:inherit;font-size:11px;line-height:1.5;outline:none}
-.journalAnnotationDrawer:not(.open) .journalAnnotationComposer{display:none}
-@media(max-width:390px){.journalBookmarks{right:18px;gap:4px}.journalBookmarkTab{width:34px}.journalAnnotationDrawer{right:12px;width:min(84%,286px)}}
-
-/* v0.8.2-17 — winding vertical Time River + reliable diary bookmark composer */
-#page-app-river .riverAppVerticalScroller{overflow-x:hidden!important;overflow-y:visible!important}
-.riverWindingFlow{position:relative;width:100%;min-height:430px}
-.riverWindingSvg{position:absolute;left:18px;top:0;width:120px;height:100%;overflow:visible;pointer-events:none}
-.riverWaterGlow{fill:none;stroke:rgba(150,184,226,.16);stroke-width:22;stroke-linecap:round;filter:blur(5px)}
-.riverWater{fill:none;stroke:url(#riverUp);stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
-.riverWindingNode{position:absolute;left:calc(var(--rx) + 18px);top:var(--ry);width:calc(100% - 105px);min-height:56px;transform:translateY(-18px);z-index:3}
-.riverWindingDot{position:absolute;left:-6px;top:13px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.48),0 3px 11px rgba(101,123,168,.22);transform:translateX(-50%)}
-.riverWindingNode.daddy .riverWindingDot{background:#a6b5dc}.riverWindingNode.user .riverWindingDot{background:#d8a6bf}
-.riverWindingBubble{margin-left:14px;width:min(210px,100%);min-height:50px;border:0;border-radius:20px;padding:10px 13px;text-align:left;box-shadow:0 9px 24px rgba(91,105,138,.10)}
-.riverWindingBubble small{display:block;font-size:9px;color:#9299aa;margin-bottom:4px}.riverWindingBubble b{display:block;font-size:12px;color:#566178;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.riverUpArrow{position:absolute;left:61px;top:-13px;font-size:20px;color:rgba(151,112,143,.66);font-weight:700}
-.journalBookmarks,.journalBookmarkTab,.journalBookmarkAdd,.journalAnnotationDrawer,.journalAnnotationComposer{pointer-events:auto!important}
-.journalBookmarks{z-index:90!important}.journalAnnotationDrawer{z-index:89!important}
-.journalAnnotationDrawer.open{max-height:420px!important;overflow:auto!important}
-.journalBookmarkAdd{position:relative;z-index:92;touch-action:manipulation}
-
-
-/* v0.8.2-18 — living river + fixed diary annotation controls */
-.riverWindingFlow{position:relative;width:100%;min-height:440px;overflow:visible}
-.riverWindingSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-.riverWaterGlow{fill:none;stroke:rgba(168,207,235,.13);stroke-width:9;stroke-linecap:round;filter:blur(4px)}
-.riverWater{fill:none;stroke:url(#riverUp);stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
-.riverShimmer{fill:none;stroke:rgba(255,255,255,.82);stroke-width:1.15;stroke-linecap:round;stroke-dasharray:2 18;animation:riverFlowUp 2.7s linear infinite}
-@keyframes riverFlowUp{from{stroke-dashoffset:0}to{stroke-dashoffset:40}}
-.riverWindingNode{position:absolute;left:var(--rx);top:var(--ry);width:0;height:0;z-index:4}
-.riverWindingDot{position:absolute;left:0;top:0;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.55),0 2px 7px rgba(95,119,160,.22)}
-.riverWindingNode.daddy .riverWindingDot{background:#a9b9df}.riverWindingNode.user .riverWindingDot{background:#dca9c2}
-.riverWindingBubble{position:absolute;top:0;width:min(184px,42vw);min-height:45px;border:0;border-radius:18px;padding:9px 12px;text-align:left;transform:translateY(-50%);box-shadow:0 8px 22px rgba(91,105,138,.08)}
-.riverWindingNode.right .riverWindingBubble{left:13px}.riverWindingNode.left .riverWindingBubble{right:13px}
-.riverWindingBubble small{display:block;font-size:8.5px;color:#949baa;margin-bottom:3px}.riverWindingBubble b{display:block;font-size:11.5px;color:#566178;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.riverUpArrow{position:absolute;left:50%;top:-17px;transform:translateX(-50%);font-size:17px;color:rgba(141,164,199,.55)}
-body.diaryMode .journalBookmarks{z-index:120!important;pointer-events:auto!important}
-body.diaryMode .journalAnnotationDrawer{z-index:119!important;pointer-events:none!important}
-body.diaryMode .journalAnnotationDrawer.open{pointer-events:auto!important}
-body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diaryMode .journalAnnotationComposer,body.diaryMode .journalAnnotationComposer *{pointer-events:auto!important}
-
-
-/* v0.8.2-19 — clean diary note layer; journal mechanics unchanged */
-.journalBookmarks,.journalAnnotationDrawer{display:none!important}
-.journalNoteTabs{position:absolute;right:20px;top:0;z-index:80;display:flex;gap:5px;pointer-events:auto}
-.journalNoteTab,.journalNoteAdd{border:0;pointer-events:auto;touch-action:manipulation}
-.journalNoteTab{width:17px;height:25px;border-radius:0 0 6px 6px;padding:0;background:rgba(184,201,231,.88);box-shadow:0 3px 8px rgba(73,83,112,.12)}
-.journalNoteTab.user{background:rgba(225,181,201,.9)}.journalNoteTab i{display:block;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9);margin:9px auto}
-.journalNoteAdd{width:24px;height:25px;border-radius:0 0 7px 7px;background:rgba(255,255,255,.88);color:#727a89;font-size:15px}
-.journalNoteOverlay{display:none;position:absolute;inset:0;z-index:110;background:rgba(244,241,235,.16);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);padding:42px 22px 70px;pointer-events:auto}
-.journalNoteOverlay.open{display:block}.journalNotePanel{width:min(310px,88%);margin:0 auto}
-.journalNotePaper,.journalNoteCompose{display:none;padding:15px;border-radius:5px 5px 18px 18px;background:rgba(255,253,247,.97);box-shadow:0 14px 32px rgba(62,60,72,.16);pointer-events:auto}
-.journalNotePaper.active,.journalNoteCompose.active{display:block}.journalNotePaper.user{background:rgba(255,245,249,.98)}.journalNotePaper.daddy{background:rgba(246,249,255,.98)}
-.journalNoteMeta{font-size:9px;color:#8e8990;margin-bottom:8px}.journalNoteText{font-size:12px;line-height:1.75;white-space:pre-wrap}.journalNoteDelete{display:block;margin:10px 0 0 auto;border:0;background:transparent;color:#9c8991;font-size:9px}
-.journalNoteCompose textarea{display:block;width:100%;box-sizing:border-box;resize:none;border:1px solid rgba(115,122,140,.14);border-radius:12px;background:rgba(255,255,255,.72);padding:11px;font:inherit;font-size:12px;line-height:1.6;outline:none;pointer-events:auto;touch-action:manipulation}
-.journalNoteActions{display:flex;justify-content:flex-end;gap:7px;margin-top:9px}
-
-/* Time River: thin luminous signal, not a tube */
-.riverWaterGlow{stroke:rgba(172,211,242,.12)!important;stroke-width:4!important;filter:blur(3px)!important}
-.riverWater{stroke-width:1.35!important;opacity:.72!important;filter:drop-shadow(0 0 3px rgba(199,228,255,.45))}
-.riverShimmer{stroke:rgba(255,255,255,.98)!important;stroke-width:.65!important;stroke-dasharray:.8 13!important;filter:drop-shadow(0 0 2px rgba(255,255,255,.95));animation:riverFlowUp 2.15s linear infinite!important}
-.riverWindingDot{width:3.5px!important;height:3.5px!important;box-shadow:0 0 3px 1px rgba(255,255,255,.9),0 0 7px 2px rgba(172,207,245,.38)!important;border:0!important}
-.riverWindingNode.daddy .riverWindingDot{background:#e7efff!important}.riverWindingNode.user .riverWindingDot{background:#ffe7f2!important}
-
-
-/* v0.8.2-20 — twin intertwined light streams + fixed-size bubbles */
-.riverWaterGlow,.riverWater,.riverShimmer{display:none!important}
-.riverTwin{fill:none;stroke-width:.72;stroke-linecap:round;opacity:.74}
-.riverTwinA{stroke:url(#riverTwinA)}.riverTwinB{stroke:url(#riverTwinB)}
-.riverTwinGlow{fill:none;stroke:rgba(255,255,255,.96);stroke-width:.55;stroke-linecap:round;stroke-dasharray:.7 16;filter:drop-shadow(0 0 2px rgba(255,255,255,.95));animation:riverTwinFlow 2.35s linear infinite}
-.glowB{animation-delay:-1.15s;stroke-dasharray:.7 19}
-@keyframes riverTwinFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:44}}
-.riverWindingBubble{width:174px!important;height:58px!important;min-height:58px!important;max-height:58px!important;box-sizing:border-box!important;padding:9px 12px!important;overflow:hidden!important}
-.riverWindingBubble small{height:13px;line-height:13px;margin-bottom:4px!important;white-space:nowrap;overflow:hidden}
-.riverWindingBubble b{display:-webkit-box!important;height:28px;line-height:14px!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
-.riverWindingNode.left .riverWindingBubble{right:12px!important;left:auto!important}.riverWindingNode.right .riverWindingBubble{left:12px!important;right:auto!important}
-@media(max-width:370px){.riverWindingBubble{width:154px!important}}
-
-
-/* v0.8.2-21 — keep every Time River bubble fully inside the phone */
-.riverWindingBubble{width:148px!important;max-width:148px!important;height:auto!important;min-height:58px!important;max-height:none!important;overflow:visible!important}
-.riverWindingBubble b{display:block!important;height:auto!important;max-height:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;overflow-wrap:anywhere;word-break:break-word}
-.riverWindingNode.right .riverWindingBubble{left:10px!important;right:auto!important}
-.riverWindingNode.left .riverWindingBubble{right:10px!important;left:auto!important}
-@media(max-width:390px){.riverWindingBubble{width:136px!important;max-width:136px!important}}
-@media(max-width:350px){.riverWindingBubble{width:122px!important;max-width:122px!important}}
-
-
-/* v0.8.2-22 — river-bank adaptive bubbles; replaces fixed/alternating experiments */
-.riverWindingBubble{width:var(--bubble-w)!important;max-width:168px!important;min-width:116px!important;height:auto!important;min-height:54px!important;max-height:none!important;box-sizing:border-box!important;padding:9px 12px!important;overflow:visible!important}
-.riverWindingBubble b{display:block!important;height:auto!important;max-height:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;overflow-wrap:anywhere;word-break:break-word}
-.riverWindingNode.right .riverWindingBubble{left:11px!important;right:auto!important}.riverWindingNode.left .riverWindingBubble{right:11px!important;left:auto!important}
-
-
-/* v0.8.2-23 — rebuilt Time River: two lives growing upward together */
-.riverTwin,.riverTwinGlow,.riverWaterGlow,.riverWater,.riverShimmer{display:none!important}
-.riverLifeLine{fill:none;stroke-width:.62;stroke-linecap:round;stroke-linejoin:round;opacity:.72}
-.riverLifeLine.daddyLine{stroke:url(#riverDaddy);filter:drop-shadow(0 0 1.2px rgba(155,176,218,.18))}
-.riverLifeLine.userLine{stroke:url(#riverUser);filter:drop-shadow(0 0 1.2px rgba(215,166,191,.16))}
-.riverFirefly{fill:none;stroke-width:.28;stroke-linecap:round;stroke-dasharray:.45 23;opacity:.76;animation:riverFireflyUp 5.8s linear infinite}
-.riverFirefly.daddyGlow{stroke:rgba(229,237,255,.92);filter:drop-shadow(0 0 .8px rgba(206,220,250,.65))}
-.riverFirefly.userGlow{stroke:rgba(255,231,242,.88);filter:drop-shadow(0 0 .8px rgba(244,211,226,.58));animation-delay:-2.9s}
-@keyframes riverFireflyUp{from{stroke-dashoffset:0}to{stroke-dashoffset:72}}
-.riverWindingDot{width:3px!important;height:3px!important;box-shadow:0 0 2px rgba(255,255,255,.82)!important}
-
-
-/* v0.8.3 — Chat app + tightly intertwined Time River */
-.chatDesktopIcon{background:linear-gradient(145deg,rgba(255,255,255,.58),rgba(207,218,242,.36))!important}
-.chatAppPage{padding-bottom:88px!important}
-.chatAppHead{position:sticky;top:0;z-index:6;margin:4px 10px 10px;padding:10px 13px;border-radius:20px;display:flex;align-items:center;gap:10px}
-.chatHeadAvatar,.chatAvatar{overflow:hidden;border-radius:50%;background:rgba(255,255,255,.58);box-shadow:0 3px 10px rgba(75,86,116,.10);flex:0 0 auto}
-.chatHeadAvatar{width:34px;height:34px}.chatAvatar{width:34px;height:34px;margin-top:2px}
-.chatHeadAvatar img,.chatAvatar img{width:100%;height:100%;object-fit:cover}
-.chatAppHead b{display:block;font-size:14px}.chatAppHead small{display:block;font-size:9px;color:#9298a6;margin-top:2px}
-.chatMessages{height:calc(100vh - 205px);min-height:390px;overflow-y:auto;padding:12px 10px 26px;scroll-behavior:smooth}
-.chatRow{display:flex;align-items:flex-start;gap:8px;margin:0 0 14px}
-.chatRow.user{flex-direction:row-reverse}.chatPayload{max-width:72%;display:flex;flex-direction:column}.chatRow.user .chatPayload{align-items:flex-end}
-.chatBubble{position:relative;overflow:hidden;padding:10px 12px;border-radius:18px;font-size:13px;line-height:1.55;word-break:break-word;background:rgba(var(--chat-tone),var(--chat-bubble-alpha));border:1px solid rgba(255,255,255,var(--chat-bubble-border));box-shadow:0 6px 18px rgba(74,88,124,.07),inset 0 1px 0 rgba(255,255,255,var(--chat-bubble-highlight));backdrop-filter:blur(var(--chat-bubble-blur)) saturate(145%);-webkit-backdrop-filter:blur(var(--chat-bubble-blur)) saturate(145%)}
-.chatBubble:before{content:"";position:absolute;inset:1px 2px auto;height:42%;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,var(--chat-bubble-shine)),transparent);pointer-events:none}
-.chatRow.daddy .chatBubble{--chat-tone:var(--chat-daddy-rgb);border-top-left-radius:6px}.chatRow.user .chatBubble{--chat-tone:var(--chat-user-rgb);border-top-right-radius:6px}
-.chatHeadText{flex:1}.chatSettingsBtn{width:28px;height:28px;margin-left:auto;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.48);font-size:13px;backdrop-filter:blur(12px)}
-.chatSettingsLayer{position:fixed;z-index:80;inset:0;background:rgba(229,235,247,.16);backdrop-filter:blur(8px);padding:calc(env(safe-area-inset-top) + 70px) 18px 90px}.chatSettingsLayer[hidden]{display:none}
-.chatSettingsCard{width:min(100%,390px);margin:0 auto;border-radius:26px;padding:16px}.chatSettingsTop{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;margin-bottom:14px}.chatSettingsTop b{text-align:center}.chatSettingsTop button{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.28)}.chatSettingsTop b:first-child{grid-column:1/3;text-align:left}.chatSettingsEntry{width:100%;display:grid;grid-template-columns:1fr auto;gap:3px 10px;text-align:left;padding:15px;border-radius:18px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.48)}.chatSettingsEntry span{font-weight:650}.chatSettingsEntry small{color:var(--ink2)}.chatSettingsEntry i{grid-column:2;grid-row:1/3;align-self:center;font-style:normal;font-size:22px}.chatBubbleSettingsCard .glassControlPanel{margin-top:8px}.chatTintNote{font-size:11px;color:var(--ink2);line-height:1.5;margin:10px 2px 12px}.chatBubbleReset{width:100%;margin-top:12px}
-.chatTimestamp{font-size:8px;line-height:1.3;color:rgba(91,98,114,.58);margin:4px 3px 0;white-space:nowrap}
-.chatComposer{position:fixed;z-index:20;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 24px),430px);padding:8px;border-radius:22px;display:flex;align-items:flex-end;gap:7px}
-.chatComposer textarea{flex:1;min-height:38px;max-height:96px;border:0;outline:0;resize:none;border-radius:16px;padding:10px 11px;background:rgba(255,255,255,.56);font:inherit;font-size:12px}
-.chatComposer button{border:0;border-radius:15px;padding:10px 13px;background:rgba(145,166,211,.52);color:#fff;font-weight:650}
-.chatEmpty{padding-top:110px}
-.riverLifeLine{stroke-width:.72!important;opacity:.90!important}
-.riverFirefly{stroke-width:.20!important;stroke-dasharray:.32 27!important;opacity:.70!important}
-
-
-/* v0.8.3-1 — content-height cleanup + braided Time River */
-body.miniAppMode .phoneAppPage{min-height:0!important}
-#riverAppScroller{min-height:0!important;height:auto!important;overflow:visible!important}
-#riverAppTrack{min-height:0!important}
-.riverAppVerticalShell{min-height:0!important;padding-bottom:14px!important}
-.riverWindingFlow{min-height:0!important}
-.riverLifeLine{stroke-width:.82!important;opacity:.96!important}
-.riverFirefly{stroke-width:.18!important;stroke-dasharray:.28 31!important;opacity:.58!important}
-
-
-/* v0.8.3-3 clean visual rebuild */
-.desktopPage[data-desktop-page="1"] .desktopApp[data-open-app="phone"]{grid-column:1;grid-row:1}
-.desktopPage[data-desktop-page="1"] .desktopApp[data-open-app="chat"]{display:flex!important;visibility:visible!important;opacity:1!important;grid-column:2;grid-row:1}
-body.miniAppMode .phoneAppPage{min-height:0!important}
-#riverAppScroller,#riverAppTrack,.riverWindingFlow,.riverAppVerticalShell{min-height:0!important}
-.riverLifeLine.userLine{display:none!important}.riverFirefly.userGlow{display:none!important}
-.riverLifeLine.daddyLine{stroke:rgba(164,149,216,.74)!important;stroke-width:.72!important;opacity:.86!important;filter:drop-shadow(0 0 1.6px rgba(192,181,236,.34))!important}
-.riverFirefly.daddyGlow{stroke:rgba(242,238,255,.92)!important;stroke-width:.20!important;stroke-dasharray:.28 29!important;opacity:.78!important;filter:drop-shadow(0 0 .8px rgba(229,222,255,.72))!important;animation:riverBondUp 6.6s linear infinite!important}
-@keyframes riverBondUp{from{stroke-dashoffset:72}to{stroke-dashoffset:0}}
-
-
-/* v0.8.3-6 Time River visual reset: fused waterlight, no blood-vessel identity split */
-.riverTogether .riverLifeLine{stroke:rgba(181,190,239,.24)!important;stroke-width:.46!important;opacity:.82!important;filter:drop-shadow(0 0 1.5px rgba(210,215,255,.24))!important}
-.riverTogether .riverLifeLine.userLine{stroke:rgba(204,185,236,.20)!important;stroke-width:.34!important;opacity:.58!important}
-.riverTogether .riverFirefly{stroke:rgba(239,241,255,.72)!important;stroke-width:.18!important;stroke-dasharray:.22 24!important;opacity:.72!important;filter:drop-shadow(0 0 .8px rgba(228,231,255,.60))!important;animation:riverV836Flow 7.2s linear infinite!important}
-.riverTogether .riverFirefly.userGlow{stroke:rgba(220,213,255,.58)!important;stroke-dasharray:.14 35!important;animation-duration:10.4s!important;animation-delay:-4.1s!important}
-.riverTogether .riverWindingDot{width:2px!important;height:2px!important;background:rgba(237,238,255,.62)!important;box-shadow:0 0 3px rgba(218,220,255,.36)!important}
-@keyframes riverV836Flow{from{stroke-dashoffset:0}to{stroke-dashoffset:64}}
+/* v0.8.3-7 Time River: original horizontal river visual language, rotated into vertical flow */
+#page-app-river .riverAppVerticalShell{padding:14px 12px 18px!important;overflow:visible!important}
+#page-app-river .riverAppVerticalScroller{overflow:visible!important;height:auto!important;max-height:none!important;padding:0!important}
+#page-app-river .riverAppVerticalTrack{position:relative!important;width:100%!important;min-height:0!important}
+.riverClassicVertical{position:relative;width:100%}
+.riverClassicSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.riverClassicGlow{fill:none;stroke:rgba(189,211,255,.28);stroke-width:12;filter:blur(7px);stroke-linecap:round}
+.riverClassicPath{fill:none;stroke:url(#riverClassicGradient);stroke-width:2.2;stroke-linecap:round}
+.riverClassicNode{position:absolute;left:var(--rx);top:var(--ry);width:0;height:0;z-index:3}
+.riverClassicDot{position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.92);border:2px solid rgba(130,151,207,.65);box-shadow:0 0 0 7px rgba(255,255,255,.28),0 0 18px rgba(133,161,221,.22)}
+.riverClassicBubble{position:absolute;top:0;width:var(--bw);min-width:116px;max-width:168px;min-height:54px;border-radius:23px;padding:10px 13px;text-align:left;transform:translateY(-50%);transition:transform .18s ease;white-space:normal}
+.riverClassicNode.right .riverClassicBubble{left:15px}.riverClassicNode.left .riverClassicBubble{right:15px}
+.riverClassicBubble small{display:block;font-size:9px;color:#7d8599;margin-bottom:4px}.riverClassicBubble b{display:block;font-size:12px;font-weight:680;color:#566178;white-space:normal;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -3321,21 +3145,15 @@ function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message)state.chats=[...(state.chats||[]),r.message];input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
-  if(!state.conn.connected&&!state.dailybook.length){root.style.height='auto';root.innerHTML='<div class="empty">连接后显示时间河。</div>';return}
+  if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
   const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
-  if(!items.length){root.style.height='auto';root.innerHTML='<div class="empty">时间河还没有第一页。</div>';return}
-  const step=104,h=Math.max(190,(items.length-1)*step+112),cy=i=>48+i*step;
-  const hash=i=>{let x=2166136261;for(const c of String(items[i]?.id||items[i]?.date||i)){x^=c.charCodeAt(0);x=Math.imul(x,16777619)}return((x>>>0)%1000)/1000};
-  const center=i=>50+(hash(i)-.5)*25;
-  const spread=i=>{const r=hash(i);return i%8===5?5.2+(r*2.2):1.15+(r*1.2)};
-  const ax=i=>center(i)+(i%2?1:-1)*spread(i), bx=i=>center(i)-(i%2?1:-1)*spread(i);
-  const curve=fn=>{let p=`M ${fn(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=fn(i-1),x1=fn(i),m=(y0+y1)/2;p+=` C ${x0+(i%2?2.8:-2.8)} ${m-18}, ${x1+(i%2?-2.8:2.8)} ${m+18}, ${x1} ${y1}`}return p};
-  const pa=curve(ax),pb=curve(bx);
-  const bubbleFor=i=>{const x=center(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return{x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
+  if(!items.length){root.style.width='100%';root.style.height='auto';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
+  const step=112,h=Math.max(260,(items.length-1)*step+108),cx=i=>50+Math.sin(i*1.18+.25)*23,cy=i=>48+i*step;
+  let d=`M ${cx(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const a={x:cx(i-1),y:cy(i-1)},b={x:cx(i),y:cy(i)},m=(a.y+b.y)/2;d+=` C ${a.x} ${m}, ${b.x} ${m}, ${b.x} ${b.y}`}
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(107,137,202,.72)"/><stop offset=".55" stop-color="rgba(123,151,211,.82)"/><stop offset="1" stop-color="rgba(141,165,216,.68)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(195,112,153,.69)"/><stop offset=".55" stop-color="rgba(207,130,167,.80)"/><stop offset="1" stop-color="rgba(216,151,181,.66)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.innerHTML=`<div class="riverClassicVertical" style="height:${h}px"><svg class="riverClassicSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverClassicGradient" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(126,165,224,.34)"/><stop offset=".48" stop-color="rgba(255,255,255,.84)"/><stop offset="1" stop-color="rgba(215,154,190,.35)"/></linearGradient></defs><path class="riverClassicGlow" d="${d}"/><path class="riverClassicPath" d="${d}"/></svg>${items.map((e,i)=>{const x=cx(i),y=cy(i),bank=(100-x)>=x?'right':'left',room=Math.max(x,100-x),w=Math.max(116,Math.min(168,Math.round(room*2.55)));return `<article class="riverClassicNode ${bank}" data-app-book-id="${esc(e.id)}" style="--rx:${x}%;--ry:${y}px;--bw:${w}px"><span class="riverClassicDot"></span><button class="glass contentGlass riverClassicBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}</div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
-  requestAnimationFrame(()=>{root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
+  requestAnimationFrame(()=>{root.querySelectorAll('.riverClassicNode').forEach(node=>{const b=node.querySelector('.riverClassicBubble');if(!b)return;const r=b.getBoundingClientRect(),host=root.getBoundingClientRect(),pad=12;let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)b.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
 }
 function renderHealthApp(){
   const root=$('#healthAppBody');if(!root)return;

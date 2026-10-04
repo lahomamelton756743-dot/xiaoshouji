@@ -2304,6 +2304,23 @@ html,body,.shell,.page{background-color:transparent!important}
 .riverVerticalThumb{float:right;width:58px;height:58px;object-fit:cover;border-radius:15px;margin:0 0 8px 10px}
 .riverVerticalBubble .bookTitle{font-size:13px;font-weight:680}.riverVerticalBubble .bookMood{font-size:10px;color:#9198a8;margin-top:3px}.riverVerticalBubble .riverPeek{font-size:11px;line-height:1.55;margin-top:7px;color:#697286}
 @media(max-width:390px){.riverVerticalFlow{padding-left:62px}.riverVerticalFlow:before{left:40px}.riverVerticalNode:before{left:-22px;width:22px}.riverVerticalDot{left:-28px}}
+
+/* v0.8.2-16 — diary annotations as tucked page bookmarks */
+.journalBookmarks{position:absolute;top:-2px;right:24px;z-index:16;display:flex;align-items:flex-start;gap:5px;max-width:72%;overflow:visible}
+.journalBookmarkTab,.journalBookmarkAdd{border:0;cursor:pointer;box-shadow:0 5px 12px rgba(80,79,103,.13);transition:transform .18s ease,height .18s ease}
+.journalBookmarkTab{width:38px;height:28px;padding:5px 4px 3px;border-radius:0 0 9px 9px;background:linear-gradient(180deg,#d8e4f5,#b9cbe8);color:#59677f;font-size:9px;font-weight:700;position:relative}
+.journalBookmarkTab.user{background:linear-gradient(180deg,#f2d7e2,#ddb1c5);color:#765469}.journalBookmarkTab.daddy{background:linear-gradient(180deg,#dbe2f4,#b9c7e6);color:#53617e}
+.journalBookmarkTab:hover,.journalBookmarkTab:active{transform:translateY(4px)}.journalBookmarkTab i{position:absolute;right:3px;bottom:2px;font-style:normal;font-size:7px;opacity:.55}.journalBookmarkTab span{display:block;white-space:nowrap;overflow:hidden}
+.journalBookmarkAdd{width:27px;height:24px;border-radius:0 0 9px 9px;background:rgba(255,255,255,.78);color:#7b8190;font-size:15px;line-height:20px}
+.journalAnnotationDrawer{position:absolute;z-index:15;top:32px;right:18px;width:min(82%,300px);max-height:0;opacity:0;overflow:hidden;pointer-events:none;transform:translateY(-10px) scale(.98);transform-origin:top right;transition:max-height .28s ease,opacity .2s ease,transform .28s ease;padding:0 7px}
+.journalAnnotationDrawer.open{max-height:360px;opacity:1;overflow:auto;pointer-events:auto;transform:translateY(0) scale(1);padding-bottom:10px}
+.journalAnnotationCard{display:none;margin:0 0 8px;padding:13px 14px 11px;border-radius:5px 5px 16px 16px;background:linear-gradient(145deg,rgba(255,253,246,.97),rgba(247,241,231,.95));box-shadow:0 12px 28px rgba(77,72,82,.14);border:1px solid rgba(145,129,126,.10);transform:rotate(-.35deg)}
+.journalAnnotationCard.active{display:block}.journalAnnotationCard.user{background:linear-gradient(145deg,rgba(255,247,250,.98),rgba(248,232,239,.96))}.journalAnnotationCard.daddy{background:linear-gradient(145deg,rgba(248,250,255,.98),rgba(232,238,250,.96))}
+.journalAnnotationWho{font-size:9px;color:#8b8790;margin-bottom:7px}.journalAnnotationText{font-size:12px;line-height:1.75;color:#5f5d66;white-space:pre-wrap}.journalAnnotationDelete{display:block;margin:8px 0 0 auto;border:0;background:transparent;color:#a28d94;font-size:9px}
+.journalAnnotationComposer{padding:10px;border-radius:14px;background:rgba(255,255,255,.91);box-shadow:0 9px 24px rgba(73,79,101,.11);display:grid;gap:7px}
+.journalAnnotationComposer textarea{width:100%;resize:none;border:1px solid rgba(126,135,157,.13);border-radius:11px;background:rgba(250,250,250,.76);padding:9px 10px;font:inherit;font-size:11px;line-height:1.5;outline:none}
+.journalAnnotationDrawer:not(.open) .journalAnnotationComposer{display:none}
+@media(max-width:390px){.journalBookmarks{right:18px;gap:4px}.journalBookmarkTab{width:34px}.journalAnnotationDrawer{right:12px;width:min(84%,286px)}}
 </style>
 </head>
 <body>
@@ -2935,9 +2952,16 @@ function journalSorted(){return [...(state.diaries||[])].sort((a,b)=>{const byDa
 function renderJournalSearch(){const q=String($('#journalSearchInput')?.value||'').trim().toLowerCase(),root=$('#journalSearchResults');if(!root)return;const list=journalSorted();const hits=!q?list.slice().reverse().slice(0,30):list.filter(d=>[d.title,d.content,d.date,actorName(d.author||'daddy')].some(v=>String(v||'').toLowerCase().includes(q))).reverse().slice(0,50);root.innerHTML=hits.length?hits.map(d=>`<button class="journalSearchHit" type="button" data-journal-search-id="${esc(d.id)}"><b>${esc(d.title||'今天')}</b><small>${esc(d.date||'')} · ${esc(actorName(d.author||'daddy'))}</small><span>${esc(String(d.content||'').replace(/\s+/g,' ').slice(0,76))}</span></button>`).join(''):'<div class="journalSearchEmpty">没有找到包含这个关键词的日记。</div>';$$('[data-journal-search-id]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.journalSearchId,asc=journalSorted(),i=asc.findIndex(x=>String(x.id)===String(id));if(i>=0){state.journalIndex=i;state.journalCoverOpen=false;renderJournal();hide('#journalSearchModal');requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}))}})}
 function openJournalSearch(){const input=$('#journalSearchInput');if(input)input.value='';renderJournalSearch();show('#journalSearchModal');setTimeout(()=>input?.focus(),80)}
 function journalCoverMarkup(){return `<article class="journalCover076 journalSheet" aria-label="日记封面"><img src="diary-cover-v076.png" alt="日记封面"><div class="journalTurnShade" aria-hidden="true"></div></article>`}
+function journalAnnotationMarkup(d){
+  const anns=Array.isArray(d.annotations)?d.annotations:[];
+  const tabs=anns.map((a,i)=>{const side=authorSide(a.author||'daddy');return `<button class="journalBookmarkTab ${side}" type="button" data-journal-annotation-tab="${esc(a.id)}" title="${esc(actorName(a.author||'daddy'))}的批注"><span>${esc(actorName(a.author||'daddy')).slice(0,2)}</span><i>${i+1}</i></button>`}).join('');
+  const cards=anns.map(a=>{const side=authorSide(a.author||'daddy');return `<article class="journalAnnotationCard ${side}" data-journal-annotation-card="${esc(a.id)}"><div class="journalAnnotationWho">${esc(actorName(a.author||'daddy'))} · ${esc(fmt(a.created_at))}</div><div class="journalAnnotationText authoredText ${side}">${esc(a.content||'')}</div><button class="journalAnnotationDelete" type="button" data-journal-annotation-delete="${esc(a.id)}">删除批注</button></article>`}).join('');
+  return `<div class="journalBookmarks" data-journal-bookmarks>${tabs}<button class="journalBookmarkAdd" type="button" data-journal-annotation-add title="写批注">＋</button></div><div class="journalAnnotationDrawer" data-journal-annotation-drawer>${cards}<div class="journalAnnotationComposer"><textarea data-journal-annotation-input rows="2" placeholder="夹一句批注在这一页……"></textarea><button class="softBtn" type="button" data-journal-annotation-submit>夹进书页</button></div></div>`;
+}
 function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy');return `<article class="bookPage journalLeaf journalPhysicalPage journalSheet" data-journal-entry-id="${esc(d.id||'')}">
     <div class="journalPageTexture" aria-hidden="true"></div>
     <div class="journalTurnShade" aria-hidden="true"></div>
+    ${journalAnnotationMarkup(d)}
     <div class="journalPaperMeta"><span>${esc(d.date||'')}</span><span>${esc(actorName(d.author||'daddy'))}</span></div>
     <div class="journalTitle">${esc(d.title||'今天')}</div>
     <div class="journalScroll" id="journalScroll">
@@ -2949,7 +2973,22 @@ function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy
   </article>`}
 function journalElement(markup){const t=document.createElement('template');t.innerHTML=markup.trim();return t.content.firstElementChild}
 function stripJournalIds(node){if(!node)return;node.removeAttribute?.('id');node.querySelectorAll?.('[id]').forEach(x=>x.removeAttribute('id'))}
-function bindJournalPageActions(d,list){const edit=$('#journalEdit'),del=$('#journalDelete');if(edit)edit.onclick=()=>openCompose('diary-edit',d);if(del)del.onclick=()=>deleteItem('/api/littlephone/diaries/delete',d.id,'这篇日记',()=>{state.journalIndex=Math.max(0,Math.min(state.journalIndex-1,list.length-2))});bindJournalScroll(d.id)}
+async function addJournalAnnotation(d){
+  const input=$('[data-journal-annotation-input]'),content=String(input?.value||'').trim();if(!content)return toast('批注还是空的');
+  try{await apiWrite('/api/littlephone/diary-annotations',{diary_id:d.id,content,author:'user'});await loadRemote();toast('批注已经夹进这一页')}catch(e){toast(e.message||'批注没有夹进去')}
+}
+async function deleteJournalAnnotation(id){
+  try{await apiWrite('/api/littlephone/diary-annotations/delete',{id});await loadRemote();toast('批注已经取下')}catch(e){toast(e.message||'批注没有删除')}
+}
+function bindJournalAnnotations(d){
+  const drawer=$('[data-journal-annotation-drawer]'),tabs=$('[data-journal-annotation-tab]'),add=$('[data-journal-annotation-add]'),submit=$('[data-journal-annotation-submit]');
+  const open=(id='')=>{if(!drawer)return;const already=drawer.classList.contains('open')&&(!id||drawer.dataset.active===String(id));drawer.classList.toggle('open',!already);drawer.dataset.active=already?'':String(id||'compose');$('[data-journal-annotation-card]').forEach(c=>c.classList.toggle('active',!id||String(c.dataset.journalAnnotationCard)===String(id)));if(!already&&id){const c=$('[data-journal-annotation-card="'+CSS.escape(String(id))+'"]');c?.scrollIntoView({block:'nearest'})}};
+  tabs.forEach(b=>b.onclick=e=>{e.stopPropagation();open(b.dataset.journalAnnotationTab)});
+  if(add)add.onclick=e=>{e.stopPropagation();open('');requestAnimationFrame(()=>$('[data-journal-annotation-input]')?.focus())};
+  if(submit)submit.onclick=e=>{e.stopPropagation();addJournalAnnotation(d)};
+  $('[data-journal-annotation-delete]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteJournalAnnotation(b.dataset.journalAnnotationDelete)});
+}
+function bindJournalPageActions(d,list){const edit=$('#journalEdit'),del=$('#journalDelete');if(edit)edit.onclick=()=>openCompose('diary-edit',d);if(del)del.onclick=()=>deleteItem('/api/littlephone/diaries/delete',d.id,'这篇日记',()=>{state.journalIndex=Math.max(0,Math.min(state.journalIndex-1,list.length-2))});bindJournalAnnotations(d);bindJournalScroll(d.id)}
 function updateJournalPageNo(value){const n=$('#journalPageNo');if(n)n.textContent=value}
 function renderJournal(){
   const root=$('#journalBook'),list=journalSorted();

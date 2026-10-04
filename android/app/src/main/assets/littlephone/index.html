@@ -2287,6 +2287,22 @@ html,body,.shell,.page{background-color:transparent!important}
 .desktopLegacyWidget.legacy_music .earCableV3,.desktopLegacyWidget.legacy_music .earCable{z-index:1!important;opacity:.48!important;pointer-events:none!important}
 .desktopLegacyWidget.legacy_music .statusPill{display:none!important}
 .desktopLegacyWidget.legacy_music .avatarName{margin-top:5px!important;font-size:11px!important;font-weight:650!important}
+
+/* v0.8.2-15 — calm desktop refresh + upward-growing vertical Time River */
+#page-app-river .riverAppVerticalShell{padding:14px 12px 22px!important;overflow:visible!important}
+#page-app-river .riverAppVerticalScroller{overflow:visible!important;max-width:100%!important;height:auto!important;max-height:none!important;padding:0!important}
+#page-app-river .riverAppVerticalTrack{height:auto!important;min-height:180px!important;width:100%!important;position:relative!important}
+.riverVerticalFlow{position:relative;padding:12px 2px 18px 72px}
+.riverVerticalFlow:before{content:"";position:absolute;left:48px;top:5px;bottom:4px;width:7px;border-radius:999px;background:linear-gradient(180deg,rgba(216,154,190,.38),rgba(255,255,255,.72) 48%,rgba(126,165,224,.34));box-shadow:0 0 18px rgba(160,183,224,.16)}
+.riverVerticalNode{position:relative;margin:0 0 22px;min-height:86px}
+.riverVerticalNode:before{content:"";position:absolute;left:-24px;top:30px;width:24px;height:1px;background:rgba(135,151,187,.24)}
+.riverVerticalDot{position:absolute;left:-30px;top:25px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.42),0 2px 9px rgba(101,123,168,.18)}
+.riverVerticalNode.daddy .riverVerticalDot{background:#a6b5dc}.riverVerticalNode.user .riverVerticalDot{background:#d8a6bf}
+.riverVerticalDate{font-size:10px;color:#8992a5;margin:0 0 6px 3px;letter-spacing:.02em}
+.riverVerticalBubble{display:block;width:100%;text-align:left;border:0;border-radius:22px;padding:14px 15px;min-height:76px;position:relative}
+.riverVerticalThumb{float:right;width:58px;height:58px;object-fit:cover;border-radius:15px;margin:0 0 8px 10px}
+.riverVerticalBubble .bookTitle{font-size:13px;font-weight:680}.riverVerticalBubble .bookMood{font-size:10px;color:#9198a8;margin-top:3px}.riverVerticalBubble .riverPeek{font-size:11px;line-height:1.55;margin-top:7px;color:#697286}
+@media(max-width:390px){.riverVerticalFlow{padding-left:62px}.riverVerticalFlow:before{left:40px}.riverVerticalNode:before{left:-22px;width:22px}.riverVerticalDot{left:-28px}}
 </style>
 </head>
 <body>
@@ -2500,7 +2516,7 @@ html,body,.shell,.page{background-color:transparent!important}
 
     <section class="page phoneAppPage" id="page-app-river">
       <div class="miniAppHead"><div class="miniAppTitle">时间河<small>我们的日常册</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
-      <div class="glass riverShell heroGlass"><div class="riverHint">左右滑动 · 点气泡展开</div><div class="riverScroller" id="riverAppScroller"><div class="riverTrack" id="riverAppTrack"></div></div></div>
+      <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint">新的在上 · 旧的向下流 · 点气泡展开</div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
     </section>
 
     <section class="page phoneAppPage" id="page-app-health">
@@ -3095,13 +3111,12 @@ function renderMailApp(){
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
   if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
-  const items=[...state.dailybook].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||(new Date(a.created_at||0)-new Date(b.created_at||0)));
+  const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
   if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
-  const width=Math.max(720,220+items.length*190),height=400;root.style.width=width+'px';const pts=items.map((e,i)=>({x:105+i*190,y:190+Math.sin(i*1.35)*34,e,i}));let d=`M ${pts[0].x} ${pts[0].y}`;for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];d+=` C ${a.x+62} ${a.y}, ${b.x-62} ${b.y}, ${b.x} ${b.y}`}
-  const nodes=pts.map(p=>{const up=p.i%2===0,bubbleTop=up?p.y-126:p.y+30,dateTop=up?p.y+18:p.y-30,img=(p.e.images||[])[0];return `<div class="riverNode" style="left:${p.x}px;top:0"><span class="riverDot" style="top:${p.y-5}px"></span><span class="riverDate" style="top:${dateTop}px">${esc(p.e.date||dayLabel(p.e.created_at))}</span><button class="glass contentGlass riverBubble" data-app-book-id="${esc(p.e.id)}" style="top:${bubbleTop}px">${img?`<img class="riverThumb" src="${esc(serverUrl(img.url||''))}">`:''}<div class="bookTitle" style="${img?'padding-right:38px':''}">${esc(p.e.title||'今天')}</div><div class="bookMood">${esc(p.e.mood||'')}</div><div class="riverPeek authoredText ${authorSide(p.e.author)}">${esc((p.e.content||'').slice(0,48))}</div></button></div>`}).join('');
-  root.innerHTML=`<svg class="riverSvg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs><linearGradient id="riverAppGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(126,165,224,.34)"/><stop offset=".45" stop-color="rgba(255,255,255,.84)"/><stop offset="1" stop-color="rgba(215,154,190,.35)"/></linearGradient></defs><path class="riverPathGlow" d="${d}"/><path class="riverPath" d="${d}"/></svg>${nodes}`;
+  root.style.width='100%';
+  root.innerHTML='<div class="riverVerticalFlow">'+items.map((e,i)=>{const img=(e.images||[])[0],side=authorSide(e.author);return `<article class="riverVerticalNode ${side}" data-app-book-id="${esc(e.id)}"><div class="riverVerticalDate">${esc(e.date||dayLabel(e.created_at))}</div><span class="riverVerticalDot" aria-hidden="true"></span><button class="glass contentGlass riverVerticalBubble" type="button">${img?`<img class="riverVerticalThumb" src="${esc(serverUrl(img.url||''))}">`:''}<div class="bookTitle">${esc(e.title||'今天')}</div><div class="bookMood">${esc(e.mood||'')}</div><div class="riverPeek authoredText ${side}">${esc((e.content||'').slice(0,86))}</div></button></article>`}).join('')+'</div>';
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=()=>openBook(el.dataset.appBookId));
-  requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollLeft=sc.scrollWidth})
+  requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollTop=0})
 }
 function healthReadableValue(key,value){
   if(value===null||value===undefined||value==='')return '暂无数据';
@@ -3509,7 +3524,7 @@ saveReminders=function(){if(!hasNative()||!window.LittlePhoneNative.setReminderC
 function bindDesktopStablePaging(){const vp=$('#desktopViewport');if(!vp||vp.dataset.stablePaging==='1')return;vp.dataset.stablePaging='1';let raf=0;vp.addEventListener('scroll',()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;const w=Math.max(1,vp.clientWidth),idx=Math.max(0,Math.min(desktopPagesCount()-1,Math.round(vp.scrollLeft/w)));state.desktopCurrentPage=idx;$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx));});},{passive:true});}
 const __lp082RenderDesktopShell=renderDesktopShell;renderDesktopShell=function(){__lp082RenderDesktopShell();bindDesktopStablePaging();};
 
-mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();loadGlassPrefs();loadDesktopLayout();tick();setInterval(tick,1000);calcDays();applyAvatars();go('desktop',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}loadRemote().catch(()=>{})},60000);
+mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadBackgrounds();loadGlassPrefs();loadDesktopLayout();tick();setInterval(tick,1000);calcDays();applyAvatars();go('desktop',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}if(document.hidden||state.page==='desktop')return;loadRemote().catch(()=>{})},60000);
 })();
 </script>
 </body>

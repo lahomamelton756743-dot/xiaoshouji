@@ -2396,6 +2396,15 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 .riverWindingNode.left .riverWindingBubble{right:12px!important;left:auto!important}.riverWindingNode.right .riverWindingBubble{left:12px!important;right:auto!important}
 @media(max-width:370px){.riverWindingBubble{width:154px!important}}
 
+
+/* v0.8.2-21 — keep every Time River bubble fully inside the phone */
+.riverWindingBubble{width:148px!important;max-width:148px!important;height:auto!important;min-height:58px!important;max-height:none!important;overflow:visible!important}
+.riverWindingBubble b{display:block!important;height:auto!important;max-height:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;overflow-wrap:anywhere;word-break:break-word}
+.riverWindingNode.right .riverWindingBubble{left:10px!important;right:auto!important}
+.riverWindingNode.left .riverWindingBubble{right:10px!important;left:auto!important}
+@media(max-width:390px){.riverWindingBubble{width:136px!important;max-width:136px!important}}
+@media(max-width:350px){.riverWindingBubble{width:122px!important;max-width:122px!important}}
+
 </style>
 </head>
 <body>

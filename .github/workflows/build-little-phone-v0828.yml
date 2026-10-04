@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'android/**'
-      - '.github/workflows/build-little-phone-v0829.yml'
+      - '.github/workflows/build-little-phone-v0828.yml'
   workflow_dispatch:
 
 permissions:

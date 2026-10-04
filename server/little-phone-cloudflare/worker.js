@@ -1104,6 +1104,7 @@ const MCP_TOOLS = [
   tool("set_gpt_profile","修改 GPT 的头像、显示名、身份色或身份字体。",{display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}}),
   tool("set_little_phone_profile","修改一方显示名、头像、身份色或身份字体。",{actor:{type:"string",enum:["daddy","user"]},display_name:{type:"string"},avatar:{type:"string"},identity_color:{type:"string"},identity_font:{type:"string",enum:["clean","rounded","cheese","serif","kai","italic","script","mono"]}},["actor"]),
   tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
+  tool("gpt_remember","把 GPT 当前形成的一条理解写入“GPT记得”。这是 GPT 记得的首选写入工具。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("write_gpt_memory","写入一条 GPT 记得，保存到 lp_memories。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("edit_gpt_memory","修改一条 GPT 记得，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
   tool("confirm_gpt_memory","确认一条 GPT 记得为正确。",{id:{type:"string"}},["id"]),
@@ -1270,6 +1271,7 @@ async function callTool(name,args,env){
     case "get_gpt_profile": {const profiles=await getProfiles(env);return mcpText({ok:true,profile:profiles.daddy||profiles.gpt||null});}
     case "set_gpt_profile": {const x=await setProfile(env,{...args,actor:"daddy"});return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
     case "set_little_phone_profile": {const x=await setProfile(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,profile:x},Boolean(x.error));}
+    case "gpt_remember":
     case "remember_about_user":
     case "write_gpt_memory":
     case "create_memory":

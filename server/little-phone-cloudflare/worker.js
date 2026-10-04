@@ -792,8 +792,17 @@ async function addChatMessage(env,body){
   await env.DB.prepare("INSERT OR IGNORE INTO lp_chat_messages(id,author,content,created_at) VALUES(?,?,?,?)").bind(item.id,item.author,item.content,item.created_at).run();return (await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first())||item;
 }
 async function addChatMessageApi(env,body){const item=await addChatMessage(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,message:item});}
-async function listChatMessages(env,limit=300){const rows=await env.DB.prepare("SELECT * FROM lp_chat_messages ORDER BY created_at ASC,id ASC LIMIT ?").bind(limit).all();return rows.results||[];}
-async function listChatMessagesApi(env,url){return json({ok:true,messages:await listChatMessages(env,asLimit(url,300,1000))});}
+async function listChatMessages(env,limit=300,afterCreatedAt="",afterId=""){
+  if(afterCreatedAt){
+    const rows=await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE created_at > ? OR (created_at = ? AND id > ?) ORDER BY created_at ASC,id ASC LIMIT ?").bind(afterCreatedAt,afterCreatedAt,afterId||"",limit).all();
+    return rows.results||[];
+  }
+  const rows=await env.DB.prepare("SELECT * FROM lp_chat_messages ORDER BY created_at ASC,id ASC LIMIT ?").bind(limit).all();return rows.results||[];
+}
+async function listChatMessagesApi(env,url){
+  const afterCreatedAt=clip(url.searchParams.get("after_created_at")||"",80),afterId=clip(url.searchParams.get("after_id")||"",120);
+  return json({ok:true,messages:await listChatMessages(env,asLimit(url,300,1000),afterCreatedAt,afterId)});
+}
 
 async function bootstrapApi(env){
   const [visit,events,papers,mail,capsules,dailybook,diaries,chats,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listChatMessages(env,500),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listMemories(env,80),listUnlockRequests(env,30)]);

@@ -3422,10 +3422,19 @@ const DESKTOP_WIDGETS={
   phone:{label:'手机状态',w:2,h:2,open:'phone',desc:'电量、网络、屏幕时间。',mode:'compact'},
   memory:{label:'记得',w:2,h:2,open:'memory',desc:'最近被记住的一句话。',mode:'compact'},
   paper:{label:'纸条',w:2,h:2,open:'papers',desc:'最近一张纸条。',mode:'compact'},
-  mail:{label:'信箱',w:2,h:2,open:'mail',desc:'最近一封信。',mode:'compact'}
+  mail:{label:'信箱',w:2,h:2,open:'mail',desc:'最近一封信。',mode:'compact'},
+  legacy_weather:{label:'旧版天气时钟',w:4,h:3,open:'desktop',desc:'旧版首页的天气时间大卡。',mode:'legacy'},
+  legacy_music:{label:'旧版一起听',w:4,h:3,open:'desktop',desc:'旧版的一起听组件。',mode:'legacy'},
+  legacy_calendar:{label:'旧版日历',w:4,h:3,open:'calendar',desc:'旧版月历组件。',mode:'legacy'},
+  legacy_todo:{label:'旧版待办',w:4,h:2,open:'todo',desc:'旧版待办组件。',mode:'legacy'},
+  legacy_paper:{label:'旧版纸条',w:2,h:2,open:'papers',desc:'旧版纸条卡片。',mode:'legacy'},
+  legacy_memory:{label:'旧版记得',w:2,h:2,open:'memory',desc:'旧版记得卡片。',mode:'legacy'},
+  legacy_health:{label:'旧版健康',w:4,h:3,open:'health',desc:'旧版健康摘要。',mode:'legacy'},
+  legacy_phone:{label:'旧版手机状态',w:4,h:3,open:'phone',desc:'旧版手机状态组件。',mode:'legacy'},
+  legacy_mail:{label:'旧版信箱',w:4,h:3,open:'mail',desc:'旧版信箱预览卡。',mode:'legacy'}
 };
 const DESKTOP_WIDGET_COMMON=['weather','together','music','health','calendar','todo','phone','memory','paper','mail'];
-const DESKTOP_WIDGET_SYSTEM=[];
+const DESKTOP_WIDGET_SYSTEM=['legacy_weather','legacy_music','legacy_calendar','legacy_todo','legacy_paper','legacy_memory','legacy_health','legacy_phone','legacy_mail'];
 function desktopDefaultLayout(){return{pages:2,items:[
 {id:'app:diary',kind:'app',app:'diary',area:'page',page:0,col:1,row:1,w:1,h:1},
 {id:'app:papers',kind:'app',app:'papers',area:'page',page:0,col:2,row:1,w:1,h:1},

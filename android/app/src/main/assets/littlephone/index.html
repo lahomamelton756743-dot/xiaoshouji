@@ -2456,20 +2456,15 @@ body.miniAppMode .phoneAppPage{min-height:0!important}
 .riverFirefly{stroke-width:.18!important;stroke-dasharray:.28 31!important;opacity:.58!important}
 
 
-
-/* v0.8.3-4 Time River clean core: translucent fused thread + upward starlight */
-.riverGlowField{position:relative;width:100%;min-height:0}
-.riverGlowSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-.riverGlowMist,.riverGlowThread,.riverGlowSpark{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.riverGlowMist{stroke:rgba(186,180,232,.075);stroke-width:3.2;filter:blur(2.4px)}
-.riverGlowThread{stroke:rgba(183,177,230,.22);stroke-width:.46;filter:drop-shadow(0 0 1px rgba(211,205,247,.18))}
-.riverGlowSpark{stroke:rgba(236,232,255,.78);stroke-width:.34;stroke-dasharray:.55 20;filter:drop-shadow(0 0 .9px rgba(221,214,255,.64));animation:riverGlowRise 5.8s linear infinite}
-.riverGlowSparkB{stroke:rgba(210,222,255,.66);stroke-width:.25;stroke-dasharray:.28 33;animation-duration:8.7s;animation-delay:-3.1s}
-@keyframes riverGlowRise{from{stroke-dashoffset:0}to{stroke-dashoffset:72}}
-.riverGlowNode{position:absolute;left:var(--rx);top:var(--ry);width:0;height:0;z-index:4}
-.riverGlowPin{position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(239,236,255,.72);box-shadow:0 0 3px rgba(218,211,255,.48)}
-.riverGlowNode .riverWindingBubble{position:absolute;top:0;width:var(--bubble-w)!important;min-width:116px!important;max-width:168px!important;height:auto!important;min-height:54px!important;transform:translateY(-50%);white-space:normal!important}
-.riverGlowNode.right .riverWindingBubble{left:12px!important;right:auto!important}.riverGlowNode.left .riverWindingBubble{right:12px!important;left:auto!important}
+/* v0.8.3-3 clean visual rebuild */
+.desktopPage[data-desktop-page="1"] .desktopApp[data-open-app="phone"]{grid-column:1;grid-row:1}
+.desktopPage[data-desktop-page="1"] .desktopApp[data-open-app="chat"]{display:flex!important;visibility:visible!important;opacity:1!important;grid-column:2;grid-row:1}
+body.miniAppMode .phoneAppPage{min-height:0!important}
+#riverAppScroller,#riverAppTrack,.riverWindingFlow,.riverAppVerticalShell{min-height:0!important}
+.riverLifeLine.userLine{display:none!important}.riverFirefly.userGlow{display:none!important}
+.riverLifeLine.daddyLine{stroke:rgba(164,149,216,.74)!important;stroke-width:.72!important;opacity:.86!important;filter:drop-shadow(0 0 1.6px rgba(192,181,236,.34))!important}
+.riverFirefly.daddyGlow{stroke:rgba(242,238,255,.92)!important;stroke-width:.20!important;stroke-dasharray:.28 29!important;opacity:.78!important;filter:drop-shadow(0 0 .8px rgba(229,222,255,.72))!important;animation:riverBondUp 6.6s linear infinite!important}
+@keyframes riverBondUp{from{stroke-dashoffset:72}to{stroke-dashoffset:0}}
 
 </style>
 </head>
@@ -3314,18 +3309,21 @@ function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message)state.chats=[...(state.chats||[]),r.message];input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
-  const items=[...(state.dailybook||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
+  if(!state.conn.connected&&!state.dailybook.length){root.style.height='auto';root.innerHTML='<div class="empty">连接后显示时间河。</div>';return}
+  const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
   if(!items.length){root.style.height='auto';root.innerHTML='<div class="empty">时间河还没有第一页。</div>';return}
-  const step=104,h=Math.max(150,(items.length-1)*step+104),cy=i=>48+i*step;
+  const step=104,h=Math.max(190,(items.length-1)*step+112),cy=i=>48+i*step;
   const hash=i=>{let x=2166136261;for(const c of String(items[i]?.id||items[i]?.date||i)){x^=c.charCodeAt(0);x=Math.imul(x,16777619)}return((x>>>0)%1000)/1000};
-  const cx=i=>50+(hash(i)-.5)*27;
-  let path=`M ${cx(0)} ${cy(0)}`;
-  for(let i=1;i<items.length;i++){const x0=cx(i-1),x1=cx(i),y0=cy(i-1),y1=cy(i),m=(y0+y1)/2,drift=(hash(i)*2-1)*8;path+=` C ${x0+drift} ${m-25}, ${x1-drift} ${m+25}, ${x1} ${y1}`}
-  const bubble=i=>{const x=cx(i),bank=(100-x)>=x?'right':'left',room=Math.max(x,100-x);return{x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
+  const center=i=>50+(hash(i)-.5)*25;
+  const spread=i=>{const r=hash(i);return i%8===5?5.2+(r*2.2):1.15+(r*1.2)};
+  const ax=i=>center(i)+(i%2?1:-1)*spread(i), bx=i=>center(i)-(i%2?1:-1)*spread(i);
+  const curve=fn=>{let p=`M ${fn(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=fn(i-1),x1=fn(i),m=(y0+y1)/2;p+=` C ${x0+(i%2?2.8:-2.8)} ${m-18}, ${x1+(i%2?-2.8:2.8)} ${m+18}, ${x1} ${y1}`}return p};
+  const pa=curve(ax),pb=curve(bx);
+  const bubbleFor=i=>{const x=center(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return{x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverGlowField" style="height:${h}px"><svg class="riverGlowSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="riverGlowMist" d="${path}"/><path class="riverGlowThread" d="${path}"/><path class="riverGlowSpark riverGlowSparkA" d="${path}"/><path class="riverGlowSpark riverGlowSparkB" d="${path}"/></svg>${items.map((e,i)=>{const g=bubble(i);return `<article class="riverGlowNode ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverGlowPin"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}</div>`;
+  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(107,137,202,.72)"/><stop offset=".55" stop-color="rgba(123,151,211,.82)"/><stop offset="1" stop-color="rgba(141,165,216,.68)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(195,112,153,.69)"/><stop offset=".55" stop-color="rgba(207,130,167,.80)"/><stop offset="1" stop-color="rgba(216,151,181,.66)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
-  requestAnimationFrame(()=>{root.querySelectorAll('.riverGlowNode').forEach(node=>{const b=node.querySelector('.riverWindingBubble');if(!b)return;const r=b.getBoundingClientRect(),host=root.getBoundingClientRect(),pad=14;let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)b.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
+  requestAnimationFrame(()=>{root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
 }
 function renderHealthApp(){
   const root=$('#healthAppBody');if(!root)return;
@@ -3484,37 +3482,35 @@ function desktopDefaultLayout(){return{pages:2,items:[
 {id:'app:todo',kind:'app',app:'todo',area:'page',page:0,col:4,row:2,w:1,h:1},
 {id:'app:phone',kind:'app',app:'phone',area:'page',page:1,col:1,row:1,w:1,h:1},
 {id:'app:calls',kind:'app',app:'calls',area:'page',page:1,col:2,row:1,w:1,h:1},
-{id:'app:chat',kind:'app',app:'chat',area:'page',page:1,col:3,row:1,w:1,h:1},
-{id:'app:settings',kind:'app',app:'settings',area:'page',page:1,col:4,row:1,w:1,h:1},
+{id:'app:settings',kind:'app',app:'settings',area:'page',page:1,col:3,row:1,w:1,h:1},
 {id:'dock:diary',kind:'app',app:'diary',area:'dock',slot:1,w:1,h:1},
 {id:'dock:mail',kind:'app',app:'mail',area:'dock',slot:2,w:1,h:1},
 {id:'dock:todo',kind:'app',app:'todo',area:'dock',slot:3,w:1,h:1},
 {id:'dock:settings',kind:'app',app:'settings',area:'dock',slot:4,w:1,h:1}
 ]};}
 function desktopEnsureState(){if(!state.desktopLayout)state.desktopLayout=desktopDefaultLayout();if(typeof state.desktopEditing!=='boolean')state.desktopEditing=false;if(typeof state.desktopCurrentPage!=='number')state.desktopCurrentPage=0;if(typeof state.desktopPickerMode!=='string')state.desktopPickerMode='';if(!state.desktopDrag)state.desktopDrag={active:false,id:'',ghost:null,startPage:0,hover:null,edgeTimer:null,moveHandler:null,upHandler:null};}
-function desktopNormalize(layout){
-  const base=desktopDefaultLayout(),items=Array.isArray(layout?.items)?layout.items.filter(Boolean):[],out=[],seen=new Set();
-  for(const item of items){if(!item||!item.id||seen.has(item.id))continue;seen.add(item.id);if(item.kind==='app'&&!DESKTOP_APPS[item.app])continue;if(item.kind==='widget'&&!DESKTOP_WIDGETS[item.widget])continue;out.push({...item,w:Number(item.w)||1,h:Number(item.h)||1});}
-  const hasApp=app=>out.some(x=>x.kind==='app'&&x.app===app&&(x.area==='page'||x.area==='dock'));
-  for(const item of base.items){if(item.kind==='app'&&item.app==='chat')continue;if(item.kind==='app'&&!hasApp(item.app))out.push({...item});}
-  if(!hasApp('chat')){
-    const phone=out.find(x=>x.kind==='app'&&x.app==='calls'&&x.area==='page');
-    let placed=null;
-    if(phone){
-      const page=Number(phone.page)||0,col=(Number(phone.col)||1)+1,row=Number(phone.row)||1;
-      const occupied=out.some(x=>x.area==='page'&&(Number(x.page)||0)===page&&row>=(Number(x.row)||1)&&row<=((Number(x.row)||1)+(Number(x.h)||1)-1)&&col>=(Number(x.col)||1)&&col<=((Number(x.col)||1)+(Number(x.w)||1)-1));
-      if(col<=4&&!occupied)placed={page,col,row};
+function desktopNormalize(layout){const base=desktopDefaultLayout(),items=Array.isArray(layout?.items)?layout.items.filter(Boolean):[];const out=[];const seen=new Set();for(const item of items){if(!item||!item.id||seen.has(item.id))continue;seen.add(item.id);if(item.kind==='app'&&!DESKTOP_APPS[item.app])continue;if(item.kind==='widget'&&!DESKTOP_WIDGETS[item.widget])continue;out.push({...item,w:Number(item.w)||1,h:Number(item.h)||1});}
+for(const item of base.items){if(item.kind==='app'&&!out.some(x=>x.kind==='app'&&x.app===item.app&&(x.area==='page'||x.area==='dock'))){out.push({...item});}}
+const dockApps=new Set();out.filter(x=>x.kind==='app'&&x.area==='dock').sort((a,b)=>(a.slot||9)-(b.slot||9)).forEach((x,i)=>{x.slot=Math.max(1,Math.min(4,Number(x.slot)||i+1));if(dockApps.has(x.app)){x.area='page';x.page=0;x.col=(i%4)+1;x.row=3+Math.floor(i/4);delete x.slot;}dockApps.add(x.app);});return{pages:Math.max(1,Number(layout?.pages)||2),items:out};}
+function loadDesktopLayout(){
+  desktopEnsureState();
+  state.desktopLayout=desktopNormalize(parse(localDataGet(DESKTOP_LAYOUT_KEY),desktopDefaultLayout()));
+  const items=state.desktopLayout.items||[];
+  if(!items.some(x=>x.kind==='app'&&x.app==='chat'&&x.area==='page')){
+    const pageItems=items.filter(x=>x.area==='page');
+    const lastPage=Math.max(0,...pageItems.map(x=>Number(x.page)||0));
+    const onLast=pageItems.filter(x=>(Number(x.page)||0)===lastPage);
+    let spot=null;
+    for(let row=1;row<=6&&!spot;row++)for(let col=1;col<=4;col++){
+      const occupied=onLast.some(x=>row>=(Number(x.row)||1)&&row<=((Number(x.row)||1)+(Number(x.h)||1)-1)&&col>=(Number(x.col)||1)&&col<=((Number(x.col)||1)+(Number(x.w)||1)-1));
+      if(!occupied){spot={page:lastPage,col,row};break}
     }
-    if(!placed){
-      const lastPage=Math.max(0,...out.filter(x=>x.area==='page').map(x=>Number(x.page)||0));
-      outer:for(let p=lastPage;p<lastPage+2;p++)for(let row=1;row<=6;row++)for(let col=1;col<=4;col++){const occupied=out.some(x=>x.area==='page'&&(Number(x.page)||0)===p&&row>=(Number(x.row)||1)&&row<=((Number(x.row)||1)+(Number(x.h)||1)-1)&&col>=(Number(x.col)||1)&&col<=((Number(x.col)||1)+(Number(x.w)||1)-1));if(!occupied){placed={page:p,col,row};break outer}}
-    }
-    out.push({id:'app:chat',kind:'app',app:'chat',area:'page',page:placed?.page??1,col:placed?.col??4,row:placed?.row??1,w:1,h:1});
+    if(!spot)spot={page:lastPage+1,col:1,row:1};
+    items.push({id:'app:chat',kind:'app',app:'chat',area:'page',page:spot.page,col:spot.col,row:spot.row,w:1,h:1});
+    state.desktopLayout.pages=Math.max(Number(state.desktopLayout.pages)||1,spot.page+1);
+    saveDesktopLayout();
   }
-  const dockApps=new Set();out.filter(x=>x.kind==='app'&&x.area==='dock').sort((a,b)=>(a.slot||9)-(b.slot||9)).forEach((x,i)=>{x.slot=Math.max(1,Math.min(4,Number(x.slot)||i+1));if(dockApps.has(x.app)){x.area='page';x.page=0;x.col=(i%4)+1;x.row=3+Math.floor(i/4);delete x.slot;}dockApps.add(x.app);});
-  return{pages:Math.max(1,Number(layout?.pages)||2,...(out.some(x=>x.area==='page'&&(Number(x.page)||0)>=2)?{pages:Math.max(3,Number(layout?.pages)||2)}:{}),items:out};
 }
-function loadDesktopLayout(){desktopEnsureState();state.desktopLayout=desktopNormalize(parse(localDataGet(DESKTOP_LAYOUT_KEY),desktopDefaultLayout()));}
 function saveDesktopLayout(){desktopEnsureState();localDataSet(DESKTOP_LAYOUT_KEY,JSON.stringify(state.desktopLayout));}
 function desktopItems(){desktopEnsureState();return state.desktopLayout.items||[]}
 function desktopFindItem(id){return desktopItems().find(x=>String(x.id)===String(id))||null}

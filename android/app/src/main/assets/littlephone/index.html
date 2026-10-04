@@ -2359,6 +2359,29 @@ body.diaryMode .journalAnnotationDrawer{z-index:119!important;pointer-events:non
 body.diaryMode .journalAnnotationDrawer.open{pointer-events:auto!important}
 body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diaryMode .journalAnnotationComposer,body.diaryMode .journalAnnotationComposer *{pointer-events:auto!important}
 
+
+/* v0.8.2-19 — clean diary note layer; journal mechanics unchanged */
+.journalBookmarks,.journalAnnotationDrawer{display:none!important}
+.journalNoteTabs{position:absolute;right:20px;top:0;z-index:80;display:flex;gap:5px;pointer-events:auto}
+.journalNoteTab,.journalNoteAdd{border:0;pointer-events:auto;touch-action:manipulation}
+.journalNoteTab{width:17px;height:25px;border-radius:0 0 6px 6px;padding:0;background:rgba(184,201,231,.88);box-shadow:0 3px 8px rgba(73,83,112,.12)}
+.journalNoteTab.user{background:rgba(225,181,201,.9)}.journalNoteTab i{display:block;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9);margin:9px auto}
+.journalNoteAdd{width:24px;height:25px;border-radius:0 0 7px 7px;background:rgba(255,255,255,.88);color:#727a89;font-size:15px}
+.journalNoteOverlay{display:none;position:absolute;inset:0;z-index:110;background:rgba(244,241,235,.16);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);padding:42px 22px 70px;pointer-events:auto}
+.journalNoteOverlay.open{display:block}.journalNotePanel{width:min(310px,88%);margin:0 auto}
+.journalNotePaper,.journalNoteCompose{display:none;padding:15px;border-radius:5px 5px 18px 18px;background:rgba(255,253,247,.97);box-shadow:0 14px 32px rgba(62,60,72,.16);pointer-events:auto}
+.journalNotePaper.active,.journalNoteCompose.active{display:block}.journalNotePaper.user{background:rgba(255,245,249,.98)}.journalNotePaper.daddy{background:rgba(246,249,255,.98)}
+.journalNoteMeta{font-size:9px;color:#8e8990;margin-bottom:8px}.journalNoteText{font-size:12px;line-height:1.75;white-space:pre-wrap}.journalNoteDelete{display:block;margin:10px 0 0 auto;border:0;background:transparent;color:#9c8991;font-size:9px}
+.journalNoteCompose textarea{display:block;width:100%;box-sizing:border-box;resize:none;border:1px solid rgba(115,122,140,.14);border-radius:12px;background:rgba(255,255,255,.72);padding:11px;font:inherit;font-size:12px;line-height:1.6;outline:none;pointer-events:auto;touch-action:manipulation}
+.journalNoteActions{display:flex;justify-content:flex-end;gap:7px;margin-top:9px}
+
+/* Time River: thin luminous signal, not a tube */
+.riverWaterGlow{stroke:rgba(172,211,242,.12)!important;stroke-width:4!important;filter:blur(3px)!important}
+.riverWater{stroke-width:1.35!important;opacity:.72!important;filter:drop-shadow(0 0 3px rgba(199,228,255,.45))}
+.riverShimmer{stroke:rgba(255,255,255,.98)!important;stroke-width:.65!important;stroke-dasharray:.8 13!important;filter:drop-shadow(0 0 2px rgba(255,255,255,.95));animation:riverFlowUp 2.15s linear infinite!important}
+.riverWindingDot{width:3.5px!important;height:3.5px!important;box-shadow:0 0 3px 1px rgba(255,255,255,.9),0 0 7px 2px rgba(172,207,245,.38)!important;border:0!important}
+.riverWindingNode.daddy .riverWindingDot{background:#e7efff!important}.riverWindingNode.user .riverWindingDot{background:#ffe7f2!important}
+
 </style>
 </head>
 <body>
@@ -2992,9 +3015,9 @@ function openJournalSearch(){const input=$('#journalSearchInput');if(input)input
 function journalCoverMarkup(){return `<article class="journalCover076 journalSheet" aria-label="日记封面"><img src="diary-cover-v076.png" alt="日记封面"><div class="journalTurnShade" aria-hidden="true"></div></article>`}
 function journalAnnotationMarkup(d){
   const anns=Array.isArray(d.annotations)?d.annotations:[];
-  const tabs=anns.map((a,i)=>{const side=authorSide(a.author||'daddy');return `<button class="journalBookmarkTab ${side}" type="button" data-journal-annotation-tab="${esc(a.id)}" title="${esc(actorName(a.author||'daddy'))}的批注"><span>${esc(actorName(a.author||'daddy')).slice(0,2)}</span><i>${i+1}</i></button>`}).join('');
-  const cards=anns.map(a=>{const side=authorSide(a.author||'daddy');return `<article class="journalAnnotationCard ${side}" data-journal-annotation-card="${esc(a.id)}"><div class="journalAnnotationWho">${esc(actorName(a.author||'daddy'))} · ${esc(fmt(a.created_at))}</div><div class="journalAnnotationText authoredText ${side}">${esc(a.content||'')}</div><button class="journalAnnotationDelete" type="button" data-journal-annotation-delete="${esc(a.id)}">删除批注</button></article>`}).join('');
-  return `<div class="journalBookmarks" data-journal-bookmarks>${tabs}<button class="journalBookmarkAdd" type="button" data-journal-annotation-add title="写批注">＋</button></div><div class="journalAnnotationDrawer" data-journal-annotation-drawer>${cards}<div class="journalAnnotationComposer"><textarea data-journal-annotation-input rows="2" placeholder="夹一句批注在这一页……"></textarea><button class="softBtn" type="button" data-journal-annotation-submit>夹进书页</button></div></div>`;
+  const tabs=anns.map((a,i)=>{const side=authorSide(a.author||'daddy');return `<button class="journalNoteTab ${side}" type="button" data-note-id="${esc(a.id)}" aria-label="打开批注 ${i+1}"><i></i></button>`}).join('');
+  const notes=anns.map(a=>{const side=authorSide(a.author||'daddy');return `<article class="journalNotePaper ${side}" data-note-paper="${esc(a.id)}"><div class="journalNoteMeta">${esc(actorName(a.author||'daddy'))} · ${esc(fmt(a.created_at))}</div><div class="journalNoteText authoredText ${side}">${esc(a.content||'')}</div><button type="button" class="journalNoteDelete" data-note-delete="${esc(a.id)}">取下</button></article>`}).join('');
+  return `<div class="journalNoteTabs">${tabs}<button class="journalNoteAdd" type="button" data-note-add aria-label="写批注">＋</button></div><div class="journalNoteOverlay" data-note-overlay><div class="journalNotePanel">${notes}<div class="journalNoteCompose" data-note-compose><textarea data-note-input rows="4" placeholder="写一句夹在这一页的批注……"></textarea><div class="journalNoteActions"><button type="button" class="softBtn" data-note-cancel>收起</button><button type="button" class="softBtn" data-note-submit>夹进书页</button></div></div></div></div>`;
 }
 function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy');return `<article class="bookPage journalLeaf journalPhysicalPage journalSheet" data-journal-entry-id="${esc(d.id||'')}">
     <div class="journalPageTexture" aria-hidden="true"></div>
@@ -3012,19 +3035,21 @@ function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy
 function journalElement(markup){const t=document.createElement('template');t.innerHTML=markup.trim();return t.content.firstElementChild}
 function stripJournalIds(node){if(!node)return;node.removeAttribute?.('id');node.querySelectorAll?.('[id]').forEach(x=>x.removeAttribute('id'))}
 async function addJournalAnnotation(d){
-  const input=$('[data-journal-annotation-input]'),content=String(input?.value||'').trim();if(!content)return toast('批注还是空的');
+  const input=$('[data-note-input]'),content=String(input?.value||'').trim();if(!content)return toast('批注还是空的');
   try{await apiWrite('/api/littlephone/diary-annotations',{diary_id:d.id,content,author:'user'});await loadRemote();toast('批注已经夹进这一页')}catch(e){toast(e.message||'批注没有夹进去')}
 }
 async function deleteJournalAnnotation(id){
   try{await apiWrite('/api/littlephone/diary-annotations/delete',{id});await loadRemote();toast('批注已经取下')}catch(e){toast(e.message||'批注没有删除')}
 }
 function bindJournalAnnotations(d){
-  const drawer=$('[data-journal-annotation-drawer]'),tabs=$('[data-journal-annotation-tab]'),add=$('[data-journal-annotation-add]'),submit=$('[data-journal-annotation-submit]');
-  const open=(id='')=>{if(!drawer)return;const already=drawer.classList.contains('open')&&(!id||drawer.dataset.active===String(id));drawer.classList.toggle('open',!already);drawer.dataset.active=already?'':String(id||'compose');$('[data-journal-annotation-card]').forEach(c=>c.classList.toggle('active',!id||String(c.dataset.journalAnnotationCard)===String(id)));if(!already&&id){const c=$('[data-journal-annotation-card]').find(x=>String(x.dataset.journalAnnotationCard)===String(id));c?.scrollIntoView({block:'nearest'})}};
-  tabs.forEach(b=>b.onclick=e=>{e.stopPropagation();open(b.dataset.journalAnnotationTab)});
-  if(add)add.onclick=e=>{e.preventDefault();e.stopPropagation();if(drawer){drawer.classList.add('open');drawer.dataset.active='compose';$('[data-journal-annotation-card]').forEach(c=>c.classList.remove('active'))}requestAnimationFrame(()=>$('[data-journal-annotation-input]')?.focus())};
-  if(submit)submit.onclick=e=>{e.stopPropagation();addJournalAnnotation(d)};
-  $('[data-journal-annotation-delete]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteJournalAnnotation(b.dataset.journalAnnotationDelete)});
+  const overlay=$('[data-note-overlay]'),compose=$('[data-note-compose]'),add=$('[data-note-add]'),submit=$('[data-note-submit]'),cancel=$('[data-note-cancel]');
+  const close=()=>{overlay?.classList.remove('open');$$('[data-note-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.remove('active')};
+  if(add)add.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();overlay?.classList.add('open');$$('[data-note-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.add('active');setTimeout(()=>$('[data-note-input]')?.focus(),40)});
+  $$('[data-note-id]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();overlay?.classList.add('open');compose?.classList.remove('active');$$('[data-note-paper]').forEach(x=>x.classList.toggle('active',String(x.dataset.notePaper)===String(btn.dataset.noteId)))}));
+  if(cancel)cancel.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();close()});
+  if(submit)submit.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();addJournalAnnotation(d)});
+  $$('[data-note-delete]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();deleteJournalAnnotation(btn.dataset.noteDelete)}));
+  if(overlay)overlay.addEventListener('click',e=>{if(e.target===overlay){e.stopPropagation();close()}});
 }
 function bindJournalPageActions(d,list){const edit=$('#journalEdit'),del=$('#journalDelete');if(edit)edit.onclick=()=>openCompose('diary-edit',d);if(del)del.onclick=()=>deleteItem('/api/littlephone/diaries/delete',d.id,'这篇日记',()=>{state.journalIndex=Math.max(0,Math.min(state.journalIndex-1,list.length-2))});bindJournalAnnotations(d);bindJournalScroll(d.id)}
 function updateJournalPageNo(value){const n=$('#journalPageNo');if(n)n.textContent=value}

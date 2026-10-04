@@ -1,4 +1,4 @@
-const VERSION = "0.8.1-little-phone-shell";
+const VERSION = "0.8.2-12-little-phone-shell";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -1179,7 +1179,7 @@ async function handleMcp(request,env,url){
   if(method==="server/discover"){
     return mcpJson(rpcResult(id,{
       supportedVersions:MCP_COMPAT_PROTOCOL_VERSIONS,
-      capabilities:{tools:{listChanged:false}},
+      capabilities:{tools:{listChanged:true}},
       instructions:"Use the Little Phone tools for Ryan's private letters, notes, todos, diaries, dates, calls, statuses, and explicitly authorized one-time device visits.",
       _meta:mcpResultMeta()
     }),200,MCP_MODERN_PROTOCOL_VERSION);
@@ -1187,7 +1187,7 @@ async function handleMcp(request,env,url){
 
   if(method==="initialize")return mcpJson(rpcResult(id,{
     protocolVersion:MCP_LEGACY_PROTOCOL_VERSION,
-    capabilities:{tools:{listChanged:false}},
+    capabilities:{tools:{listChanged:true}},
     serverInfo:mcpServerInfo(),
     instructions:"Use the Little Phone tools for Ryan's private data and explicitly authorized one-time device visits."
   }),200,MCP_LEGACY_PROTOCOL_VERSION);
@@ -1228,7 +1228,7 @@ async function callTool(name,args,env){
     case "get_little_phone_snapshot": {const visit=await latestVisit(env,clip(args.device_id||DEFAULT_DEVICE,120));if(!visit)return mcpText({ok:true,has_snapshot:false,message:"还没有成功来访快照。"});if(visit.expired)return mcpText({ok:true,has_snapshot:true,fresh:false,expired:true,created_at:visit.created_at,expires_at:visit.expires_at,message:"上次快照已过期"});return mcpText({ok:true,has_snapshot:true,fresh:true,expired:false,visit});}
     case "list_little_phone_events": return mcpText({ok:true,events:await listEvents(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "leave_little_phone_trace": return mcpText({ok:true,event:await insertEvent(env,{actor:actorFromAuthor(args.author||"daddy"),type:"manual",title:clip(args.title||"daddy 留下一条痕迹",120),content:clip(args.content||"",1000),metadata:{source:"mcp"}})});
-    case "leave_little_phone_paper": {const paper=await addPaper(env,args);return mcpText(paper.error?{ok:false,error:paper.error}:{ok:true,paper},Boolean(paper.error));}
+    case "leave_little_phone_paper": {const paper=await addPaper(env,{...args,author:args.author||"daddy"});return mcpText(paper.error?{ok:false,error:paper.error}:{ok:true,paper},Boolean(paper.error));}
     case "list_little_phone_papers": return mcpText({ok:true,papers:await listPapers(env,Math.max(1,Math.min(500,Number(args.limit||200))))});
     case "send_little_phone_letter": {const mail=await addMail(env,args);return mcpText(mail.error?{ok:false,error:mail.error}:{ok:true,mail},Boolean(mail.error));}
     case "list_little_phone_mail": return mcpText({ok:true,mail:await listMail(env,Math.max(1,Math.min(300,Number(args.limit||80))))});

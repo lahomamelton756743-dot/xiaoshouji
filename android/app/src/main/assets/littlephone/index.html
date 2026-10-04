@@ -2455,6 +2455,17 @@ body.miniAppMode .phoneAppPage{min-height:0!important}
 .riverLifeLine{stroke-width:.82!important;opacity:.96!important}
 .riverFirefly{stroke-width:.18!important;stroke-dasharray:.28 31!important;opacity:.58!important}
 
+
+/* v0.8.3-3 clean visual rebuild */
+.desktopPage[data-desktop-page="1"] .desktopApp[data-open-app="phone"]{grid-column:1;grid-row:1}
+.desktopPage[data-desktop-page="1"] .desktopApp[data-open-app="chat"]{display:flex!important;visibility:visible!important;opacity:1!important;grid-column:2;grid-row:1}
+body.miniAppMode .phoneAppPage{min-height:0!important}
+#riverAppScroller,#riverAppTrack,.riverWindingFlow,.riverAppVerticalShell{min-height:0!important}
+.riverLifeLine.userLine{display:none!important}.riverFirefly.userGlow{display:none!important}
+.riverLifeLine.daddyLine{stroke:rgba(164,149,216,.74)!important;stroke-width:.72!important;opacity:.86!important;filter:drop-shadow(0 0 1.6px rgba(192,181,236,.34))!important}
+.riverFirefly.daddyGlow{stroke:rgba(242,238,255,.92)!important;stroke-width:.20!important;stroke-dasharray:.28 29!important;opacity:.78!important;filter:drop-shadow(0 0 .8px rgba(229,222,255,.72))!important;animation:riverBondUp 6.6s linear infinite!important}
+@keyframes riverBondUp{from{stroke-dashoffset:72}to{stroke-dashoffset:0}}
+
 </style>
 </head>
 <body>
@@ -2488,7 +2499,7 @@ body.miniAppMode .phoneAppPage{min-height:0!important}
           <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">电话</span></button>
           <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
           <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
-          <div class="desktopPageTwoNote">新 App 会接在上一页最后一个 App 后面继续排列。</div>
+          
         </div>
       </div>
       <div class="desktopDots" aria-hidden="true"><i class="active" data-desktop-dot="0"></i><i data-desktop-dot="1"></i></div>

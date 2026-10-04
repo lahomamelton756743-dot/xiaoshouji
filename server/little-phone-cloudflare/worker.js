@@ -1,4 +1,4 @@
-const VERSION = "0.8.2-14-little-phone-shell";
+const VERSION = "0.8.2-16-little-phone-shell";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -64,6 +64,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/papers") return listPapersApi(env, url);
     if (path === "/api/littlephone/dailybook") return listDailybookApi(env, url);
     if (path === "/api/littlephone/diaries") return listDiariesApi(env, url);
+    if (path === "/api/littlephone/diary-annotations") return listDiaryAnnotationsApi(env, url);
     if (path === "/api/littlephone/todos") return listTodosApi(env, url);
     if (path === "/api/littlephone/dates") return listDatesApi(env, url);
     if (path === "/api/littlephone/cycle") return getCycleApi(env);
@@ -92,6 +93,8 @@ async function handle(request, env) {
     if (path === "/api/littlephone/dailybook/update") return updateDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries") return addDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries/update") return updateDiaryApi(env, await readJson(request));
+    if (path === "/api/littlephone/diary-annotations") return addDiaryAnnotationApi(env, await readJson(request));
+    if (path === "/api/littlephone/diary-annotations/delete") return deleteRowApi(env, "lp_diary_annotations", await readJson(request));
     if (path === "/api/littlephone/diaries/delete") return deleteRowApi(env, "lp_diaries", await readJson(request));
     if (path === "/api/littlephone/todos") return addTodoApi(env, await readJson(request));
     if (path === "/api/littlephone/todos/toggle") return toggleTodoApi(env, await readJson(request));
@@ -467,6 +470,8 @@ async function ensureSchema(env) {
         event_date TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
       )`,
       `CREATE INDEX IF NOT EXISTS idx_lp_diaries_date ON lp_diaries(event_date DESC,created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS lp_diary_annotations (id TEXT PRIMARY KEY, diary_id TEXT NOT NULL, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_diary_annotations_diary ON lp_diary_annotations(diary_id,created_at ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_todos (
         id TEXT PRIMARY KEY, author TEXT NOT NULL, title TEXT NOT NULL,
         due_at TEXT NOT NULL DEFAULT '', remind_at TEXT NOT NULL DEFAULT '',
@@ -752,8 +757,24 @@ async function updateDailybook(env,body,editor="user"){
 }
 async function updateDailybookApi(env,body){const item=await updateDailybook(env,body,"user");return item.error?json({ok:false,error:item.error},item.error==="forbidden"?403:404):json({ok:true,entry:item});}
 
+function rowDiaryAnnotation(r){return {id:r.id,diary_id:r.diary_id,author:r.author,content:r.content,created_at:r.created_at};}
+async function listDiaryAnnotations(env,diaryId="",limit=500){
+  const lim=Math.max(1,Math.min(500,Number(limit||500)));
+  const rows=diaryId?await env.DB.prepare("SELECT * FROM lp_diary_annotations WHERE diary_id=? ORDER BY created_at ASC,id ASC LIMIT ?").bind(diaryId,lim).all():await env.DB.prepare("SELECT * FROM lp_diary_annotations ORDER BY created_at ASC,id ASC LIMIT ?").bind(lim).all();
+  return (rows.results||[]).map(rowDiaryAnnotation);
+}
+async function listDiaryAnnotationsApi(env,url){return json({ok:true,annotations:await listDiaryAnnotations(env,clip(url.searchParams.get("diary_id")||"",100),asLimit(url,200,500))});}
+async function addDiaryAnnotation(env,body){
+  const diaryId=clip(body.diary_id||body.id||"",100),content=clip(body.content||"",4000).trim(),author=clip(body.author||"daddy",80);
+  if(!diaryId||!content)return {error:"diary_id_and_content_required"};
+  const diary=await env.DB.prepare("SELECT id FROM lp_diaries WHERE id=?").bind(diaryId).first();if(!diary)return {error:"diary_not_found"};
+  const item={id:uuid(),diary_id:diaryId,author,content,created_at:nowIso()};
+  await env.DB.prepare("INSERT INTO lp_diary_annotations(id,diary_id,author,content,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.diary_id,item.author,item.content,item.created_at).run();
+  return item;
+}
+async function addDiaryAnnotationApi(env,body){const item=await addDiaryAnnotation(env,{...body,author:body.author||"user"});return item.error?json({ok:false,error:item.error},400):json({ok:true,annotation:item});}
 function rowDiary(r){return {id:r.id,author:r.author,title:r.title,content:r.content,date:r.event_date,created_at:r.created_at,updated_at:r.updated_at};}
-async function listDiaries(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_diaries ORDER BY event_date ASC,created_at ASC,id ASC LIMIT ?").bind(limit).all();return (rows.results||[]).map(rowDiary);}
+async function listDiaries(env,limit=100){const rows=await env.DB.prepare("SELECT * FROM lp_diaries ORDER BY event_date ASC,created_at ASC,id ASC LIMIT ?").bind(limit).all();const diaries=(rows.results||[]).map(rowDiary),anns=await listDiaryAnnotations(env,"",500);const by=new Map();for(const a of anns){if(!by.has(a.diary_id))by.set(a.diary_id,[]);by.get(a.diary_id).push(a)}for(const d of diaries)d.annotations=by.get(d.id)||[];return diaries;}
 async function listDiariesApi(env,url){return json({ok:true,diaries:await listDiaries(env,asLimit(url,100,300))});}
 async function addDiary(env,body){const title=clip(body.title||"今天",160).trim()||"今天",content=clip(body.content||"",20000).trim(),date=clip(body.date||todayUtc(),20),author=clip(body.author||"daddy",40);if(!content)return {error:"content_required"};if(!validDate(date))return {error:"invalid_date"};const now=nowIso(),item={id:uuid(),author,title,content,date,created_at:now,updated_at:now};await env.DB.prepare("INSERT INTO lp_diaries(id,author,title,content,event_date,created_at,updated_at) VALUES(?,?,?,?,?,?,?)").bind(item.id,item.author,item.title,item.content,item.date,item.created_at,item.updated_at).run();await insertEvent(env,{actor:actorFromAuthor(item.author),type:"diary",title:`${item.author} 写了一篇日记`,content:item.title,metadata:{diary_id:item.id}});return item;}
 async function addDiaryApi(env,body){const item=await addDiary(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,diary:item});}
@@ -1079,6 +1100,9 @@ const MCP_TOOLS = [
   tool("write_daddy_diary","写一篇 daddy/GPT 的私人日记，显示在“我们 → 日记”翻页册。",{title:{type:"string"},content:{type:"string"},date:{type:"string",description:"YYYY-MM-DD",default:""},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_daddy_diaries","读取 daddy/GPT 日记。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_daddy_diary","修改一篇 daddy/GPT 日记。",{id:{type:"string"},title:{type:"string"},content:{type:"string"},date:{type:"string"}},["id"]),
+  tool("add_diary_annotation","给指定的小手机日记页写一条批注。批注会作为夹在书页顶部的书签显示。",{diary_id:{type:"string"},content:{type:"string"},author:{type:"string",default:"daddy"}},["diary_id","content"]),
+  tool("list_diary_annotations","读取指定日记页的批注，按写入时间从早到晚排列。",{diary_id:{type:"string"},limit:{type:"integer",minimum:1,maximum:500,default:100}},["diary_id"]),
+  tool("delete_diary_annotation","删除一条日记批注。",{id:{type:"string"}},["id"]),
   tool("add_little_phone_todo","添加一个待办。",{title:{type:"string"},due_at:{type:"string",default:""},remind_at:{type:"string",default:""},author:{type:"string",default:"daddy"}},["title"]),
   tool("list_little_phone_todos","读取待办。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_little_phone_todo","修改待办标题、到期时间或提醒时间。",{id:{type:"string"},title:{type:"string"},due_at:{type:"string"},remind_at:{type:"string"}},["id"]),
@@ -1219,6 +1243,9 @@ async function callTool(name,args,env){
     case "write_daddy_diary": {const d=await addDiary(env,{...args,author:args.author||"daddy"});return mcpText(d.error?{ok:false,error:d.error}:{ok:true,diary:d},Boolean(d.error));}
     case "list_daddy_diaries": return mcpText({ok:true,diaries:await listDiaries(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_daddy_diary": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const title=clip(args.title!==undefined?args.title:old.title,160).trim()||old.title,content=clip(args.content!==undefined?args.content:old.content,20000).trim(),date=clip(args.date!==undefined?args.date:old.event_date,20);if(!content||!validDate(date))return mcpText({ok:false,error:"invalid_diary"},true);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return mcpText({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
+    case "add_diary_annotation": {const a=await addDiaryAnnotation(env,{...args,author:args.author||"daddy"});return mcpText(a.error?{ok:false,error:a.error}:{ok:true,annotation:a},Boolean(a.error));}
+    case "list_diary_annotations": return mcpText({ok:true,annotations:await listDiaryAnnotations(env,clip(args.diary_id||"",100),Math.max(1,Math.min(500,Number(args.limit||100))))});
+    case "delete_diary_annotation": {const id=clip(args.id||"",100);await env.DB.prepare("DELETE FROM lp_diary_annotations WHERE id=?").bind(id).run();return mcpText({ok:true,id});}
     case "add_little_phone_todo": {const t=await addTodo(env,args);return mcpText(t.error?{ok:false,error:t.error}:{ok:true,todo:t},Boolean(t.error));}
     case "list_little_phone_todos": return mcpText({ok:true,todos:await listTodos(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_little_phone_todo": {const t=await updateTodo(env,args);return mcpText(t?{ok:true,todo:t}:{ok:false,error:"todo_not_found"},!t);}

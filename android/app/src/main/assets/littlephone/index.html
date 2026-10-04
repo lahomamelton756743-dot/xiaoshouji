@@ -2423,6 +2423,28 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 @keyframes riverFireflyUp{from{stroke-dashoffset:0}to{stroke-dashoffset:72}}
 .riverWindingDot{width:3px!important;height:3px!important;box-shadow:0 0 2px rgba(255,255,255,.82)!important}
 
+
+/* v0.8.3 — Chat app + tightly intertwined Time River */
+.chatDesktopIcon{background:linear-gradient(145deg,rgba(255,255,255,.58),rgba(207,218,242,.36))!important}
+.chatAppPage{padding-bottom:88px!important}
+.chatAppHead{position:sticky;top:0;z-index:6;margin:4px 10px 10px;padding:10px 13px;border-radius:20px;display:flex;align-items:center;gap:10px}
+.chatHeadAvatar,.chatAvatar{overflow:hidden;border-radius:50%;background:rgba(255,255,255,.58);box-shadow:0 3px 10px rgba(75,86,116,.10);flex:0 0 auto}
+.chatHeadAvatar{width:34px;height:34px}.chatAvatar{width:34px;height:34px;margin-top:2px}
+.chatHeadAvatar img,.chatAvatar img{width:100%;height:100%;object-fit:cover}
+.chatAppHead b{display:block;font-size:14px}.chatAppHead small{display:block;font-size:9px;color:#9298a6;margin-top:2px}
+.chatMessages{height:calc(100vh - 205px);min-height:390px;overflow-y:auto;padding:12px 10px 26px;scroll-behavior:smooth}
+.chatRow{display:flex;align-items:flex-start;gap:8px;margin:0 0 14px}
+.chatRow.user{flex-direction:row-reverse}.chatPayload{max-width:72%;display:flex;flex-direction:column}.chatRow.user .chatPayload{align-items:flex-end}
+.chatBubble{padding:10px 12px;border-radius:18px;font-size:13px;line-height:1.55;word-break:break-word;box-shadow:0 5px 15px rgba(80,91,122,.07);backdrop-filter:blur(13px)}
+.chatRow.daddy .chatBubble{background:rgba(157,181,226,.32);border-top-left-radius:6px}.chatRow.user .chatBubble{background:rgba(222,166,194,.34);border-top-right-radius:6px}
+.chatTimestamp{font-size:8px;line-height:1.3;color:rgba(91,98,114,.58);margin:4px 3px 0;white-space:nowrap}
+.chatComposer{position:fixed;z-index:20;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 24px),430px);padding:8px;border-radius:22px;display:flex;align-items:flex-end;gap:7px}
+.chatComposer textarea{flex:1;min-height:38px;max-height:96px;border:0;outline:0;resize:none;border-radius:16px;padding:10px 11px;background:rgba(255,255,255,.56);font:inherit;font-size:12px}
+.chatComposer button{border:0;border-radius:15px;padding:10px 13px;background:rgba(145,166,211,.52);color:#fff;font-weight:650}
+.chatEmpty{padding-top:110px}
+.riverLifeLine{stroke-width:.72!important;opacity:.90!important}
+.riverFirefly{stroke-width:.20!important;stroke-dasharray:.32 27!important;opacity:.70!important}
+
 </style>
 </head>
 <body>
@@ -2455,6 +2477,7 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
         <div class="desktopPage" data-desktop-page="1">
           <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">电话</span></button>
           <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
+          <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
           <div class="desktopPageTwoNote">第二页先留空。以后聊天、相册、电话、通知中心都可以直接作为新的 App 放进来，不再改整台小手机的结构。</div>
         </div>
       </div>
@@ -2634,6 +2657,12 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
       <div class="appSectionTitle">未来信</div><div id="mailAppFuture"></div>
     </section>
 
+    <section class="page phoneAppPage chatAppPage" id="page-app-chat">
+      <div class="chatAppHead glass"><div class="chatHeadAvatar" data-avatar-view="daddy"></div><div><b id="chatPartnerName">daddy</b><small>我们的聊天</small></div></div>
+      <div class="chatMessages" id="chatMessages"></div>
+      <form class="chatComposer glass" id="chatComposer"><textarea id="chatInput" rows="1" maxlength="6000" placeholder="发一条消息…"></textarea><button type="submit">发送</button></form>
+    </section>
+
     <section class="page phoneAppPage" id="page-app-river">
       <div class="miniAppHead"><div class="miniAppTitle">时间河<small>我们的日常册</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
       <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint">旧的在下 · 时间向上流 · 新的长在上方</div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
@@ -2741,8 +2770,8 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false};
-const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-health':['小米健康',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
+const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false};
+const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -2796,7 +2825,7 @@ function setUsHubTab(tab,scrollTop=false){
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }
 function openMiniApp(app){
-  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',health:'app-health',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
+  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',chat:'app-chat',health:'app-health',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
   const page=map[app]||'desktop';go(page);
 }
 function go(page,push=true){
@@ -2822,6 +2851,7 @@ function go(page,push=true){
   if(page==='app-memory')renderMemoryApp();
   if(page==='app-mail')renderMailApp();
   if(page==='app-river')renderRiverApp();
+  if(page==='app-chat')renderChatApp();
   if(page==='app-health'){renderHealthApp()}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
@@ -2834,6 +2864,7 @@ $$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
 $$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
 $$('[data-open-app]').forEach(b=>b.onclick=()=>openMiniApp(b.dataset.openApp));
 if($('#systemHomePill'))$('#systemHomePill').onclick=()=>go('desktop');
+if($('#chatComposer'))$('#chatComposer').onsubmit=e=>{e.preventDefault();sendChatMessage()};
 const desktopViewport=$('#desktopViewport');
 if(desktopViewport){desktopViewport.addEventListener('scroll',()=>{const w=Math.max(1,desktopViewport.clientWidth),idx=Math.max(0,Math.min(1,Math.round(desktopViewport.scrollLeft/w)));$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx))},{passive:true})}
 function serverUrl(path){const base=(state.conn.server||'').replace(/\/$/,'');return /^(https?:|data:|blob:)/i.test(path)?path:`${base}${path.startsWith('/')?'':'/'}${path}`}
@@ -2884,18 +2915,18 @@ async function loadRemote(){
   if(!state.conn.connected){state.remoteError=true;state.lastRemoteError='not_connected';updateOfflineBanner();renderAll();return}
   try{
     const d=await nativeRequest('GET','/api/littlephone/bootstrap');
-    state.visit=d.visit||null;state.events=d.events||[];state.papers=d.papers||[];state.mail=d.mail||[];state.capsules=d.capsules||[];state.dailybook=d.dailybook||[];state.diaries=d.diaries||[];state.todos=d.todos||[];state.dates=d.dates||[];state.cycle=d.cycle||{};mergeStatuses(d.statuses||{});state.calls=mergeCalls(d.calls||[]);state.memories=d.memories||[];state.health=d.health||state.health||{connected:false,source:'not_connected'};mergeRemoteProfiles(d.profiles||{});
+    state.visit=d.visit||null;state.events=d.events||[];state.papers=d.papers||[];state.mail=d.mail||[];state.capsules=d.capsules||[];state.dailybook=d.dailybook||[];state.diaries=d.diaries||[];state.chats=d.chats||[];state.todos=d.todos||[];state.dates=d.dates||[];state.cycle=d.cycle||{};mergeStatuses(d.statuses||{});state.calls=mergeCalls(d.calls||[]);state.memories=d.memories||[];state.health=d.health||state.health||{connected:false,source:'not_connected'};mergeRemoteProfiles(d.profiles||{});
     try{await syncLocalCalls(d.calls||[])}catch{}
     state.remoteError=false;state.lastRemoteError='';applyPendingWrites();saveCache();mergePendingEvents();
     const writesFlushed=await flushPendingWrites();
-    if(writesFlushed){try{const fresh=await nativeRequest('GET','/api/littlephone/bootstrap');state.visit=fresh.visit||state.visit;state.events=fresh.events||state.events;state.papers=fresh.papers||state.papers;state.mail=fresh.mail||state.mail;state.capsules=fresh.capsules||state.capsules;state.dailybook=fresh.dailybook||state.dailybook;state.diaries=fresh.diaries||state.diaries;state.todos=fresh.todos||state.todos;state.dates=fresh.dates||state.dates;state.cycle=fresh.cycle||state.cycle;mergeStatuses(fresh.statuses||{});state.calls=mergeCalls(fresh.calls||state.calls);state.memories=fresh.memories||state.memories;state.health=fresh.health||state.health;mergeRemoteProfiles(fresh.profiles||{})}catch{applyPendingWrites()}}
+    if(writesFlushed){try{const fresh=await nativeRequest('GET','/api/littlephone/bootstrap');state.visit=fresh.visit||state.visit;state.events=fresh.events||state.events;state.papers=fresh.papers||state.papers;state.mail=fresh.mail||state.mail;state.capsules=fresh.capsules||state.capsules;state.dailybook=fresh.dailybook||state.dailybook;state.diaries=fresh.diaries||state.diaries;state.chats=fresh.chats||state.chats;state.todos=fresh.todos||state.todos;state.dates=fresh.dates||state.dates;state.cycle=fresh.cycle||state.cycle;mergeStatuses(fresh.statuses||{});state.calls=mergeCalls(fresh.calls||state.calls);state.memories=fresh.memories||state.memories;state.health=fresh.health||state.health;mergeRemoteProfiles(fresh.profiles||{})}catch{applyPendingWrites()}}
     if(hasNative()&&window.LittlePhoneNative.syncImportantDates){try{window.LittlePhoneNative.syncImportantDates(JSON.stringify(state.dates||[]))}catch{}}
     if(hasNative()&&window.LittlePhoneNative.setCycleConfig&&state.cycle?.settings){try{window.LittlePhoneNative.setCycleConfig(JSON.stringify(state.cycle.settings))}catch{}}
     if(state.pendingEvents.length){const flushed=await flushPendingEvents();if(flushed){try{const e=await nativeRequest('GET','/api/littlephone/events?limit=160');state.events=e.events||state.events;saveCache()}catch{}}}
   }catch(e){
     const msg=String(e?.message||'request_failed');
     if(msg.includes('LINJIAN_ERR_BAD_METHOD')||msg.includes('HTTP 404')){
-      const tasks=[['visit','/api/littlephone/visit/latest'],['events','/api/littlephone/events?limit=160'],['papers','/api/littlephone/papers?limit=300'],['mail','/api/mail?limit=120'],['capsules','/api/capsules?limit=80'],['dailybook','/api/littlephone/dailybook?limit=160'],['diaries','/api/littlephone/diaries?limit=160'],['todos','/api/littlephone/todos?limit=160'],['dates','/api/littlephone/dates?limit=300'],['cycle','/api/littlephone/cycle'],['memories','/api/littlephone/memories?limit=80']];let success=0,first='';for(const [key,path] of tasks){try{const x=await nativeRequest('GET',path);success++;if(key==='visit')state.visit=x.visit||null;else if(key==='events')state.events=x.events||[];else if(key==='papers')state.papers=x.papers||[];else if(key==='mail')state.mail=x.mail||[];else if(key==='capsules')state.capsules=x.capsules||[];else if(key==='dailybook')state.dailybook=x.entries||[];else if(key==='diaries')state.diaries=x.diaries||[];else if(key==='todos')state.todos=x.todos||[];else if(key==='dates')state.dates=x.dates||[];else if(key==='memories')state.memories=x.memories||[];else state.cycle=x||{}}catch(ex){if(!first)first=ex.message||'request_failed'}}state.remoteError=success===0;state.lastRemoteError=state.remoteError?first:'';if(success)saveCache();
+      const tasks=[['visit','/api/littlephone/visit/latest'],['events','/api/littlephone/events?limit=160'],['papers','/api/littlephone/papers?limit=300'],['mail','/api/mail?limit=120'],['capsules','/api/capsules?limit=80'],['dailybook','/api/littlephone/dailybook?limit=160'],['diaries','/api/littlephone/diaries?limit=160'],['chats','/api/littlephone/chat?limit=500'],['todos','/api/littlephone/todos?limit=160'],['dates','/api/littlephone/dates?limit=300'],['cycle','/api/littlephone/cycle'],['memories','/api/littlephone/memories?limit=80']];let success=0,first='';for(const [key,path] of tasks){try{const x=await nativeRequest('GET',path);success++;if(key==='visit')state.visit=x.visit||null;else if(key==='events')state.events=x.events||[];else if(key==='papers')state.papers=x.papers||[];else if(key==='mail')state.mail=x.mail||[];else if(key==='capsules')state.capsules=x.capsules||[];else if(key==='dailybook')state.dailybook=x.entries||[];else if(key==='diaries')state.diaries=x.diaries||[];else if(key==='chats')state.chats=x.messages||[];else if(key==='todos')state.todos=x.todos||[];else if(key==='dates')state.dates=x.dates||[];else if(key==='memories')state.memories=x.memories||[];else state.cycle=x||{}}catch(ex){if(!first)first=ex.message||'request_failed'}}state.remoteError=success===0;state.lastRemoteError=state.remoteError?first:'';if(success)saveCache();
     }else{state.remoteError=true;state.lastRemoteError=msg}
   }
   mergePendingEvents();updateOfflineBanner();renderAll();
@@ -3252,6 +3283,9 @@ function renderMailApp(){
   future.innerHTML=futures.length?futures.map(m=>{const side=authorSide(m.author),locked=!!m.locked,seen=seenState(m,'user');return `<article class="glass contentGlass mailAppCard ${locked?'mailAppLocked':''}" data-app-future="${esc(m.id)}"><div class="mailAppMeta"><span>${esc(actorName(m.author||''))}</span><span>开启 · ${esc(m.unlock_at||'')}</span></div><div class="mailAppBody authoredText ${side}">${esc(locked?'还没有到开启的日子。':seen?String(m.content||'').slice(0,92):'已经到日子了，点开拆信。')}</div><div class="mailAppFutureDate">${locked?'仍在封存':'已经抵达'}</div></article>`}).join(''):'<div class="glass appEmpty">还没有未来信。</div>';
   future.querySelectorAll('[data-app-future]').forEach(c=>{const m=futures.find(x=>String(x.id)===String(c.dataset.appFuture));c.onclick=()=>openUnifiedMail(m?{...m,_kind:'capsule',future:true}:null)});
 }
+function chatTime(iso){const d=new Date(iso);if(Number.isNaN(+d))return esc(iso||'');const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}年${p(d.getMonth()+1)}月${p(d.getDate())}日 ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
+function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items=[...(state.chats||[])].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));box.innerHTML=items.length?items.map(m=>{const side=authorSide(m.author),who=side==='daddy'?'daddy':'ryan';return `<div class="chatRow ${side}"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload"><div class="chatBubble">${esc(m.content).replace(/\n/g,'<br>')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`}).join(''):'<div class="empty chatEmpty">这里还没有消息。</div>';applyAvatars();if($('#chatPartnerName'))$('#chatPartnerName').textContent=actorName('daddy');requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
+async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message)state.chats=[...(state.chats||[]),r.message];input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
   if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
@@ -3259,14 +3293,14 @@ function renderRiverApp(){
   if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
   const step=118,h=Math.max(440,items.length*step+84);
   const center=i=>50+Math.sin(i*.91+.42)*13+Math.sin(i*.37+1.3)*8+Math.sin(i*1.73)*3.5;
-  const twist=i=>2.2*Math.sin(i*1.39+.25)+1.05*Math.sin(i*.63+2.1);
+  const twist=i=>1.35*Math.sin(i*2.18+.25)+.72*Math.sin(i*1.37+2.1)+(i%7===3?3.2:0)-(i%9===5?2.7:0);
   const cy=i=>52+i*step;
   const ax=i=>center(i)+twist(i), bx=i=>center(i)-twist(i);
   const curve=(fn)=>{let p=`M ${fn(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=fn(i-1),x1=fn(i),m=(y0+y1)/2,drift=Math.sin(i*.79)*9;p+=` C ${x0} ${m-22+drift}, ${x1} ${m+22-drift}, ${x1} ${y1}`}return p};
   const pa=curve(ax),pb=curve(bx);
   const bubbleFor=i=>{const x=center(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return{x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(151,171,214,.30)"/><stop offset=".55" stop-color="rgba(166,184,220,.43)"/><stop offset="1" stop-color="rgba(178,193,224,.25)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(211,157,184,.27)"/><stop offset=".55" stop-color="rgba(219,171,194,.40)"/><stop offset="1" stop-color="rgba(226,186,204,.24)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(120,148,207,.58)"/><stop offset=".55" stop-color="rgba(129,157,214,.72)"/><stop offset="1" stop-color="rgba(145,169,217,.50)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(199,124,163,.55)"/><stop offset=".55" stop-color="rgba(207,136,171,.70)"/><stop offset="1" stop-color="rgba(217,157,185,.48)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
   requestAnimationFrame(()=>{root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
 }

@@ -2302,6 +2302,14 @@ html,body,.shell,.page{background-color:transparent!important}
 .riverClassicBubble{position:absolute;top:0;width:var(--bw);min-width:116px;max-width:168px;min-height:54px;border-radius:23px;padding:10px 13px;text-align:left;transform:translateY(-50%);transition:transform .18s ease;white-space:normal}
 .riverClassicNode.right .riverClassicBubble{left:15px}.riverClassicNode.left .riverClassicBubble{right:15px}
 .riverClassicBubble small{display:block;font-size:9px;color:#7d8599;margin-bottom:4px}.riverClassicBubble b{display:block;font-size:12px;font-weight:680;color:#566178;white-space:normal;overflow-wrap:anywhere}
+
+/* v0.8.3-8: exact original river skin + adaptive vertical banks; no outer frame */
+#page-app-river .riverShell{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;overflow:visible!important}
+#page-app-river .riverShell:before,#page-app-river .riverShell:after{display:none!important}
+.riverClassicGlow{fill:none!important;stroke:rgba(189,211,255,.28)!important;stroke-width:12!important;filter:blur(7px)!important;stroke-linecap:round!important}
+.riverClassicPath{fill:none!important;stroke:url(#riverClassicGradient)!important;stroke-width:2.2!important;stroke-linecap:round!important}
+.riverClassicDot{width:10px!important;height:10px!important;background:rgba(255,255,255,.92)!important;border:2px solid rgba(130,151,207,.65)!important;box-shadow:0 0 0 7px rgba(255,255,255,.28),0 0 18px rgba(133,161,221,.22)!important}
+.riverClassicBubble{border-radius:23px!important;padding:12px 13px!important}
 </style>
 </head>
 <body>

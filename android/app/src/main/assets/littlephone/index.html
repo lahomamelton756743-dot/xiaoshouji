@@ -2317,6 +2317,14 @@ html,body,.shell,.page{background-color:transparent!important}
 .riverClassicShimmer{fill:none;stroke:rgba(255,255,255,.54);stroke-width:.42;stroke-linecap:round;stroke-dasharray:.6 15;filter:drop-shadow(0 0 .8px rgba(255,255,255,.42));animation:riverPearlFlow 7.8s linear infinite}
 @keyframes riverPearlFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:48}}
 .riverClassicDot{width:6px!important;height:6px!important;background:rgba(252,251,255,.86)!important;border:1px solid rgba(191,184,224,.42)!important;box-shadow:0 0 0 4px rgba(245,242,255,.14),0 0 8px rgba(207,201,235,.20)!important}
+
+/* v0.8.3-10 visible galaxy river */
+.riverClassicGlow{stroke:rgba(205,201,238,.26)!important;stroke-width:10!important;filter:blur(4.5px)!important;opacity:1!important}
+.riverClassicPath{stroke:url(#riverPearlLavender)!important;stroke-width:2.4!important;opacity:.92!important;filter:drop-shadow(0 0 2px rgba(224,220,248,.38))!important}
+.riverClassicShimmer{stroke:rgba(255,255,255,.88)!important;stroke-width:.7!important;stroke-dasharray:.7 9!important;opacity:.92!important;filter:drop-shadow(0 0 1.4px rgba(239,235,255,.76))!important;animation:riverGalaxyUp 5.8s linear infinite!important}
+.riverClassicSpark{fill:none;stroke:rgba(220,211,250,.82);stroke-width:.46;stroke-linecap:round;stroke-dasharray:.18 5.4;opacity:.9;filter:drop-shadow(0 0 1.1px rgba(255,255,255,.72));animation:riverGalaxyUp 8.6s linear infinite reverse}
+@keyframes riverGalaxyUp{from{stroke-dashoffset:0}to{stroke-dashoffset:44}}
+.riverClassicDot{width:6px!important;height:6px!important;background:rgba(255,255,255,.96)!important;border:1px solid rgba(177,169,222,.58)!important;box-shadow:0 0 0 4px rgba(235,231,255,.18),0 0 9px rgba(210,202,245,.32)!important}
 </style>
 </head>
 <body>
@@ -2537,7 +2545,7 @@ html,body,.shell,.page{background-color:transparent!important}
 
     <section class="page phoneAppPage" id="page-app-river">
       <div class="miniAppHead"><div class="miniAppTitle">时间河<small>我们的日常册</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
-      <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint">旧的在下 · 时间向上流 · 新的长在上方</div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
+      <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint"></div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
     </section>
 
     <section class="page phoneAppPage" id="page-app-health">

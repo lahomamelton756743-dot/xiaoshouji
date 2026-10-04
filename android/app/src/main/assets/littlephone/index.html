@@ -2293,7 +2293,8 @@ html,body,.shell,.page{background-color:transparent!important}
 #page-app-river .riverAppVerticalScroller{overflow:visible!important;max-width:100%!important;height:auto!important;max-height:none!important;padding:0!important}
 #page-app-river .riverAppVerticalTrack{height:auto!important;min-height:180px!important;width:100%!important;position:relative!important}
 .riverVerticalFlow{position:relative;padding:12px 2px 18px 72px}
-.riverVerticalFlow:before{content:"";position:absolute;left:48px;top:5px;bottom:4px;width:7px;border-radius:999px;background:linear-gradient(180deg,rgba(216,154,190,.38),rgba(255,255,255,.72) 48%,rgba(126,165,224,.34));box-shadow:0 0 18px rgba(160,183,224,.16)}
+.riverVerticalFlow:before{content:"";position:absolute;left:48px;top:5px;bottom:4px;width:7px;border-radius:999px;background:linear-gradient(0deg,rgba(126,165,224,.34),rgba(255,255,255,.72) 48%,rgba(216,154,190,.38));box-shadow:0 0 18px rgba(160,183,224,.16)}
+.riverVerticalFlow:after{content:"↑";position:absolute;left:40px;top:-12px;width:23px;height:25px;text-align:center;font-size:18px;line-height:25px;color:rgba(151,112,143,.62);font-weight:700}
 .riverVerticalNode{position:relative;margin:0 0 22px;min-height:86px}
 .riverVerticalNode:before{content:"";position:absolute;left:-24px;top:30px;width:24px;height:1px;background:rgba(135,151,187,.24)}
 .riverVerticalDot{position:absolute;left:-30px;top:25px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.42),0 2px 9px rgba(101,123,168,.18)}
@@ -2516,7 +2517,7 @@ html,body,.shell,.page{background-color:transparent!important}
 
     <section class="page phoneAppPage" id="page-app-river">
       <div class="miniAppHead"><div class="miniAppTitle">时间河<small>我们的日常册</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
-      <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint">新的在上 · 旧的向下流 · 点气泡展开</div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
+      <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint">旧的在下 · 时间向上流 · 新的长在上方</div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
     </section>
 
     <section class="page phoneAppPage" id="page-app-health">

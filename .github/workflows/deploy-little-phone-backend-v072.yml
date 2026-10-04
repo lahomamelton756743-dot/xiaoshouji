@@ -1,6 +1,11 @@
 name: 部署小手机后端 v0.7.2（保留现有 D1）
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "server/little-phone-cloudflare/**"
+      - ".github/workflows/deploy-little-phone-backend-v072.yml"
   workflow_dispatch:
     inputs:
       worker_name:
@@ -56,7 +61,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          NAME="${{ inputs.d1_database_name }}"
+          NAME="${{ inputs.d1_database_name || 'little-phone-v051' }}"
           npx wrangler d1 list --json > d1-list.json
           ID=$(node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("d1-list.json","utf8")); const n=process.argv[1]; const x=a.find(v=>v.name===n); process.stdout.write(x ? (x.uuid||x.id||"") : "")' "$NAME")
           if [ -z "$ID" ]; then
@@ -72,14 +77,14 @@ jobs:
         shell: bash
         run: |
           cat > wrangler.toml <<TOML
-          name = "${{ inputs.worker_name }}"
+          name = "${{ inputs.worker_name || 'little-phone-backend' }}"
           main = "worker.js"
           compatibility_date = "2026-09-01"
           keep_vars = true
 
           [[d1_databases]]
           binding = "DB"
-          database_name = "${{ inputs.d1_database_name }}"
+          database_name = "${{ inputs.d1_database_name || 'little-phone-v051' }}"
           database_id = "${{ steps.d1.outputs.database_id }}"
           TOML
 

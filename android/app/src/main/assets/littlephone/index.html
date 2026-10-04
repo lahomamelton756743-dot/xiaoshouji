@@ -3221,19 +3221,20 @@ function splitChatDisplay(content,side){
   const raw=String(content||'').trim();
   if(!raw)return [''];
   if(side!=='daddy')return [raw];
-  const protectedBlocks=[];
-  let text=raw.replace(/```[\\s\\S]*?```/g,m=>{const key='__LPBLOCK_'+protectedBlocks.length+'__';protectedBlocks.push(m);return key});
-  const restore=s=>s.replace(/__LPBLOCK_(\\d+)__/g,(_,i)=>protectedBlocks[+i]||'');
-  const paragraphs=text.split(/\\n{2,}/).map(x=>x.trim()).filter(Boolean),out=[];
-  for(const p0 of paragraphs){
-    const p=restore(p0);
-    if(/^```/.test(p)||/^(?:[-*•]|\\d+[.)])\\s/m.test(p)||/https?:\\/\\//i.test(p)||p.length>220){out.push(p);continue}
-    const lines=p.split(/\\n+/).map(x=>x.trim()).filter(Boolean);
+  const paragraphs=raw.split(String.fromCharCode(10)+String.fromCharCode(10)).map(x=>x.trim()).filter(Boolean);
+  const out=[];
+  for(const p of paragraphs){
+    const isCode=p.startsWith('```');
+    const isList=p.split(String.fromCharCode(10)).some(line=>/^\s*(?:[-*•]|[0-9]+[.)])\s+/.test(line));
+    const hasLink=p.includes('http://')||p.includes('https://');
+    if(isCode||isList||hasLink||p.length>220){out.push(p);continue}
+    const lines=p.split(String.fromCharCode(10)).map(x=>x.trim()).filter(Boolean);
     for(const line of lines){
       if(line.length<=34){out.push(line);continue}
-      const parts=line.match(/[^。！？!?…]+(?:[。！？!?…]+|$)/g)?.map(x=>x.trim()).filter(Boolean)||[line];
+      const parts=line.match(/[^。！？!?…]+(?:[。！？!?…]+|$)/g)||[line];
       let buf='';
-      for(const part of parts){
+      for(const rawPart of parts){
+        const part=rawPart.trim();if(!part)continue;
         if(!buf){buf=part;continue}
         if(buf.length<18&&buf.length+part.length<=38){buf+=part;continue}
         out.push(buf);buf=part;
@@ -3242,7 +3243,7 @@ function splitChatDisplay(content,side){
     }
   }
   const compact=[];
-  for(const s of out.map(restore).filter(Boolean)){
+  for(const s of out.filter(Boolean)){
     const prev=compact[compact.length-1];
     if(prev&&prev.length<8&&s.length<12&&prev.length+s.length<=18)compact[compact.length-1]=prev+s;
     else compact.push(s);

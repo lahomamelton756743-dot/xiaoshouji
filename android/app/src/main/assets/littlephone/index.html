@@ -2445,6 +2445,16 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 .riverLifeLine{stroke-width:.72!important;opacity:.90!important}
 .riverFirefly{stroke-width:.20!important;stroke-dasharray:.32 27!important;opacity:.70!important}
 
+
+/* v0.8.3-1 — content-height cleanup + braided Time River */
+body.miniAppMode .phoneAppPage{min-height:0!important}
+#riverAppScroller{min-height:0!important;height:auto!important;overflow:visible!important}
+#riverAppTrack{min-height:0!important}
+.riverAppVerticalShell{min-height:0!important;padding-bottom:14px!important}
+.riverWindingFlow{min-height:0!important}
+.riverLifeLine{stroke-width:.82!important;opacity:.96!important}
+.riverFirefly{stroke-width:.18!important;stroke-dasharray:.28 31!important;opacity:.58!important}
+
 </style>
 </head>
 <body>
@@ -2473,12 +2483,12 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
           <button class="desktopApp" data-open-app="health"><span class="desktopAppIcon glass"><span>♡</span></span><span class="desktopAppLabel">小米健康</span></button>
           <button class="desktopApp" data-open-app="calendar"><span class="desktopAppIcon glass"><span>□</span></span><span class="desktopAppLabel">日历</span></button>
           <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
+          <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
         </div>
         <div class="desktopPage" data-desktop-page="1">
           <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">电话</span></button>
           <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
-          <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
-          <div class="desktopPageTwoNote">第二页先留空。以后聊天、相册、电话、通知中心都可以直接作为新的 App 放进来，不再改整台小手机的结构。</div>
+          <div class="desktopPageTwoNote">新 App 会接在上一页最后一个 App 后面继续排列。</div>
         </div>
       </div>
       <div class="desktopDots" aria-hidden="true"><i class="active" data-desktop-dot="0"></i><i data-desktop-dot="1"></i></div>
@@ -3288,90 +3298,21 @@ function renderChatApp(){const box=$('#chatMessages');if(!box)return;const items
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message)state.chats=[...(state.chats||[]),r.message];input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
-  if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
+  if(!state.conn.connected&&!state.dailybook.length){root.style.height='auto';root.innerHTML='<div class="empty">连接后显示时间河。</div>';return}
   const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
-  if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
-  const step=118,h=Math.max(440,items.length*step+84);
-  const center=i=>50+Math.sin(i*.91+.42)*13+Math.sin(i*.37+1.3)*8+Math.sin(i*1.73)*3.5;
-  const twist=i=>1.35*Math.sin(i*2.18+.25)+.72*Math.sin(i*1.37+2.1)+(i%7===3?3.2:0)-(i%9===5?2.7:0);
-  const cy=i=>52+i*step;
-  const ax=i=>center(i)+twist(i), bx=i=>center(i)-twist(i);
-  const curve=(fn)=>{let p=`M ${fn(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=fn(i-1),x1=fn(i),m=(y0+y1)/2,drift=Math.sin(i*.79)*9;p+=` C ${x0} ${m-22+drift}, ${x1} ${m+22-drift}, ${x1} ${y1}`}return p};
+  if(!items.length){root.style.height='auto';root.innerHTML='<div class="empty">时间河还没有第一页。</div>';return}
+  const step=104,h=Math.max(190,(items.length-1)*step+112),cy=i=>48+i*step;
+  const hash=i=>{let x=2166136261;for(const c of String(items[i]?.id||items[i]?.date||i)){x^=c.charCodeAt(0);x=Math.imul(x,16777619)}return((x>>>0)%1000)/1000};
+  const center=i=>50+(hash(i)-.5)*25;
+  const spread=i=>{const r=hash(i);return i%8===5?5.2+(r*2.2):1.15+(r*1.2)};
+  const ax=i=>center(i)+(i%2?1:-1)*spread(i), bx=i=>center(i)-(i%2?1:-1)*spread(i);
+  const curve=fn=>{let p=`M ${fn(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=fn(i-1),x1=fn(i),m=(y0+y1)/2;p+=` C ${x0+(i%2?2.8:-2.8)} ${m-18}, ${x1+(i%2?-2.8:2.8)} ${m+18}, ${x1} ${y1}`}return p};
   const pa=curve(ax),pb=curve(bx);
   const bubbleFor=i=>{const x=center(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return{x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(120,148,207,.58)"/><stop offset=".55" stop-color="rgba(129,157,214,.72)"/><stop offset="1" stop-color="rgba(145,169,217,.50)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(199,124,163,.55)"/><stop offset=".55" stop-color="rgba(207,136,171,.70)"/><stop offset="1" stop-color="rgba(217,157,185,.48)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.innerHTML=`<div class="riverWindingFlow riverTogether" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverDaddy" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(107,137,202,.72)"/><stop offset=".55" stop-color="rgba(123,151,211,.82)"/><stop offset="1" stop-color="rgba(141,165,216,.68)"/></linearGradient><linearGradient id="riverUser" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(195,112,153,.69)"/><stop offset=".55" stop-color="rgba(207,130,167,.80)"/><stop offset="1" stop-color="rgba(216,151,181,.66)"/></linearGradient></defs><path class="riverLifeLine daddyLine" d="${pa}"/><path class="riverLifeLine userLine" d="${pb}"/><path class="riverFirefly daddyGlow" d="${pa}"/><path class="riverFirefly userGlow" d="${pb}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
   requestAnimationFrame(()=>{root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
-}
-function healthReadableValue(key,value){
-  if(value===null||value===undefined||value==='')return '暂无数据';
-  const k=String(key||'').toLowerCase();
-  if(typeof value==='boolean')return value?'是':'否';
-  if(['total_minutes','duration_minutes','sleep_minutes','deep_minutes','light_minutes','rem_minutes','awake_minutes'].includes(k))return `${value} 分钟`;
-  if(['latest','average','resting','max','min','bpm','heart_rate'].includes(k))return `${value} bpm`;
-  if(['count','goal','steps','step_count'].includes(k))return `${value} 步`;
-  if(['distance','distance_m','distance_meters'].includes(k))return `${value} m`;
-  if(['calories','kcal'].includes(k))return `${value} kcal`;
-  if(k.includes('at')||k.includes('time')||k.includes('date')){
-    const raw=String(value), pretty=formatHealthClock(value);
-    return pretty&&pretty!==raw?`${raw} · ${pretty}`:raw;
-  }
-  return String(value);
-}
-const HEALTH_LABELS={
-  total_minutes:'总睡眠',duration_minutes:'总睡眠',sleep_minutes:'总睡眠',score:'睡眠评分',sleep_at:'入睡时间',wake_at:'醒来时间',deep_minutes:'深睡',light_minutes:'浅睡',rem_minutes:'REM',awake_minutes:'清醒',segments:'睡眠阶段明细',
-  count:'步数',distance:'距离',distance_m:'距离',distance_meters:'距离',calories:'卡路里',kcal:'卡路里',goal:'步数目标',
-  latest:'最近心率',latest_at:'最近心率时间',average:'平均心率',resting:'静息心率',max:'最高心率',min:'最低心率',
-  source:'数据源',date:'数据日期',updated_at:'更新时间',error:'错误信息',connected:'连接状态',resolved_uid:'设备用户 ID',available_keys:'可读取指标',metric_errors:'指标读取错误'
-};
-function healthPathGet(path){
-  let cur=state.health||{};
-  for(const part of String(path||'').split('.').filter(Boolean)){
-    if(cur===null||cur===undefined||typeof cur!=='object')return undefined;
-    cur=cur[part];
-  }
-  return cur;
-}
-function healthComplexSummary(value){
-  if(Array.isArray(value))return `${value.length} 项`;
-  if(value&&typeof value==='object')return `${Object.keys(value).length} 项`;
-  return '';
-}
-function healthDataRows(obj,basePath=''){
-  if(!obj||typeof obj!=='object')return '<div class="healthDataEmpty">暂无数据</div>';
-  return Object.entries(obj).map(([key,value])=>{
-    const label=HEALTH_LABELS[key]||key.split('_').join(' ');
-    const path=basePath?`${basePath}.${key}`:key;
-    if(Array.isArray(value)||value&&typeof value==='object'){
-      return `<details class="glass contentGlass healthDataComplex" data-health-details="${esc(path)}"><summary><span>${esc(label)}</span><b>${esc(healthComplexSummary(value))} · 点开读取</b></summary><div class="healthComplexLazy" data-health-complex-body="${esc(path)}"><button class="softBtn healthLoadComplex" type="button" data-health-load="${esc(path)}" data-health-offset="0">显示数据</button></div></details>`;
-    }
-    return `<div class="glass contentGlass healthDataRow"><span>${esc(label)}</span><b>${esc(healthReadableValue(key,value))}</b></div>`;
-  }).join('')||'<div class="healthDataEmpty">暂无数据</div>';
-}
-function healthDataSection(title,obj,path=''){return `<section class="healthDataSection"><div class="appSectionTitle">${esc(title)}</div><div class="healthDataList">${healthDataRows(obj,path)}</div></section>`}
-function renderHealthComplexChunk(path,offset=0){
-  const body=$$('[data-health-complex-body]').find(el=>el.dataset.healthComplexBody===path);if(!body)return;
-  const value=healthPathGet(path),chunkSize=40,start=Math.max(0,Number(offset)||0);
-  if(Array.isArray(value)){
-    const items=value.slice(start,start+chunkSize);
-    const html=items.map((item,i)=>`<pre class="healthComplexItem"><b>#${start+i+1}</b> ${esc(typeof item==='object'?JSON.stringify(item,null,2):String(item))}</pre>`).join('');
-    const next=start+items.length;
-    body.insertAdjacentHTML(start?'beforeend':'afterbegin',html||'<div class="healthDataEmpty">暂无数据</div>');
-    body.querySelectorAll('[data-health-load]').forEach(x=>x.remove());
-    if(next<value.length)body.insertAdjacentHTML('beforeend',`<button class="softBtn healthLoadComplex" type="button" data-health-load="${esc(path)}" data-health-offset="${next}">继续显示 ${Math.min(chunkSize,value.length-next)} 项</button>`);
-  }else if(value&&typeof value==='object'){
-    const entries=Object.entries(value),items=entries.slice(start,start+chunkSize);
-    const html=items.map(([k,v])=>`<pre class="healthComplexItem"><b>${esc(k)}</b> ${esc(typeof v==='object'?JSON.stringify(v,null,2):String(v))}</pre>`).join('');
-    const next=start+items.length;
-    body.insertAdjacentHTML(start?'beforeend':'afterbegin',html||'<div class="healthDataEmpty">暂无数据</div>');
-    body.querySelectorAll('[data-health-load]').forEach(x=>x.remove());
-    if(next<entries.length)body.insertAdjacentHTML('beforeend',`<button class="softBtn healthLoadComplex" type="button" data-health-load="${esc(path)}" data-health-offset="${next}">继续显示 ${Math.min(chunkSize,entries.length-next)} 项</button>`);
-  }else body.innerHTML='<div class="healthDataEmpty">暂无数据</div>';
-  bindHealthComplexLoaders();
-}
-function bindHealthComplexLoaders(){
-  $$('[data-health-load]').forEach(btn=>btn.onclick=e=>{e.preventDefault();e.stopPropagation();renderHealthComplexChunk(btn.dataset.healthLoad,Number(btn.dataset.healthOffset||0))});
 }
 function renderHealthApp(){
   const root=$('#healthAppBody');if(!root)return;

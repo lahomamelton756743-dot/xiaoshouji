@@ -2268,6 +2268,26 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .phoneAppPage .miniAppHead{position:sticky;top:0;z-index:8;padding-top:max(8px,env(safe-area-inset-top));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .phoneSettingsButton{width:42px;height:42px;border-radius:50%;font-size:18px}.phoneCallList{display:grid;gap:0}.phoneCallRow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid rgba(117,132,166,.11)}.phoneCallRow:last-child{border-bottom:0}.phoneCallAvatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.62)}.phoneCallWho{font-size:14px;font-weight:680}.phoneCallSub{font-size:10px;color:#8d95a7;margin-top:5px;white-space:normal;overflow:visible;line-height:1.55}.phoneCallMessage{display:block;margin-top:5px;color:#667087;white-space:pre-wrap;word-break:break-word}.phoneCallAvatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}.phoneCallWhen{font-size:9px;color:#9aa2b2;text-align:right}.phoneSettingsPanel{padding:16px;border-radius:28px}.phoneSettingsPanel .field{margin-bottom:9px}
 </style>
+
+<style>
+/* v0.8.2-12 — avatar / insets / identity-color repair */
+/* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
+body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
+.phoneAppPage{min-height:calc(100dvh - 8px)!important;padding-top:0!important;padding-bottom:calc(26px + env(safe-area-inset-bottom))!important;background:transparent!important}
+.phoneAppPage .miniAppHead{top:0!important;padding-top:6px!important;margin-top:0!important}
+html,body,.shell,.page{background-color:transparent!important}
+.aurora{inset:0!important;min-height:100dvh!important}
+/* Rebuild the old Together/music avatar area as two independent identity portraits. */
+.desktopLegacyWidget.legacy_music .usBondPairV3,.desktopLegacyWidget.legacy_music .usBondPair{gap:22px!important;justify-content:center!important;padding-top:30px!important}
+.desktopLegacyWidget.legacy_music .usAvatarLeft,.desktopLegacyWidget.legacy_music .usAvatarRight{transform:none!important}
+.desktopLegacyWidget.legacy_music .avatarWrap{width:82px!important;z-index:5!important}
+.desktopLegacyWidget.legacy_music .avatarButton,.desktopLegacyWidget.legacy_music .avatar{width:72px!important;height:72px!important}
+.desktopLegacyWidget.legacy_music .avatar{border:2px solid rgba(255,255,255,.92)!important;box-shadow:0 8px 20px rgba(74,91,128,.12)!important;background:rgba(255,255,255,.34)!important}
+.desktopLegacyWidget.legacy_music .avatar img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}
+.desktopLegacyWidget.legacy_music .earCableV3,.desktopLegacyWidget.legacy_music .earCable{z-index:1!important;opacity:.48!important;pointer-events:none!important}
+.desktopLegacyWidget.legacy_music .statusPill{display:none!important}
+.desktopLegacyWidget.legacy_music .avatarName{margin-top:5px!important;font-size:11px!important;font-weight:650!important}
+</style>
 </head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

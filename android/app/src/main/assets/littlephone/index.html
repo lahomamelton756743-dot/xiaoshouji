@@ -2405,6 +2405,12 @@ body.diaryMode .journalBookmarkTab,body.diaryMode .journalBookmarkAdd,body.diary
 @media(max-width:390px){.riverWindingBubble{width:136px!important;max-width:136px!important}}
 @media(max-width:350px){.riverWindingBubble{width:122px!important;max-width:122px!important}}
 
+
+/* v0.8.2-22 — river-bank adaptive bubbles; replaces fixed/alternating experiments */
+.riverWindingBubble{width:var(--bubble-w)!important;max-width:168px!important;min-width:116px!important;height:auto!important;min-height:54px!important;max-height:none!important;box-sizing:border-box!important;padding:9px 12px!important;overflow:visible!important}
+.riverWindingBubble b{display:block!important;height:auto!important;max-height:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;overflow-wrap:anywhere;word-break:break-word}
+.riverWindingNode.right .riverWindingBubble{left:11px!important;right:auto!important}.riverWindingNode.left .riverWindingBubble{right:11px!important;left:auto!important}
+
 </style>
 </head>
 <body>
@@ -3242,10 +3248,14 @@ function renderRiverApp(){
   const step=118,h=Math.max(440,items.length*step+84),cx=i=>50+Math.sin(i*1.08+.35)*18+Math.sin(i*.47)*7,cy=i=>52+i*step;
   let p1=`M ${cx(0)-.8} ${cy(0)}`,p2=`M ${cx(0)+.8} ${cy(0)}`;
   for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=cx(i-1),x1=cx(i),m=(y0+y1)/2,tw=Math.sin(i*1.75)*1.8;p1+=` C ${x0-1.2-tw} ${m-18}, ${x1-.8+tw} ${m+18}, ${x1-.8} ${y1}`;p2+=` C ${x0+1.2+tw} ${m-18}, ${x1+.8-tw} ${m+18}, ${x1+.8} ${y1}`}
+  const bubbleFor=(e,i)=>{const x=cx(i),left=x,right=100-x,bank=right>=left?'right':'left',room=Math.max(left,right);return {x,y:cy(i),bank,width:Math.max(116,Math.min(168,Math.round(room*2.65)))}};
   root.style.width='100%';root.style.height=h+'px';
-  root.innerHTML=`<div class="riverWindingFlow" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverTwinA" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(173,205,242,.28)"/><stop offset=".5" stop-color="rgba(226,239,255,.72)"/><stop offset="1" stop-color="rgba(232,195,226,.38)"/></linearGradient><linearGradient id="riverTwinB" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(231,192,220,.26)"/><stop offset=".5" stop-color="rgba(255,255,255,.72)"/><stop offset="1" stop-color="rgba(177,215,244,.36)"/></linearGradient></defs><path class="riverTwin riverTwinA" d="${p1}"/><path class="riverTwin riverTwinB" d="${p2}"/><path class="riverTwinGlow glowA" d="${p1}"/><path class="riverTwinGlow glowB" d="${p2}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),x=cx(i),y=cy(i),pos=i%2?'left':'right';return `<article class="riverWindingNode ${side} ${pos}" data-app-book-id="${esc(e.id)}" style="--rx:${x}%;--ry:${y}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.innerHTML=`<div class="riverWindingFlow" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverTwinA" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(173,205,242,.28)"/><stop offset=".5" stop-color="rgba(226,239,255,.72)"/><stop offset="1" stop-color="rgba(232,195,226,.38)"/></linearGradient><linearGradient id="riverTwinB" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(231,192,220,.26)"/><stop offset=".5" stop-color="rgba(255,255,255,.72)"/><stop offset="1" stop-color="rgba(177,215,244,.36)"/></linearGradient></defs><path class="riverTwin riverTwinA" d="${p1}"/><path class="riverTwin riverTwinB" d="${p2}"/><path class="riverTwinGlow glowA" d="${p1}"/><path class="riverTwinGlow glowB" d="${p2}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),g=bubbleFor(e,i);return `<article class="riverWindingNode ${side} ${g.bank}" data-app-book-id="${esc(e.id)}" style="--rx:${g.x}%;--ry:${g.y}px;--bubble-w:${g.width}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
-  requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollTop=0})
+  requestAnimationFrame(()=>{
+    root.querySelectorAll('.riverWindingNode').forEach(node=>{const bubble=node.querySelector('.riverWindingBubble');if(!bubble)return;const pad=14,r=bubble.getBoundingClientRect(),host=root.getBoundingClientRect();let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)bubble.style.transform=`translate(${dx}px,-50%)`});
+    if(state.page==='app-river')sc.scrollTop=0
+  })
 }
 function healthReadableValue(key,value){
   if(value===null||value===undefined||value==='')return '暂无数据';

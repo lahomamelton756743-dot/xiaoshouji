@@ -2321,6 +2321,24 @@ html,body,.shell,.page{background-color:transparent!important}
 .journalAnnotationComposer textarea{width:100%;resize:none;border:1px solid rgba(126,135,157,.13);border-radius:11px;background:rgba(250,250,250,.76);padding:9px 10px;font:inherit;font-size:11px;line-height:1.5;outline:none}
 .journalAnnotationDrawer:not(.open) .journalAnnotationComposer{display:none}
 @media(max-width:390px){.journalBookmarks{right:18px;gap:4px}.journalBookmarkTab{width:34px}.journalAnnotationDrawer{right:12px;width:min(84%,286px)}}
+
+/* v0.8.2-17 — winding vertical Time River + reliable diary bookmark composer */
+#page-app-river .riverAppVerticalScroller{overflow-x:hidden!important;overflow-y:visible!important}
+.riverWindingFlow{position:relative;width:100%;min-height:430px}
+.riverWindingSvg{position:absolute;left:18px;top:0;width:120px;height:100%;overflow:visible;pointer-events:none}
+.riverWaterGlow{fill:none;stroke:rgba(150,184,226,.16);stroke-width:22;stroke-linecap:round;filter:blur(5px)}
+.riverWater{fill:none;stroke:url(#riverUp);stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
+.riverWindingNode{position:absolute;left:calc(var(--rx) + 18px);top:var(--ry);width:calc(100% - 105px);min-height:56px;transform:translateY(-18px);z-index:3}
+.riverWindingDot{position:absolute;left:-6px;top:13px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.48),0 3px 11px rgba(101,123,168,.22);transform:translateX(-50%)}
+.riverWindingNode.daddy .riverWindingDot{background:#a6b5dc}.riverWindingNode.user .riverWindingDot{background:#d8a6bf}
+.riverWindingBubble{margin-left:14px;width:min(210px,100%);min-height:50px;border:0;border-radius:20px;padding:10px 13px;text-align:left;box-shadow:0 9px 24px rgba(91,105,138,.10)}
+.riverWindingBubble small{display:block;font-size:9px;color:#9299aa;margin-bottom:4px}.riverWindingBubble b{display:block;font-size:12px;color:#566178;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.riverUpArrow{position:absolute;left:61px;top:-13px;font-size:20px;color:rgba(151,112,143,.66);font-weight:700}
+.journalBookmarks,.journalBookmarkTab,.journalBookmarkAdd,.journalAnnotationDrawer,.journalAnnotationComposer{pointer-events:auto!important}
+.journalBookmarks{z-index:90!important}.journalAnnotationDrawer{z-index:89!important}
+.journalAnnotationDrawer.open{max-height:420px!important;overflow:auto!important}
+.journalBookmarkAdd{position:relative;z-index:92;touch-action:manipulation}
+
 </style>
 </head>
 <body>
@@ -2982,9 +3000,9 @@ async function deleteJournalAnnotation(id){
 }
 function bindJournalAnnotations(d){
   const drawer=$('[data-journal-annotation-drawer]'),tabs=$('[data-journal-annotation-tab]'),add=$('[data-journal-annotation-add]'),submit=$('[data-journal-annotation-submit]');
-  const open=(id='')=>{if(!drawer)return;const already=drawer.classList.contains('open')&&(!id||drawer.dataset.active===String(id));drawer.classList.toggle('open',!already);drawer.dataset.active=already?'':String(id||'compose');$('[data-journal-annotation-card]').forEach(c=>c.classList.toggle('active',!id||String(c.dataset.journalAnnotationCard)===String(id)));if(!already&&id){const c=$('[data-journal-annotation-card="'+CSS.escape(String(id))+'"]');c?.scrollIntoView({block:'nearest'})}};
+  const open=(id='')=>{if(!drawer)return;const already=drawer.classList.contains('open')&&(!id||drawer.dataset.active===String(id));drawer.classList.toggle('open',!already);drawer.dataset.active=already?'':String(id||'compose');$('[data-journal-annotation-card]').forEach(c=>c.classList.toggle('active',!id||String(c.dataset.journalAnnotationCard)===String(id)));if(!already&&id){const c=$('[data-journal-annotation-card]').find(x=>String(x.dataset.journalAnnotationCard)===String(id));c?.scrollIntoView({block:'nearest'})}};
   tabs.forEach(b=>b.onclick=e=>{e.stopPropagation();open(b.dataset.journalAnnotationTab)});
-  if(add)add.onclick=e=>{e.stopPropagation();open('');requestAnimationFrame(()=>$('[data-journal-annotation-input]')?.focus())};
+  if(add)add.onclick=e=>{e.preventDefault();e.stopPropagation();if(drawer){drawer.classList.add('open');drawer.dataset.active='compose';$('[data-journal-annotation-card]').forEach(c=>c.classList.remove('active'))}requestAnimationFrame(()=>$('[data-journal-annotation-input]')?.focus())};
   if(submit)submit.onclick=e=>{e.stopPropagation();addJournalAnnotation(d)};
   $('[data-journal-annotation-delete]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteJournalAnnotation(b.dataset.journalAnnotationDelete)});
 }
@@ -3153,9 +3171,11 @@ function renderRiverApp(){
   if(!state.conn.connected&&!state.dailybook.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
   const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
   if(!items.length){root.style.width='100%';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
-  root.style.width='100%';
-  root.innerHTML='<div class="riverVerticalFlow">'+items.map((e,i)=>{const img=(e.images||[])[0],side=authorSide(e.author);return `<article class="riverVerticalNode ${side}" data-app-book-id="${esc(e.id)}"><div class="riverVerticalDate">${esc(e.date||dayLabel(e.created_at))}</div><span class="riverVerticalDot" aria-hidden="true"></span><button class="glass contentGlass riverVerticalBubble" type="button">${img?`<img class="riverVerticalThumb" src="${esc(serverUrl(img.url||''))}">`:''}<div class="bookTitle">${esc(e.title||'今天')}</div><div class="bookMood">${esc(e.mood||'')}</div><div class="riverPeek authoredText ${side}">${esc((e.content||'').slice(0,86))}</div></button></article>`}).join('')+'</div>';
-  root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=()=>openBook(el.dataset.appBookId));
+  const step=112,h=Math.max(430,items.length*step+74),cx=i=>52+Math.sin(i*1.22)*24,cy=i=>48+i*step;
+  let path=`M ${cx(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const y0=cy(i-1),y1=cy(i),x0=cx(i-1),x1=cx(i),m=(y0+y1)/2;path+=` C ${x0} ${m}, ${x1} ${m}, ${x1} ${y1}`}
+  root.style.width='100%';root.style.height=h+'px';
+  root.innerHTML=`<div class="riverWindingFlow" style="height:${h}px"><svg class="riverWindingSvg" viewBox="0 0 120 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="riverUp" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(158,187,229,.32)"/><stop offset=".55" stop-color="rgba(206,224,247,.58)"/><stop offset="1" stop-color="rgba(224,181,207,.42)"/></linearGradient></defs><path class="riverWaterGlow" d="${path}"/><path class="riverWater" d="${path}"/></svg>${items.map((e,i)=>{const side=authorSide(e.author),x=cx(i),y=cy(i);return `<article class="riverWindingNode ${side}" data-app-book-id="${esc(e.id)}" style="--rx:${x}px;--ry:${y}px"><span class="riverWindingDot" aria-hidden="true"></span><button class="glass contentGlass riverWindingBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}<span class="riverUpArrow" aria-hidden="true">↑</span></div>`;
+  root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
   requestAnimationFrame(()=>{if(state.page==='app-river')sc.scrollTop=0})
 }
 function healthReadableValue(key,value){

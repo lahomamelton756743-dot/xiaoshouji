@@ -2644,8 +2644,8 @@ html,body,.shell,.page{background-color:transparent!important}
     </section>
 
     <section class="page" id="page-status">
-      <div class="sectionHead statusHead"><div><h2>状态</h2><p>健康、足迹和手机今天的样子。</p></div><button class="iconBtn settingsIcon" id="statusSettingsButton" aria-label="设置">⚙</button></div>
-      <button class="glass statusHealthWide" id="healthButton">
+      <div class="sectionHead statusHead"><div><h2>状态</h2><p>足迹和手机今天的样子。</p></div><button class="iconBtn settingsIcon" id="statusSettingsButton" aria-label="设置">⚙</button></div>
+      <div class="legacyTemplateBank" hidden><button class="glass statusHealthWide" id="healthButton">
         <div class="statusHealthHeader">
           <div><div class="cardLabel" style="margin:0">小米健康</div><div class="healthSync" id="healthSync">进入状态页会自动读取最新数据</div></div>
           <div class="meta" id="healthText">睡眠 · 心率 · 步数</div>
@@ -2667,7 +2667,7 @@ html,body,.shell,.page{background-color:transparent!important}
         <div class="statusSleepPanel">
           <div class="sleepScaleBlock"><div class="sleepScaleLabel"><span>睡眠 / 今日数据刻度</span><em id="healthStageNote">有细分时显示深睡、浅睡与 REM</em></div><div class="healthBarChart" id="healthBarChart" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
         </div>
-      </button>
+      </button></div>
       <div class="footGrid statusFootGrid">
         <div class="glass footCard"><div class="cardLabel" id="userFootTitle">瑞安 的足迹</div><div class="footList" id="userFootprints"></div></div>
         <div class="glass footCard"><div class="cardLabel" id="daddyFootTitle">daddy 的足迹</div><div class="footList" id="daddyFootprints"></div></div>
@@ -2803,7 +2803,7 @@ function go(page,push=true){
   if(page==='app-mail')renderMailApp();
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
-  if(page==='app-health'){renderHealthApp()}
+  if(page==='app-health'){renderHealthApp();refreshHealthLive(false).then(()=>renderHealthApp()).catch(()=>renderHealthApp())}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
   if(page==='app-phone')renderPhoneApp();

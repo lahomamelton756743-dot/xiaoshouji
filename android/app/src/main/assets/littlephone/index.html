@@ -2803,7 +2803,7 @@ function go(page,push=true){
   if(page==='app-mail')renderMailApp();
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
-  if(page==='app-health'){renderHealthApp();refreshHealthLive(false).then(()=>renderHealthApp()).catch(()=>renderHealthApp())}
+  if(page==='app-health'){state.healthRefreshing=true;renderHealthApp();state.healthRefreshing=false;refreshHealthLive(true).then(()=>renderHealthApp()).catch(()=>renderHealthApp())}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
   if(page==='app-phone')renderPhoneApp();
@@ -3077,15 +3077,13 @@ function updateJournalPageNo(value){const n=$('#journalPageNo');if(n)n.textConte
 function renderJournal(){
   const root=$('#journalBook'),list=journalSorted();
   if(!root)return;
-  const oldScroll=$('#journalScroll'),oldPage=root.querySelector('.journalPhysicalPage');
-  if(oldScroll&&oldPage?.dataset.journalEntryId){state.journalScrollPositions=state.journalScrollPositions||{};state.journalScrollPositions[oldPage.dataset.journalEntryId]=oldScroll.scrollTop}
   root.classList.remove('journalTurning');
   if(state.journalCoverOpen){root.innerHTML=journalCoverMarkup();updateJournalPageNo('封面');bindJournalTurn();return}
   if(!list.length){state.journalIndex=-1;root.innerHTML=`<div class="journalEmptyPage"><b>写给我们的日子</b><span>这里还没有日记。第一篇写下以后，它就会直接成为这本日记的一页。</span></div>`;updateJournalPageNo('—');return}
   if(state.journalIndex<0||state.journalIndex>=list.length)state.journalIndex=0;
   const d=list[state.journalIndex];root.innerHTML=journalPageMarkup(d,state.journalIndex,list.length);updateJournalPageNo(`${state.journalIndex+1} / ${list.length}`);bindJournalPageActions(d,list);bindJournalTurn()
 }
-function bindJournalScroll(entryId=''){const sc=$('#journalScroll'),thumb=$('#journalThumb');if(!sc||!thumb)return;state.journalScrollPositions=state.journalScrollPositions||{};const key=String(entryId||'');const sync=()=>{if(key)state.journalScrollPositions[key]=sc.scrollTop;const max=Math.max(1,sc.scrollHeight-sc.clientHeight),ratio=Math.min(1,sc.clientHeight/Math.max(sc.scrollHeight,1)),rail=Math.max(50,sc.clientHeight-10),h=Math.max(30,rail*ratio),top=(sc.scrollTop/max)*Math.max(0,rail-h);thumb.style.height=h+'px';thumb.style.transform=`translateY(${top}px)`;thumb.style.opacity=sc.scrollHeight>sc.clientHeight+4?'1':'.22'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(()=>{if(key&&Number.isFinite(Number(state.journalScrollPositions[key])))sc.scrollTop=Number(state.journalScrollPositions[key])||0;sync()})}
+function bindJournalScroll(){const sc=$('#journalScroll'),thumb=$('#journalThumb');if(!sc||!thumb)return;const sync=()=>{const max=Math.max(1,sc.scrollHeight-sc.clientHeight),ratio=Math.min(1,sc.clientHeight/Math.max(sc.scrollHeight,1)),rail=Math.max(50,sc.clientHeight-10),h=Math.max(30,rail*ratio),top=(sc.scrollTop/max)*Math.max(0,rail-h);thumb.style.height=h+'px';thumb.style.transform=`translateY(${top}px)`;thumb.style.opacity=sc.scrollHeight>sc.clientHeight+4?'1':'.22'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(sync)}
 function openJournalCoverAnimated(){
   if(state.journalAnimating)return;const list=journalSorted(),root=$('#journalBook');if(!root||!list.length)return;
   const cover=root.querySelector('.journalCover076');if(!cover){state.journalCoverOpen=false;state.journalIndex=0;renderJournal();return}

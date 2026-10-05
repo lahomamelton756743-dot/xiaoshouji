@@ -2417,6 +2417,19 @@ html,body,.shell,.page{background-color:transparent!important}
 #journalBook .journalV2Add{background:rgba(247,248,252,.96)!important}
 </style>
 
+
+<style id="journal-v2-compact-bookmark">
+#journalBook>.journalV2Page{padding-top:72px!important}
+#journalBook .journalPaperMeta{margin-top:0!important}
+#journalBook .journalV2Scroll{height:calc(100% - 92px)!important}
+#journalBook .journalV2Rail{top:102px!important}
+#journalBook .journalV2Tabs{left:42px!important;top:-14px!important;height:48px!important;display:block!important}
+#journalBook .journalV2Tab.journalV2Bookmark{width:32px!important;height:43px!important;padding:0!important;border-radius:7px 7px 4px 4px!important;background:linear-gradient(180deg,#f7eef1,#eadde4)!important;border:1px solid rgba(173,145,159,.35)!important;box-shadow:0 3px 7px rgba(74,61,71,.10)!important;color:#9d7aa2!important}
+#journalBook .journalV2Tab.journalV2Bookmark:after{content:"";position:absolute;left:7px;right:7px;bottom:-1px;height:9px;background:#f3e8ed;clip-path:polygon(0 0,50% 100%,100% 0)}
+#journalBook .journalV2Tab.journalV2Bookmark span{position:relative;z-index:2;top:-2px;font-size:14px}
+#journalBook .journalV2NoteActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+</style>
+
 </head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -3145,9 +3158,10 @@ function stepJournal(delta){stepJournalAnimated(delta)}
 /* v0.8.3-19: clean diary + Xiaomi Health renderers. Old mixed renderers remain dormant. */
 function journalV2Annotations(d){
   const notes=(state.diaryAnnotations||[]).filter(x=>String(x.diary_id)===String(d.id));
-  return '<div class="journalV2Tabs">'+notes.map((n,i)=>'<button class="journalV2Tab" data-jv2-note="'+esc(n.id)+'" style="top:'+(92+i*42)+'px">♡</button>').join('')+'<button class="journalV2Tab journalV2Add" data-jv2-add style="top:'+(92+notes.length*42)+'px">＋</button></div>'+
-    '<div class="journalV2NoteLayer" data-jv2-layer>'+notes.map(n=>'<div class="journalV2Note" data-jv2-paper="'+esc(n.id)+'"><div>'+esc(n.content||'')+'</div><small>'+esc(actorName(n.author||'user'))+' · '+esc(fmt(n.created_at||''))+'</small><button data-jv2-delete="'+esc(n.id)+'">取下书签</button></div>').join('')+
-    '<div class="journalV2Note journalV2Compose" data-jv2-compose><textarea data-jv2-input placeholder="写一句批注…"></textarea><div><button data-jv2-cancel>取消</button><button data-jv2-submit>夹进书页</button></div></div></div>';
+  const first=notes[0];
+  return '<div class="journalV2Tabs"><button class="journalV2Tab journalV2Bookmark" '+(first?'data-jv2-note="'+esc(first.id)+'"':'data-jv2-add')+' aria-label="批注书签"><span>♡</span></button></div>'+
+    '<div class="journalV2NoteLayer" data-jv2-layer>'+notes.map(n=>'<div class="journalV2Note" data-jv2-paper="'+esc(n.id)+'"><div>'+esc(n.content||'')+'</div><small>'+esc(actorName(n.author||'user'))+' · '+esc(fmt(n.created_at||''))+'</small><div class="journalV2NoteActions"><button data-jv2-edit-note="'+esc(n.id)+'">编辑</button><button data-jv2-delete="'+esc(n.id)+'">删除</button></div></div>').join('')+
+    '<div class="journalV2Note journalV2Compose" data-jv2-compose><textarea data-jv2-input placeholder="写一句批注…"></textarea><div><button data-jv2-cancel>取消</button><button data-jv2-submit>保存批注</button></div></div></div>';
 }
 function journalV2Page(d,index,total){
   const side=authorSide(d.author||'daddy');
@@ -3166,8 +3180,9 @@ function bindJournalV2(d,list){
   const closeNotes=()=>{layer?.classList.remove('open');root?.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.remove('active')};
   root?.querySelectorAll('[data-jv2-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();layer?.classList.add('open');compose?.classList.remove('active');root.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.toggle('active',String(x.dataset.jv2Paper)===String(b.dataset.jv2Note)))}));
   root?.querySelector('[data-jv2-add]')?.addEventListener('click',e=>{e.stopPropagation();layer?.classList.add('open');root.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.add('active');setTimeout(()=>root.querySelector('[data-jv2-input]')?.focus(),30)});
+  root?.querySelectorAll('[data-jv2-edit-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const n=(state.diaryAnnotations||[]).find(x=>String(x.id)===String(b.dataset.jv2EditNote));if(!n)return;root.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.add('active');const input=root.querySelector('[data-jv2-input]');if(input){input.value=n.content||'';input.dataset.editId=n.id;input.focus()}}));
   root?.querySelector('[data-jv2-cancel]')?.addEventListener('click',e=>{e.stopPropagation();closeNotes()});
-  root?.querySelector('[data-jv2-submit]')?.addEventListener('click',async e=>{e.stopPropagation();const content=String(root.querySelector('[data-jv2-input]')?.value||'').trim();if(!content)return toast('批注还是空的');try{await apiWrite('/api/littlephone/diary-annotations',{diary_id:d.id,content,author:'user'});await loadRemote();renderJournalV2();toast('批注已经夹进这一页')}catch(err){toast(err.message||'批注没有夹进去')}});
+  root?.querySelector('[data-jv2-submit]')?.addEventListener('click',async e=>{e.stopPropagation();const input=root.querySelector('[data-jv2-input]'),content=String(input?.value||'').trim(),editId=input?.dataset.editId;if(!content)return toast('批注还是空的');try{if(editId)await apiWrite('/api/littlephone/diary-annotations/delete',{id:editId});await apiWrite('/api/littlephone/diary-annotations',{diary_id:d.id,content,author:'user'});await loadRemote();renderJournalV2();toast('批注已保存')}catch(err){toast(err.message||'批注没有保存')}});
   root?.querySelectorAll('[data-jv2-delete]').forEach(b=>b.addEventListener('click',async e=>{e.stopPropagation();try{await apiWrite('/api/littlephone/diary-annotations/delete',{id:b.dataset.jv2Delete});await loadRemote();renderJournalV2()}catch(err){toast(err.message||'批注没有删除')}}));
   layer?.addEventListener('click',e=>{if(e.target===layer){e.stopPropagation();closeNotes()}});
   root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a,.journalV2NoteLayer'))return;const r=root.getBoundingClientRect(),dir=e.clientX<r.left+r.width/2?-1:1;if(dir<0){if(state.journalIndex<=0){state.journalCoverOpen=true;state.journalIndex=-1;renderJournalV2()}else{state.journalIndex--;renderJournalV2()}}else if(state.journalIndex<list.length-1){state.journalIndex++;renderJournalV2()}else{root.classList.remove('boundaryTap');void root.offsetWidth;root.classList.add('boundaryTap')}};

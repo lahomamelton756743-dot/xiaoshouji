@@ -3038,9 +3038,9 @@ function openJournalSearch(){const input=$('#journalSearchInput');if(input)input
 function journalCoverMarkup(){return `<article class="journalCover076 journalSheet" aria-label="日记封面"><img src="diary-cover-v076.png" alt="日记封面"><div class="journalTurnShade" aria-hidden="true"></div></article>`}
 function journalAnnotationMarkup(d){
   const anns=Array.isArray(d.annotations)?d.annotations:[];
-  const tabs=anns.map((a,i)=>{const side=authorSide(a.author||'daddy');return `<button class="journalBookmarkTab ${side}" type="button" data-journal-annotation-tab="${esc(a.id)}" title="${esc(actorName(a.author||'daddy'))}的批注"><span>${esc(actorName(a.author||'daddy')).slice(0,2)}</span><i>${i+1}</i></button>`}).join('');
-  const cards=anns.map(a=>{const side=authorSide(a.author||'daddy');return `<article class="journalAnnotationCard ${side}" data-journal-annotation-card="${esc(a.id)}"><div class="journalAnnotationWho">${esc(actorName(a.author||'daddy'))} · ${esc(fmt(a.created_at))}</div><div class="journalAnnotationText authoredText ${side}">${esc(a.content||'')}</div><button class="journalAnnotationDelete" type="button" data-journal-annotation-delete="${esc(a.id)}">删除批注</button></article>`}).join('');
-  return `<div class="journalBookmarks" data-journal-bookmarks>${tabs}<button class="journalBookmarkAdd" type="button" data-journal-annotation-add title="写批注">＋</button></div><div class="journalAnnotationDrawer" data-journal-annotation-drawer>${cards}<div class="journalAnnotationComposer"><textarea data-journal-annotation-input rows="2" placeholder="夹一句批注在这一页……"></textarea><button class="softBtn" type="button" data-journal-annotation-submit>夹进书页</button></div></div>`;
+  const tabs=anns.map((a,i)=>{const side=authorSide(a.author||'daddy');return `<button class="journalNoteTab ${side}" type="button" data-note-id="${esc(a.id)}" aria-label="打开批注 ${i+1}"><i></i></button>`}).join('');
+  const notes=anns.map(a=>{const side=authorSide(a.author||'daddy');return `<article class="journalNotePaper ${side}" data-note-paper="${esc(a.id)}"><div class="journalNoteMeta">${esc(actorName(a.author||'daddy'))} · ${esc(fmt(a.created_at))}</div><div class="journalNoteText authoredText ${side}">${esc(a.content||'')}</div><button type="button" class="journalNoteDelete" data-note-delete="${esc(a.id)}">取下</button></article>`}).join('');
+  return `<div class="journalNoteTabs">${tabs}<button class="journalNoteAdd" type="button" data-note-add aria-label="写批注">＋</button></div><div class="journalNoteOverlay" data-note-overlay><div class="journalNotePanel">${notes}<div class="journalNoteCompose" data-note-compose><textarea data-note-input rows="4" placeholder="写一句夹在这一页的批注……"></textarea><div class="journalNoteActions"><button type="button" class="softBtn" data-note-cancel>收起</button><button type="button" class="softBtn" data-note-submit>夹进书页</button></div></div></div></div>`;
 }
 function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy');return `<article class="bookPage journalLeaf journalPhysicalPage journalSheet" data-journal-entry-id="${esc(d.id||'')}">
     <div class="journalPageTexture" aria-hidden="true"></div>
@@ -3058,32 +3058,36 @@ function journalPageMarkup(d,index,total){const side=authorSide(d.author||'daddy
 function journalElement(markup){const t=document.createElement('template');t.innerHTML=markup.trim();return t.content.firstElementChild}
 function stripJournalIds(node){if(!node)return;node.removeAttribute?.('id');node.querySelectorAll?.('[id]').forEach(x=>x.removeAttribute('id'))}
 async function addJournalAnnotation(d){
-  const input=$('[data-journal-annotation-input]'),content=String(input?.value||'').trim();if(!content)return toast('批注还是空的');
+  const input=$('[data-note-input]'),content=String(input?.value||'').trim();if(!content)return toast('批注还是空的');
   try{await apiWrite('/api/littlephone/diary-annotations',{diary_id:d.id,content,author:'user'});await loadRemote();toast('批注已经夹进这一页')}catch(e){toast(e.message||'批注没有夹进去')}
 }
 async function deleteJournalAnnotation(id){
   try{await apiWrite('/api/littlephone/diary-annotations/delete',{id});await loadRemote();toast('批注已经取下')}catch(e){toast(e.message||'批注没有删除')}
 }
 function bindJournalAnnotations(d){
-  const drawer=$('[data-journal-annotation-drawer]'),tabs=$('[data-journal-annotation-tab]'),add=$('[data-journal-annotation-add]'),submit=$('[data-journal-annotation-submit]');
-  const open=(id='')=>{if(!drawer)return;const already=drawer.classList.contains('open')&&(!id||drawer.dataset.active===String(id));drawer.classList.toggle('open',!already);drawer.dataset.active=already?'':String(id||'compose');$('[data-journal-annotation-card]').forEach(c=>c.classList.toggle('active',!id||String(c.dataset.journalAnnotationCard)===String(id)));if(!already&&id){const c=$('[data-journal-annotation-card]').find(x=>String(x.dataset.journalAnnotationCard)===String(id));c?.scrollIntoView({block:'nearest'})}};
-  tabs.forEach(b=>b.onclick=e=>{e.stopPropagation();open(b.dataset.journalAnnotationTab)});
-  if(add)add.onclick=e=>{e.preventDefault();e.stopPropagation();if(drawer){drawer.classList.add('open');drawer.dataset.active='compose';$('[data-journal-annotation-card]').forEach(c=>c.classList.remove('active'))}requestAnimationFrame(()=>$('[data-journal-annotation-input]')?.focus())};
-  if(submit)submit.onclick=e=>{e.stopPropagation();addJournalAnnotation(d)};
-  $('[data-journal-annotation-delete]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteJournalAnnotation(b.dataset.journalAnnotationDelete)});
+  const overlay=$('[data-note-overlay]'),compose=$('[data-note-compose]'),add=$('[data-note-add]'),submit=$('[data-note-submit]'),cancel=$('[data-note-cancel]');
+  const close=()=>{overlay?.classList.remove('open');$$('[data-note-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.remove('active')};
+  if(add)add.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();overlay?.classList.add('open');$$('[data-note-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.add('active');setTimeout(()=>$('[data-note-input]')?.focus(),40)});
+  $$('[data-note-id]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();overlay?.classList.add('open');compose?.classList.remove('active');$$('[data-note-paper]').forEach(x=>x.classList.toggle('active',String(x.dataset.notePaper)===String(btn.dataset.noteId)))}));
+  if(cancel)cancel.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();close()});
+  if(submit)submit.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();addJournalAnnotation(d)});
+  $$('[data-note-delete]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();deleteJournalAnnotation(btn.dataset.noteDelete)}));
+  if(overlay)overlay.addEventListener('click',e=>{if(e.target===overlay){e.stopPropagation();close()}});
 }
 function bindJournalPageActions(d,list){const edit=$('#journalEdit'),del=$('#journalDelete');if(edit)edit.onclick=()=>openCompose('diary-edit',d);if(del)del.onclick=()=>deleteItem('/api/littlephone/diaries/delete',d.id,'这篇日记',()=>{state.journalIndex=Math.max(0,Math.min(state.journalIndex-1,list.length-2))});bindJournalAnnotations(d);bindJournalScroll(d.id)}
 function updateJournalPageNo(value){const n=$('#journalPageNo');if(n)n.textContent=value}
 function renderJournal(){
   const root=$('#journalBook'),list=journalSorted();
   if(!root)return;
+  const oldScroll=$('#journalScroll'),oldPage=root.querySelector('.journalPhysicalPage');
+  if(oldScroll&&oldPage?.dataset.journalEntryId){state.journalScrollPositions=state.journalScrollPositions||{};state.journalScrollPositions[oldPage.dataset.journalEntryId]=oldScroll.scrollTop}
   root.classList.remove('journalTurning');
   if(state.journalCoverOpen){root.innerHTML=journalCoverMarkup();updateJournalPageNo('封面');bindJournalTurn();return}
   if(!list.length){state.journalIndex=-1;root.innerHTML=`<div class="journalEmptyPage"><b>写给我们的日子</b><span>这里还没有日记。第一篇写下以后，它就会直接成为这本日记的一页。</span></div>`;updateJournalPageNo('—');return}
   if(state.journalIndex<0||state.journalIndex>=list.length)state.journalIndex=0;
   const d=list[state.journalIndex];root.innerHTML=journalPageMarkup(d,state.journalIndex,list.length);updateJournalPageNo(`${state.journalIndex+1} / ${list.length}`);bindJournalPageActions(d,list);bindJournalTurn()
 }
-function bindJournalScroll(){const sc=$('#journalScroll'),thumb=$('#journalThumb');if(!sc||!thumb)return;const sync=()=>{const max=Math.max(1,sc.scrollHeight-sc.clientHeight),ratio=Math.min(1,sc.clientHeight/Math.max(sc.scrollHeight,1)),rail=Math.max(50,sc.clientHeight-10),h=Math.max(30,rail*ratio),top=(sc.scrollTop/max)*Math.max(0,rail-h);thumb.style.height=h+'px';thumb.style.transform=`translateY(${top}px)`;thumb.style.opacity=sc.scrollHeight>sc.clientHeight+4?'1':'.22'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(sync)}
+function bindJournalScroll(entryId=''){const sc=$('#journalScroll'),thumb=$('#journalThumb');if(!sc||!thumb)return;state.journalScrollPositions=state.journalScrollPositions||{};const key=String(entryId||'');const sync=()=>{if(key)state.journalScrollPositions[key]=sc.scrollTop;const max=Math.max(1,sc.scrollHeight-sc.clientHeight),ratio=Math.min(1,sc.clientHeight/Math.max(sc.scrollHeight,1)),rail=Math.max(50,sc.clientHeight-10),h=Math.max(30,rail*ratio),top=(sc.scrollTop/max)*Math.max(0,rail-h);thumb.style.height=h+'px';thumb.style.transform=`translateY(${top}px)`;thumb.style.opacity=sc.scrollHeight>sc.clientHeight+4?'1':'.22'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(()=>{if(key&&Number.isFinite(Number(state.journalScrollPositions[key])))sc.scrollTop=Number(state.journalScrollPositions[key])||0;sync()})}
 function openJournalCoverAnimated(){
   if(state.journalAnimating)return;const list=journalSorted(),root=$('#journalBook');if(!root||!list.length)return;
   const cover=root.querySelector('.journalCover076');if(!cover){state.journalCoverOpen=false;state.journalIndex=0;renderJournal();return}

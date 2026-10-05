@@ -2397,6 +2397,17 @@ html,body,.shell,.page{background-color:transparent!important}
 @keyframes riverGalaxyUp{from{stroke-dashoffset:0}to{stroke-dashoffset:44}}
 .riverClassicDot{width:6px!important;height:6px!important;background:rgba(255,255,255,.96)!important;border:1px solid rgba(177,169,222,.58)!important;box-shadow:0 0 0 4px rgba(235,231,255,.18),0 0 9px rgba(210,202,245,.32)!important}
 </style>
+
+<style id="clean-v2-styles">
+#journalBook>.journalV2Page{position:relative!important}
+#journalBook .journalV2Scroll{height:calc(100% - 108px);overflow-y:auto;overflow-x:hidden;padding:0 18px 34px 0;overscroll-behavior:contain}
+#journalBook .journalV2Rail{position:absolute;right:12px;top:118px;bottom:58px;width:4px;border-radius:9px;background:rgba(105,116,145,.09);z-index:5}
+#journalBook .journalV2Rail i{display:block;width:4px;min-height:32px;border-radius:9px;background:rgba(117,104,169,.45);transition:transform .08s linear,height .15s ease}
+.journalV2Tabs{position:absolute;right:-1px;top:0;z-index:12}.journalV2Tab{position:absolute;right:0;width:34px;height:34px;border:0;border-radius:14px 0 0 14px;background:rgba(255,255,255,.82);color:#9b83c8;font-size:17px;box-shadow:0 4px 12px rgba(90,80,120,.08)}.journalV2Add{color:#59647c}
+.journalV2NoteLayer{display:none;position:absolute;inset:0;z-index:30;background:rgba(248,246,241,.32);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:28px}.journalV2NoteLayer.open{display:flex}.journalV2Note{display:none;width:100%;max-width:310px;padding:20px;border-radius:20px;background:rgba(255,253,247,.96);box-shadow:0 18px 40px rgba(70,65,85,.16);line-height:1.8}.journalV2Note.active,.journalV2Compose.active{display:block}.journalV2Note small{display:block;margin:12px 0;color:#8c8992}.journalV2Note button{border:0;border-radius:14px;padding:9px 12px;background:rgba(255,255,255,.72)}.journalV2Compose textarea{width:100%;min-height:120px;border:0;outline:0;background:transparent;resize:none;font:inherit}.journalV2Compose>div{display:flex;justify-content:flex-end;gap:8px}
+.healthV2State{padding:22px;display:grid;gap:7px}.healthV2State small{color:#8c95a6}.healthV2Hero{padding:20px;margin-bottom:12px;display:grid;gap:6px}.healthV2Hero small,.healthV2Grid small{color:#8d96a8}.healthV2Hero b{font-size:34px;font-weight:500}.healthV2Hero span{font-size:12px;color:#7f899b}.healthV2Grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.healthV2Grid>div{min-height:102px;padding:16px;display:grid;align-content:center;gap:7px}.healthV2Grid b{font-size:22px;font-weight:520}.healthV2Section{margin-top:20px}.healthV2Section h3{font-size:14px;font-weight:600;margin:0 4px 8px}.healthV2Rows{padding:5px 15px}.healthV2Rows p{display:flex;justify-content:space-between;gap:16px;margin:0;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.55)}.healthV2Rows p:last-child{border-bottom:0}.healthV2Rows span{color:#8b94a5}.healthV2Rows b{font-weight:550}.healthV2Foot{padding:14px 5px 80px;font-size:10px;color:#98a0af}
+</style>
+
 </head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -2797,13 +2808,13 @@ function go(page,push=true){
   if(!same)window.scrollTo({top:0,behavior:'auto'});
   applyPageBackground();
   if(page==='desktop'){renderDesktopShell();return}
-  if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournal();return}
+  if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournalV2();return}
   if(page==='app-papers')renderPaperApp();
   if(page==='app-memory')renderMemoryApp();
   if(page==='app-mail')renderMailApp();
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
-  if(page==='app-health'){state.healthRefreshing=true;renderHealthApp();state.healthRefreshing=false;refreshHealthLive(true).then(()=>renderHealthApp()).catch(()=>renderHealthApp())}
+  if(page==='app-health'){openHealthAppV2()}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
   if(page==='app-phone')renderPhoneApp();
@@ -3121,6 +3132,62 @@ function stepJournalAnimated(delta){
   }
 }
 function stepJournal(delta){stepJournalAnimated(delta)}
+
+/* v0.8.3-19: clean diary + Xiaomi Health renderers. Old mixed renderers remain dormant. */
+function journalV2Annotations(d){
+  const notes=(state.diaryAnnotations||[]).filter(x=>String(x.diary_id)===String(d.id));
+  return '<div class="journalV2Tabs">'+notes.map((n,i)=>'<button class="journalV2Tab" data-jv2-note="'+esc(n.id)+'" style="top:'+(92+i*42)+'px">♡</button>').join('')+'<button class="journalV2Tab journalV2Add" data-jv2-add style="top:'+(92+notes.length*42)+'px">＋</button></div>'+
+    '<div class="journalV2NoteLayer" data-jv2-layer>'+notes.map(n=>'<div class="journalV2Note" data-jv2-paper="'+esc(n.id)+'"><div>'+esc(n.content||'')+'</div><small>'+esc(actorName(n.author||'user'))+' · '+esc(fmt(n.created_at||''))+'</small><button data-jv2-delete="'+esc(n.id)+'">取下书签</button></div>').join('')+
+    '<div class="journalV2Note journalV2Compose" data-jv2-compose><textarea data-jv2-input placeholder="写一句批注…"></textarea><div><button data-jv2-cancel>取消</button><button data-jv2-submit>夹进书页</button></div></div></div>';
+}
+function journalV2Page(d,index,total){
+  const side=authorSide(d.author||'daddy');
+  return '<article class="bookPage journalPhysicalPage journalV2Page" data-jv2-id="'+esc(d.id||'')+'">'+
+    journalV2Annotations(d)+'<div class="journalPaperMeta"><span>'+esc(d.date||'')+'</span><span>'+esc(actorName(d.author||'daddy'))+'</span></div>'+
+    '<div class="journalTitle">'+esc(d.title||'今天')+'</div>'+
+    '<div class="journalV2Scroll"><div class="journalText authoredText '+side+'">'+esc(d.content||'')+'</div><div class="itemActions journalEndActions"><button class="softBtn" data-jv2-edit>编辑</button><button class="dangerBtn" data-jv2-delete-entry>删除这一篇</button></div></div>'+
+    '<div class="journalV2Rail"><i></i></div><div class="journalFolio">'+(index+1)+' / '+total+'</div></article>';
+}
+function bindJournalV2(d,list){
+  const root=$('#journalBook'),sc=root?.querySelector('.journalV2Scroll'),thumb=root?.querySelector('.journalV2Rail i');
+  if(sc&&thumb){const sync=()=>{const max=Math.max(0,sc.scrollHeight-sc.clientHeight),rail=Math.max(1,sc.clientHeight-16),ratio=Math.min(1,sc.clientHeight/Math.max(1,sc.scrollHeight)),h=Math.max(32,rail*ratio),top=max?(sc.scrollTop/max)*(rail-h):0;thumb.style.height=h+'px';thumb.style.transform='translateY('+top+'px)';thumb.style.opacity=max>2?'1':'.25'};sc.addEventListener('scroll',sync,{passive:true});requestAnimationFrame(sync)}
+  root?.querySelector('[data-jv2-edit]')?.addEventListener('click',e=>{e.stopPropagation();openCompose('diary-edit',d)});
+  root?.querySelector('[data-jv2-delete-entry]')?.addEventListener('click',e=>{e.stopPropagation();deleteItem('/api/littlephone/diaries/delete',d.id,'这篇日记',()=>{state.journalIndex=Math.max(0,state.journalIndex-1);renderJournalV2()})});
+  const layer=root?.querySelector('[data-jv2-layer]'),compose=root?.querySelector('[data-jv2-compose]');
+  const closeNotes=()=>{layer?.classList.remove('open');root?.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.remove('active')};
+  root?.querySelectorAll('[data-jv2-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();layer?.classList.add('open');compose?.classList.remove('active');root.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.toggle('active',String(x.dataset.jv2Paper)===String(b.dataset.jv2Note)))}));
+  root?.querySelector('[data-jv2-add]')?.addEventListener('click',e=>{e.stopPropagation();layer?.classList.add('open');root.querySelectorAll('[data-jv2-paper]').forEach(x=>x.classList.remove('active'));compose?.classList.add('active');setTimeout(()=>root.querySelector('[data-jv2-input]')?.focus(),30)});
+  root?.querySelector('[data-jv2-cancel]')?.addEventListener('click',e=>{e.stopPropagation();closeNotes()});
+  root?.querySelector('[data-jv2-submit]')?.addEventListener('click',async e=>{e.stopPropagation();const content=String(root.querySelector('[data-jv2-input]')?.value||'').trim();if(!content)return toast('批注还是空的');try{await apiWrite('/api/littlephone/diary-annotations',{diary_id:d.id,content,author:'user'});await loadRemote();renderJournalV2();toast('批注已经夹进这一页')}catch(err){toast(err.message||'批注没有夹进去')}});
+  root?.querySelectorAll('[data-jv2-delete]').forEach(b=>b.addEventListener('click',async e=>{e.stopPropagation();try{await apiWrite('/api/littlephone/diary-annotations/delete',{id:b.dataset.jv2Delete});await loadRemote();renderJournalV2()}catch(err){toast(err.message||'批注没有删除')}}));
+  layer?.addEventListener('click',e=>{if(e.target===layer){e.stopPropagation();closeNotes()}});
+  root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a,.journalV2NoteLayer'))return;const r=root.getBoundingClientRect(),dir=e.clientX<r.left+r.width/2?-1:1;if(dir<0){if(state.journalIndex<=0){state.journalCoverOpen=true;state.journalIndex=-1;renderJournalV2()}else{state.journalIndex--;renderJournalV2()}}else if(state.journalIndex<list.length-1){state.journalIndex++;renderJournalV2()}else{root.classList.remove('boundaryTap');void root.offsetWidth;root.classList.add('boundaryTap')}};
+}
+function renderJournalV2(){
+  const root=$('#journalBook'),list=journalSorted();if(!root)return;
+  root.classList.remove('journalTurning');
+  if(state.journalCoverOpen){root.innerHTML=journalCoverMarkup();updateJournalPageNo('封面');root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a'))return;if(!list.length)return;state.journalCoverOpen=false;state.journalIndex=0;renderJournalV2()};return}
+  if(!list.length){state.journalIndex=-1;root.innerHTML='<div class="journalEmptyPage"><b>写给我们的日子</b><span>这里还没有日记。</span></div>';updateJournalPageNo('—');return}
+  if(state.journalIndex<0||state.journalIndex>=list.length)state.journalIndex=0;
+  const d=list[state.journalIndex];root.innerHTML=journalV2Page(d,state.journalIndex,list.length);updateJournalPageNo((state.journalIndex+1)+' / '+list.length);bindJournalV2(d,list);
+}
+function healthV2Value(v,unit=''){return v===null||v===undefined||v===''?'—':esc(v)+unit}
+function renderHealthAppV2(){
+  const root=$('#healthAppBody');if(!root||state.page!=='app-health')return;
+  const h=state.health||{},sl=h.sleep||{},st=h.steps||{},hr=h.heart_rate||{};
+  const mins=sl.duration_minutes??sl.total_minutes??sl.sleep_minutes,heart=hr.latest??hr.resting??hr.average,distance=st.distance??st.distance_m??st.distance_meters,calories=st.calories??st.kcal;
+  if(state.healthRefreshing&&!h.connected){root.innerHTML='<div class="glass healthV2State"><b>正在读取小米健康…</b><small>第一次唤醒服务可能会慢一些。</small></div>';return}
+  if(!h.connected){root.innerHTML='<div class="glass healthV2State"><b>暂时没有读到健康数据</b><small>'+esc(healthRefreshMessage())+'</small></div>';return}
+  root.innerHTML='<div class="healthV2Hero glass"><small>昨夜睡眠</small><b>'+healthMinutesLabel(mins)+'</b><span>'+esc(formatHealthClock(sl.sleep_at)||'—')+' → '+esc(formatHealthClock(sl.wake_at)||'—')+'</span></div>'+
+    '<div class="healthV2Grid"><div class="glass"><small>睡眠评分</small><b>'+healthV2Value(sl.score)+'</b></div><div class="glass"><small>今日步数</small><b>'+healthV2Value(st.count,' 步')+'</b></div><div class="glass"><small>最近心率</small><b>'+healthV2Value(heart,' 次/分')+'</b></div><div class="glass"><small>距离</small><b>'+healthV2Value(distance,' 米')+'</b></div><div class="glass"><small>卡路里</small><b>'+healthV2Value(calories,' kcal')+'</b></div></div>'+
+    '<div class="healthV2Section"><h3>睡眠</h3><div class="glass healthV2Rows"><p><span>深睡</span><b>'+healthV2Value(sl.deep_minutes,' 分钟')+'</b></p><p><span>浅睡</span><b>'+healthV2Value(sl.light_minutes,' 分钟')+'</b></p><p><span>REM</span><b>'+healthV2Value(sl.rem_minutes,' 分钟')+'</b></p></div></div>'+
+    '<div class="healthV2Foot">'+esc(h.source||'小米健康')+(h.updated_at?' · '+esc(fmt(h.updated_at)):'')+'</div>';
+}
+async function openHealthAppV2(){
+  state.healthRefreshing=true;renderHealthAppV2();
+  try{await refreshHealthLive(true)}finally{state.healthRefreshing=false;renderHealthAppV2()}
+}
+
 function renderPolicy(){const root=$('#permissionGroup');if(!root)return;const items=[['visit_enabled','允许来访读取','总开关关闭后，不再触发新的设备快照',''],['device_state','设备状态','电量、充电、网络与屏幕状态',''],['calendar','日历摘要','只读临近事项摘要',''],['usage','屏幕使用','屏幕时间、解锁次数与使用统计','usage'],['location','城市 / 天气','需要 Android 位置权限','location'],['notifications','通知摘要','默认不读取正文','notifications'],['media','媒体状态','当前播放状态','notification_listener']];const policyHtml=items.map(([k,t,sub,cap])=>{const system=cap?state.permissions[cap]:true;return`<div class="settingRow"><div><div class="sTitle">${t}</div><div class="sSub">${sub}${cap&&!system?' · 系统权限未开':''}</div></div><button class="switch ${state.policy[k]?'on':''}" data-policy="${k}" data-cap="${cap}"><i></i></button></div>`}).join('');const systemItems=[['notifications','通知权限','主动提醒能否正常显示'],['notification_listener','通知使用权','媒体状态与通知桥接'],['usage','Usage Access','屏幕时间、App 使用统计与门禁识别'],['accessibility','无障碍服务','门禁承接、返回/桌面和 Android command'],['background','后台运行','小手机前台服务是否正在运行'],['battery_optimization','电池优化','建议把小手机设为不受电池优化限制']];const sys=`<div class="permissionSectionTitle">Android 系统能力</div>`+systemItems.map(([cap,t,sub])=>`<button class="systemPermissionRow" data-system-cap="${cap}"><span><b>${t}</b><small>${sub}</small></span><em class="${state.permissions[cap]?'on':''}">${state.permissions[cap]?'已开启':'未开启'}</em></button>`).join('');root.innerHTML=policyHtml+sys;$$('[data-policy]').forEach(b=>b.onclick=()=>{if(!hasNative()||!window.LittlePhoneNative.setVisitPolicy)return toast('只在 Android App 内可改');const key=b.dataset.policy,val=!state.policy[key];const ok=window.LittlePhoneNative.setVisitPolicy(key,val);if(ok){state.policy[key]=val;if(val&&b.dataset.cap&&window.LittlePhoneNative.requestCapability)window.LittlePhoneNative.requestCapability(b.dataset.cap);renderPolicy()}});$$('[data-system-cap]').forEach(b=>b.onclick=()=>{if(hasNative()&&window.LittlePhoneNative.requestCapability){window.LittlePhoneNative.requestCapability(b.dataset.systemCap);toast('已打开对应系统设置')}})}
 
 function calcDays(){const rel=relationshipInfo(),el=$('#togetherDaysNumber');if(el)el.textContent=rel?String(rel.days):'—';const btn=$('#daysTogether');if(btn)btn.setAttribute('aria-label',rel?`相伴 ${rel.days} 天`:'相伴天数未设置')}

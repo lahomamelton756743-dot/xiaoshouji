@@ -2430,7 +2430,7 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .xinchaoNowHero{margin:18px 2px 12px;padding:22px 20px;border-radius:28px}.xinchaoNowHero>small,.xinchaoNowSection>small{font-size:10px;color:var(--ink3);letter-spacing:.08em}.xinchaoNowMood{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-top:10px}.xinchaoNowMood h3{margin:0;font-size:30px;font-weight:500;letter-spacing:.06em}.xinchaoNowMood span{font-size:10px;color:var(--ink3);padding-bottom:4px;text-align:right}.xinchaoNowMixed{margin-top:15px;padding:9px 12px;border-radius:16px;background:rgba(226,218,241,.32);font-size:11px;color:#5c5871}.xinchaoNowSection{margin:12px 2px;padding:17px 18px;border-radius:24px}.xinchaoNowDrive{display:grid;grid-template-columns:54px 1fr 28px;align-items:center;gap:10px;margin-top:13px;font-size:11px;color:var(--ink2)}.xinchaoNowDrive i{height:7px;border-radius:999px;background:rgba(255,255,255,.38);overflow:hidden}.xinchaoNowDrive i b{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(221,217,244,.76),rgba(171,192,222,.82))}.xinchaoNowDrive strong{font-size:11px;font-weight:600;color:#61708d;text-align:right}.xinchaoNowAxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 2px}.xinchaoNowAxes>div{padding:16px 18px;border-radius:22px}.xinchaoNowAxes small{display:block;color:var(--ink3);font-size:10px}.xinchaoNowAxes b{display:block;margin-top:4px;font-size:24px;font-weight:500;color:#667797}.xinchaoNowSection p{margin:10px 0 0;font-size:12px;line-height:1.65;color:var(--ink2)}
  .xinchaoThoughtRow{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.46)}.xinchaoThoughtRow:last-child{border-bottom:0}.xinchaoThoughtRow div{min-width:0}.xinchaoThoughtRow b{display:block;font-size:13px;line-height:1.65;font-weight:520;color:var(--ink2)}.xinchaoThoughtRow span{display:block;margin-top:5px;font-size:10px;color:var(--ink3)}.xinchaoThoughtRow strong{font-size:17px;font-weight:520;color:#687797;align-self:center}\n
 /* Xinchao v10.1 feedback */
-.xinchaoRipple{animation:xinchaoRippleIn .35s ease both}.xinchaoRipple h3{margin:7px 0 5px;font-size:17px;font-weight:500}.xinchaoRipple p{margin:0 0 5px}.xinchaoDriveWhy{grid-column:1/-1;margin-top:7px;padding-top:11px;border-top:1px solid rgba(90,104,132,.10)}.xinchaoCauseList{display:grid;gap:9px;margin-top:7px}.xinchaoCause{display:grid;gap:3px;padding:9px 11px;border-radius:14px;background:rgba(255,255,255,.34)}.xinchaoCause b{font-size:10px;font-weight:500;color:var(--ink3)}.xinchaoCause small,.xinchaoCause span{font-size:11px;line-height:1.55;color:var(--ink2)}@keyframes xinchaoRippleIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.xinchaoRipple{animation:xinchaoRippleIn .35s ease both}.xinchaoRipple h3{margin:7px 0 5px;font-size:17px;font-weight:500}.xinchaoRipple p{margin:0 0 5px}.xinchaoDriveWhy{grid-column:1/-1;margin-top:7px;padding-top:11px;border-top:1px solid rgba(90,104,132,.10)}.xinchaoCauseList{display:grid;gap:9px;margin-top:7px}.xinchaoCause{display:grid;gap:3px;padding:9px 11px;border-radius:14px;background:rgba(255,255,255,.34)}.xinchaoCause b{font-size:10px;font-weight:500;color:var(--ink3)}.xinchaoCause small,.xinchaoCause span{font-size:11px;line-height:1.55;color:var(--ink2)}.xinchaoCauseNatural{display:flex;gap:10px;align-items:flex-start;padding:9px 0}.xinchaoCauseNatural span{flex:1;font-size:12px;line-height:1.7;color:var(--ink2)}.xinchaoCauseNatural small{white-space:nowrap;font-size:10px;color:var(--ink3);padding-top:2px}.xinchaoNoCause{font-size:12px!important;line-height:1.7!important;color:var(--ink2)!important}@keyframes xinchaoRippleIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -3363,7 +3363,23 @@ function xinchaoZh(key,group='generic'){
   const v=maps[group]?.[String(key||'')];if(v)return v;if(key)console.warn('[心潮] 缺少中文映射',group,key);return group==='awareness'?'一则觉察':group==='tag'?'一种感受':group==='phase'?'状态变化':group==='source'?'真实材料':'心潮状态'
 }
 function xinchaoRippleHtml(x){const rs=Array.isArray(x.recentRipples)?x.recentRipples:[];if(!rs.length)return'';const r=rs[0],tags=(r.tags||[]).map(t=>xinchaoZh(t,'tag')).filter(Boolean),recent=r.display_stage==='recent';return '<div class="xinchaoNowSection glass xinchaoRipple"><small>'+(recent?'最近波纹':'刚刚泛起')+'</small><h3>'+esc(tags.join('、')||'一次真实触动')+'</h3><p>'+esc(r.thought_candidate?(recent?'这次触动仍在沉淀。':'已收下一次真实触动，正在沉淀。'):(recent?'这次触动已经缓缓退去，没有形成「念」。':'已收下一次真实触动，暂未形成「念」。'))+'</p><span class="xinchaoMeta">'+esc(xinchaoZh(r.phase,'phase'))+'</span></div>'}
-function xinchaoDriveCauseHtml(d){const causes=Array.isArray(d?.recent_causes)?d.recent_causes:[];if(!causes.length)return '<p>没有明确的单一缘由，主要来自持续累积。</p>';return '<div class="xinchaoCauseList">'+causes.map(c=>'<div class="xinchaoCause"><b>'+esc(c.source_label||xinchaoZh(c.source,'source'))+(c.freshness?' · '+esc(c.freshness):'')+'</b>'+(c.external_event?'<small>外部发生：'+esc(c.external_event)+'</small>':'')+'<span>心潮感知：'+esc(c.text||'')+'</span></div>').join('')+'</div>'}
+function xinchaoNaturalCause(c){
+  if(!c)return'';
+  if(c.privacy_class&&c.privacy_class!=='ordinary')return '最近有一件比较私人的事，让这种感觉又轻轻浮了上来。';
+  let t=String(c.text||'').trim().replace(/\s+/g,' ');
+  t=t.replace(/^我(?:明显|确实|有些|有点)?(?:感到|感觉到)?/,'').replace(/^心潮感知[:：]?\s*/,'');
+  if(t.length>92)t=t.slice(0,90)+'…';
+  const fresh=c.freshness==='刚刚'?'刚才':c.freshness==='近期'?'最近':'之前留下的余韵里';
+  if(c.source==='thought')return '有一件还没完全淡下去的事一直留在心里：'+t;
+  if(c.source==='dream_material')return '梦醒以后，还有一点感觉没有完全散掉。';
+  return fresh+'，'+t.replace(/[。！？]+$/,'')+'。'
+}
+function xinchaoDriveCauseHtml(d){
+  const causes=Array.isArray(d?.recent_causes)?d.recent_causes.filter(Boolean):[];
+  if(!causes.length)return '<p class="xinchaoNoCause">它不是被某一件刚发生的事突然推高的，更像是之前一点点积下来的。现在还没有足够明确的单一缘由。</p>';
+  return '<div class="xinchaoCauseList">'+causes.slice(0,2).map(c=>'<div class="xinchaoCauseNatural"><span>'+esc(xinchaoNaturalCause(c))+'</span>'+(c.freshness?'<small>'+esc(c.freshness)+'</small>':'')+'</div>').join('')+'</div>'
+}
+
 function renderXinchaoApp(){
   const root=$('#xinchaoBody');if(!root)return;
   const tab=state.xinchaoTab||'now',raw=state.xinchao||{},snap=(raw.snapshot&&typeof raw.snapshot==='object')?raw.snapshot:raw;

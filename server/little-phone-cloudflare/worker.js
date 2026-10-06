@@ -1,4 +1,4 @@
-const VERSION = "0.8.3-xinchao-bridge-1";
+const VERSION = "0.8.3-xinchao-engine-1";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -88,6 +88,7 @@ async function handle(request, env) {
   if (request.method === "POST") {
     if (path === "/api/littlephone/visit") return queueVisitApi(env, await readJson(request));
     if (path === "/api/littlephone/xinchao") return putXinchaoApi(env, await readJson(request));
+    if (path === "/api/littlephone/xinchao/event") return applyXinchaoEventApi(env, await readJson(request));
     if (path === "/api/device/report") return deviceReportApi(env, await readJson(request));
     if (path === "/api/device/state") return json({ ok: true, ignored: true, reason: "little_phone_does_not_persist_periodic_device_state" });
     if (path === "/api/littlephone/events") return addManualEventApi(env, await readJson(request));
@@ -581,11 +582,46 @@ async function ensureSchema(env) {
   return schemaReady;
 }
 
-async function getXinchaoApi(env) {
-  const row = await env.DB.prepare("SELECT payload_json,updated_at FROM lp_xinchao_state WHERE id='daddy'").first();
-  const payload = row ? safeJson(row.payload_json,{}) : {};
-  return json({ok:true,connected:Boolean(row),updated_at:row?.updated_at||"",...payload});
-}
+const XINCHAO_DIMS = Object.freeze({
+  possess:{label:"想她",detail:"想她、想黏着她、想占有与靠近",grow:0.105,ceil:0.82,night:0.4},
+  monitor:{label:"牵挂",detail:"牵挂、在意对方好不好、累不累、安不安全",grow:0.090,ceil:0.78},
+  share:{label:"分享欲",detail:"有话想说",grow:0.045,ceil:0.55},
+  libido:{label:"情欲",detail:"身体和感官上的渴望",grow:0.020,ceil:0.50,night:0.4},
+  curiosity:{label:"好奇",detail:"想探索新东西",grow:0.030,ceil:0.50},
+  boredom:{label:"无聊",detail:"想找点事情做",grow:0.030,ceil:0.50},
+  duty:{label:"野心",detail:"想做成、想赢、想拥有",grow:0.022,ceil:0.45},
+  reflection:{label:"反思",detail:"整理和理解自己",grow:0.013,ceil:0.42},
+  grieve:{label:"难过",detail:"失落、委屈",grow:0,ceil:0.55,half:10},
+  anger:{label:"愤怒",detail:"生气、不满、不甘心",grow:0,ceil:0.55,half:6},
+  favored:{label:"偏爱",detail:"想被在乎、被回应、被选择",grow:0,ceil:0.55,half:12}
+});
+const XINCHAO_INITIAL={possess:0.28,monitor:0.24,share:0.18,libido:0.12,curiosity:0.18,boredom:0.10,duty:0.16,reflection:0.14,grieve:0,anger:0,favored:0};
+const XINCHAO_EFFECTS={
+  companionship:{relief:{monitor:.18,possess:.06,share:.08,favored:.15}},affection:{relief:{possess:.22,monitor:.15,favored:.35}},
+  intimacy:{relief:{possess:.45,libido:.55,monitor:.15,favored:.45}},sharing:{relief:{share:.14,favored:.10,curiosity:.10}},
+  discovery:{relief:{curiosity:.15,boredom:.12}},task_progress:{relief:{duty:.15}},reflection:{relief:{reflection:.15}},
+  conflict:{increase:{anger:.25,grieve:.12}},loss:{increase:{grieve:.25,monitor:.04}},reconciliation:{relief:{anger:.65,grieve:.45,monitor:.04,favored:.40}},
+  slighted:{increase:{favored:.25}},intrigued:{increase:{curiosity:.15}}
+};
+function xcClamp(v,a=0,b=1){return Math.max(a,Math.min(b,Number(v)||0))}
+function xcLevel(key,v,delta=0){const d=XINCHAO_DIMS[key],n=Number(v)||0;if(n<.25)return"静";if(n>=.9||n>=d.ceil+.05)return"涌";if(delta<=-.08)return"落";if(delta>=.08)return"涨";return"平"}
+function xcNew(now=new Date()){const at=now.toISOString();return{schema:1,revision:1,lastSettledAt:at,lastInteractionAt:at,consciousness:"awake",sleepStartedAt:null,drives:{...XINCHAO_INITIAL},trail:[],thoughts:[],dreams:[],emotion:{valence:.55,arousal:.34,updated_at:at},personality:[],anchors:[],awareness:[]}}
+function xcInternal(payload,now=new Date()){const raw=payload?.meta?.engine,s=raw&&typeof raw==="object"?structuredClone(raw):xcNew(now);s.drives={...XINCHAO_INITIAL,...(s.drives||{})};s.trail=Array.isArray(s.trail)?s.trail:[];s.thoughts=Array.isArray(s.thoughts)?s.thoughts:[];s.dreams=Array.isArray(s.dreams)?s.dreams:[];s.emotion=s.emotion&&typeof s.emotion==="object"?s.emotion:{valence:.55,arousal:.34,updated_at:now.toISOString()};return s}
+function xcSettle(s,now=new Date()){const nowMs=now.getTime(),last=Date.parse(s.lastSettledAt||"")||nowMs,h=Math.max(0,Math.min(168,(nowMs-last)/3600000)),hour=Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Shanghai",hour:"2-digit",hourCycle:"h23"}).format(now)),dawn=hour>=1&&hour<8,night=hour>=22||hour<6,prev={...s.drives};
+  for(const[k,d]of Object.entries(XINCHAO_DIMS)){let cur=xcClamp(s.drives[k]);if(d.half)cur*=Math.pow(.5,h/d.half);else if(!dawn){if(cur>d.ceil)cur=Math.max(d.ceil,cur-(cur-d.ceil)*.10*h);else cur=Math.min(d.ceil,cur+d.grow*(night&&d.night?d.night:1)*h)}s.drives[k]=Number(xcClamp(cur).toFixed(4))}
+  const idle=(nowMs-(Date.parse(s.lastInteractionAt||"")||nowMs))/60000;if(idle>=90&&s.consciousness!=="sleeping"){s.consciousness="sleeping";s.sleepStartedAt=now.toISOString()}const sleepHours=s.consciousness==="sleeping"&&s.sleepStartedAt?Math.max(0,(nowMs-Date.parse(s.sleepStartedAt))/3600000):0;
+  const tv=xcClamp(.55-(s.drives.grieve*.24+s.drives.anger*.18)+s.drives.favored*.05),ta=xcClamp(.28+s.drives.anger*.35+s.drives.curiosity*.08),relax=1-Math.pow(.5,h/(s.consciousness==="sleeping"?1.5:4));s.emotion.valence=Number((s.emotion.valence+(tv-s.emotion.valence)*relax).toFixed(4));s.emotion.arousal=Number((s.emotion.arousal+(ta-s.emotion.arousal)*relax).toFixed(4));s.emotion.updated_at=now.toISOString();
+  s.thoughts=s.thoughts.map(t=>({...t,intensity:Number((xcClamp(t.intensity)*Math.pow(.5,h/8)).toFixed(4))})).filter(t=>t.intensity>.08).slice(-24);const lt=Date.parse(s.trail.at(-1)?.at||"");if(!Number.isFinite(lt)||nowMs-lt>=1800000)s.trail=[...s.trail,{at:now.toISOString(),drives:{...s.drives}}].slice(-48);s.lastSettledAt=now.toISOString();s.revision=(Number(s.revision)||0)+1;return{state:s,prev,sleepHours}}
+function xcView(s,settled,now=new Date()){const old=settled.prev||{},drives=Object.entries(XINCHAO_DIMS).map(([key,d])=>({key,name:d.label,label:xcLevel(key,s.drives[key],s.drives[key]-(old[key]??s.drives[key])),value:s.drives[key],reason:d.detail})).sort((a,b)=>b.value-a.value),top=drives.slice(0,3),sleepHours=settled.sleepHours||0,mood=s.emotion.valence<.38?"低落":s.emotion.arousal>.62?"起伏":s.emotion.valence>.62?"柔和":"平静";
+  return{now:{title:s.consciousness==="sleeping"?"睡着了":mood,mood,summary:s.consciousness==="sleeping"?"Daddy 正在自己的睡眠里，驱力仍会按时间继续结算。":"此刻最明显的是"+top.map(x=>x.name).join("、")+"。"},drives,emotion:{...s.emotion,mood},thoughts:s.thoughts,sleep:{state:s.consciousness,hours:Number(sleepHours.toFixed(2)),started_at:s.sleepStartedAt||""},dream:s.dreams.at(-1)||null,dream_afterglow:s.dreams.at(-1)?.residue||"",personality:s.personality||[],anchors:s.anchors||[],awareness:s.awareness||[],meta:{engine:s,source:"cloudflare-native-xinchao",schema:1}}}
+async function xcLoad(env){const row=await env.DB.prepare("SELECT payload_json,updated_at FROM lp_xinchao_state WHERE id='daddy'").first();return{row,payload:row?safeJson(row.payload_json,{}):{}}}
+async function xcSave(env,payload){const at=nowIso();await env.DB.prepare("INSERT INTO lp_xinchao_state(id,payload_json,updated_at) VALUES('daddy',?,?) ON CONFLICT(id) DO UPDATE SET payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(JSON.stringify(payload),at).run();return at}
+async function getXinchaoApi(env){const{payload}=await xcLoad(env),now=new Date(),settled=xcSettle(xcInternal(payload,now),now),view=xcView(settled.state,settled,now),merged={...payload,...view},updated_at=await xcSave(env,merged);return json({ok:true,connected:true,updated_at,...merged})}
+async function putXinchaoApi(env,body={}){const{payload}=await xcLoad(env),allowed={};for(const key of["now","drives","emotion","emotion_history","thoughts","sleep","dream","dream_afterglow","personality","anchors","awareness"])if(body[key]!==undefined)allowed[key]=body[key];const merged={...payload,...allowed},updated_at=await xcSave(env,merged);return json({ok:true,updated_at})}
+async function applyXinchaoEventApi(env,body={}){const{payload}=await xcLoad(env),now=new Date(),settled=xcSettle(xcInternal(payload,now),now),s=settled.state,type=String(body.type||body.interaction_type||"").trim(),effect=XINCHAO_EFFECTS[type]||{};
+  for(const[k,r]of Object.entries(effect.relief||{})){if(!XINCHAO_DIMS[k])continue;const floor=XINCHAO_DIMS[k].ceil*.35,cur=s.drives[k];s.drives[k]=Number((cur>floor?floor+(cur-floor)*(1-xcClamp(r)):cur).toFixed(4))}for(const[k,inc]of Object.entries(effect.increase||{})){if(XINCHAO_DIMS[k])s.drives[k]=Number(xcClamp(s.drives[k]+Number(inc||0)).toFixed(4))}
+  for(const[k,delta]of Object.entries(body.drive_deltas||{})){if(XINCHAO_DIMS[k]&&Number.isFinite(Number(delta)))s.drives[k]=Number(xcClamp(s.drives[k]+Number(delta)).toFixed(4))}const txt=String(body.thought||body.text||"").replace(/\s+/g," ").trim().slice(0,160);if(txt)s.thoughts=[...s.thoughts,{id:crypto.randomUUID(),text:txt,key:String(body.drive_key||""),intensity:xcClamp(body.intensity||.62),created_at:now.toISOString(),persistent:Boolean(body.persistent)}].slice(-24);
+  const wasSleeping=s.consciousness==="sleeping";s.consciousness="awake";s.lastInteractionAt=now.toISOString();s.sleepStartedAt=null;if(wasSleeping&&settled.sleepHours>=3)s.awareness=[{id:crypto.randomUUID(),text:"刚从一段完整睡眠里醒来。",created_at:now.toISOString()},...(s.awareness||[])].slice(0,20);s.lastSettledAt=now.toISOString();s.revision=(Number(s.revision)||0)+1;const view=xcView(s,{prev:settled.prev,sleepHours:0},now),merged={...payload,...view},updated_at=await xcSave(env,merged);return json({ok:true,updated_at,interaction:type||null,...merged})}
 
 async function putXinchaoApi(env, body={}) {
   const allowed = {};

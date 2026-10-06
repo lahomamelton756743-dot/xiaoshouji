@@ -2532,7 +2532,7 @@ html,body,.shell,.page{background-color:transparent!important}
 /* v0.8.3-27 — stable vector Xinchao mark: heart + lower-right tide. */
 .xinchaoDesktopMark{position:relative;z-index:2;width:35px;height:35px;overflow:visible;fill:none;stroke:#586884;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
 </style>
-</head>
+<style>body.xinchaoMode .shell{padding-top:calc(env(safe-area-inset-top) + 4px)!important}</style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 <div class="shell">
@@ -2934,7 +2934,7 @@ function go(page,push=true){
   document.body.classList.toggle('settingsMode',page==='settings'||page==='settings-detail');
   document.body.classList.toggle('diaryMode',page==='diary');
   document.body.classList.toggle('desktopMode',page==='desktop');
-  document.body.classList.toggle('miniAppMode',page!=='desktop');
+  document.body.classList.toggle('miniAppMode',page!=='desktop');document.body.classList.toggle('xinchaoMode',page==='app-xinchao');
   document.body.dataset.page=page;
   if(!same)window.scrollTo({top:0,behavior:'auto'});
   applyPageBackground();
@@ -3318,9 +3318,9 @@ function renderXinchaoTide(x,dn){
   const drives=raw;
   const selected=raw.find(d=>String(d.key||d.name)===String(state.xinchaoDriveKey||''))||raw.slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a))[0];
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
-  const cx=220,cy=220,maxLen=188,minLen=14,baseR=19,step=360/drives.length;
+  const cx=220,cy=220,maxLen=132,minLen=12,baseR=19,step=360/drives.length;
   const petals=drives.map((d,i)=>{
-    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+v*(maxLen-minLen),half=8+v*20,y0=cy-baseR,y1=y0-len;
+    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+Math.pow(v,1.18)*(maxLen-minLen),half=8+v*18,y0=cy-baseR,y1=y0-len;
     const path='M '+cx+' '+y0+' C '+(cx-half*.38)+' '+(y0-len*.18)+' '+(cx-half)+' '+(y1+len*.20)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.46)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.46)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.20)+' '+(cx+half*.38)+' '+(y0-len*.18)+' '+cx+' '+y0+' Z';
     const rad=(angle-90)*Math.PI/180,labelR=baseR+len+18,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4,anchor=Math.abs(Math.cos(rad))<.20?'middle':Math.cos(rad)>0?'start':'end';
     const active=key===String(state.xinchaoDriveKey),gid='xg'+i;
@@ -3343,7 +3343,7 @@ function renderXinchaoApp(){
   }
   if(tab==='tide')body=renderXinchaoTide(x,dn);
   if(tab==='thoughts'){
-    const ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);
+    let ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);if(!ts.length){const ds=xinchaoList(x.topDrives).length?x.topDrives:xinchaoList(x.drives).slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a));ts=ds.filter(d=>xinchaoDriveValue(d)>=.24).slice(0,4).map((d,i)=>({kind:xinchaoDriveValue(d)>=.5?'持续念头':'闪念',text:(d.name||d.label||d.key||'这股念头')+(xinchaoDriveValue(d)>=.5?'一直没有散去。':'刚刚又浮了上来。'),intensity:xinchaoDriveValue(d),persistent:xinchaoDriveValue(d)>=.5}));}
     if(ts.length){const persistent=ts.filter(t=>t.persistent),fleeting=ts.filter(t=>!t.persistent);body=(persistent.length?'<div class="xinchaoNowSection glass"><small>一直没有散去</small>'+persistent.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+(t.age!=null?'停留 '+esc(t.age)+' · ':'')+'强度 '+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'')+(fleeting.length?'<div class="xinchaoNowSection glass"><small>最近浮上来的念</small>'+fleeting.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+esc(t.kind||'闪念')+(t.feedbacks!=null?' · 回响 '+esc(t.feedbacks):'')+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'');}
   }
   if(tab==='dream'){

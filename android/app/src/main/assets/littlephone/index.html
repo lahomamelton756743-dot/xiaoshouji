@@ -2438,6 +2438,9 @@ html,body,.shell,.page{background-color:transparent!important}
 .xinchaoHero{min-height:390px;border-radius:30px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.xinchaoHero>small{align-self:flex-start;color:#9299aa}.xinchaoEmptyMark{font-family:serif;font-size:72px;line-height:1;margin:48px 0 16px;color:#aaa2c3}.xinchaoHero p{max-width:270px;font-size:14px;line-height:1.85;color:#596277}.xinchaoHero>span{margin-top:18px;font-size:10px;color:#9ca3b1}
 </style>
 
+<style id="xinchao-live-cards">
+.xinchaoCard{border-radius:25px;padding:19px;margin-bottom:11px}.xinchaoCard small{font-size:10px;color:#9299aa}.xinchaoCard h3{font-size:21px;margin:7px 0 8px;font-weight:560}.xinchaoCard p{white-space:pre-wrap;font-size:13px;line-height:1.75;color:#596277;margin:7px 0}.xinchaoCard>span{font-size:10px;color:#969eae}.xinchaoGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.xinchaoGrid .xinchaoCard{margin:0;min-height:126px}.xinchaoGrid b{display:block;margin:7px 0;font-size:17px;font-weight:560}
+</style>
 </head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -2769,7 +2772,7 @@ html,body,.shell,.page{background-color:transparent!important}
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,journalReadPosition:null,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false,xinchaoTab:'now'};
+const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,journalReadPosition:null,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false,xinchaoTab:'now',xinchao:{connected:false}};
 const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-xinchao':['心潮',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
@@ -2852,7 +2855,7 @@ function go(page,push=true){
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
   if(page==='app-health'){openHealthAppV2()}
-  if(page==='app-xinchao'){renderXinchaoApp()}
+  if(page==='app-xinchao'){renderXinchaoApp();loadXinchao()}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
   if(page==='app-phone')renderPhoneApp();
@@ -3216,20 +3219,22 @@ function renderJournalV2(){
   if(sc&&keep&&String(keep.id)===String(d.id)){requestAnimationFrame(()=>{const max=Math.max(0,sc.scrollHeight-sc.clientHeight);sc.scrollTop=Math.min(max,Number.isFinite(keep.top)?keep.top:max*(keep.ratio||0));sc.dispatchEvent(new Event('scroll'))})}
 }
 
+function xinchaoList(v){return Array.isArray(v)?v:[]}
 function renderXinchaoApp(){
   const root=$('#xinchaoBody');if(!root)return;
-  const tab=state.xinchaoTab||'now';
-  const empty={
-    now:'心潮后端接通后，这里会显示 Daddy 此刻的情绪、最强驱力、挂念和内在变化。',
-    tide:'这里会是十二维驱力。每一维都能看到上涨、满足、饱足与最近影响它的原因。',
-    thoughts:'这里会收住闪念、持续念头和反复浮现的记忆，不和日记混在一起。',
-    dream:'这里记录 Daddy 自己的睡眠、梦境、主要意象与醒来后的余韵；与你的小米健康完全分开。',
-    self:'这里会放 14 维性格内核、行为锚点、自我觉察，以及长期以来慢慢发生的变化。'
-  };
+  const tab=state.xinchaoTab||'now',x=state.xinchao||{};
+  const empty={now:'这里会显示 Daddy 此刻的情绪、最强驱力、挂念和内在变化。',tide:'这里会是十二维驱力。每一维都能看到上涨、满足、饱足与最近影响它的原因。',thoughts:'这里会收住闪念、持续念头和反复浮现的记忆，不和日记混在一起。',dream:'这里记录 Daddy 自己的睡眠、梦境、主要意象与醒来后的余韵；与你的小米健康完全分开。',self:'这里会放 14 维性格内核、行为锚点、自我觉察，以及长期以来慢慢发生的变化。'};
   const title={now:'此刻',tide:'潮',thoughts:'念',dream:'梦',self:'我'}[tab];
-  root.innerHTML='<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">≈</div><p>'+empty[tab]+'</p><span>等待属于这台小手机的心潮实例</span></div>';
+  let body='';
+  if(tab==='now'&&x.now){body='<div class="xinchaoCard glass"><small>现在</small><h3>'+esc(x.now.title||x.now.mood||'此刻')+'</h3><p>'+esc(x.now.summary||x.now.text||'')+'</p></div>'}
+  if(tab==='tide'&&xinchaoList(x.drives).length)body='<div class="xinchaoGrid">'+x.drives.map(d=>'<div class="xinchaoCard glass"><small>'+esc(d.name||d.key||'驱力')+'</small><b>'+esc(d.label||d.state||d.value||'')+'</b><p>'+esc(d.reason||'')+'</p></div>').join('')+'</div>';
+  if(tab==='thoughts'&&xinchaoList(x.thoughts).length)body=x.thoughts.map(t=>'<div class="xinchaoCard glass"><small>'+esc(t.kind||'念')+'</small><p>'+esc(t.text||t.content||'')+'</p></div>').join('');
+  if(tab==='dream'&&(x.dream||x.sleep))body='<div class="xinchaoCard glass"><small>Daddy 的睡眠</small><h3>'+esc(x.sleep?.summary||x.sleep?.state||'睡眠')+'</h3><p>'+esc(x.dream?.summary||x.dream?.text||'')+'</p><span>'+esc(x.dream_afterglow?.summary||x.dream_afterglow||'')+'</span></div>';
+  if(tab==='self'&&(x.personality||xinchaoList(x.anchors).length||xinchaoList(x.awareness).length))body='<div class="xinchaoCard glass"><small>慢慢成为的我</small><p>'+esc(x.personality?.summary||'')+'</p></div>'+xinchaoList(x.anchors).map(a=>'<div class="xinchaoCard glass"><small>行为锚点</small><p>'+esc(a.text||a)+'</p></div>').join('')+xinchaoList(x.awareness).map(a=>'<div class="xinchaoCard glass"><small>自我觉察</small><p>'+esc(a.text||a)+'</p></div>').join('');
+  root.innerHTML=body||'<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">≈</div><p>'+empty[tab]+'</p><span>'+(x.connected?'这一页还没有形成内容':'等待属于这台小手机的心潮实例')+'</span></div>';
   $('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.classList.toggle('active',b.dataset.xinchaoTab===tab));
 }
+async function loadXinchao(){try{state.xinchao=await nativeRequest('GET','/api/littlephone/xinchao');renderXinchaoApp()}catch(e){state.xinchao={connected:false};renderXinchaoApp()}}
 $('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;renderXinchaoApp()});
 
 function healthV2Value(v,unit=''){return v===null||v===undefined||v===''?'—':esc(v)+unit}

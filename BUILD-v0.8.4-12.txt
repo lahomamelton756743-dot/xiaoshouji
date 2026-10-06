@@ -1,0 +1,8 @@
+version=0.8.4-11
+job_status=success
+commit=6dbc7499de2977430bb5b7c93d06890b61934aa2
+run_id=37428466470
+artifact_id=11395642659
+artifact_url=https://github.com/lahomamelton756743-dot/xiaoshouji/actions/runs/37428466470/artifacts/11395642659
+zip=little-phone-v0.8.4-12-build.zip
+apk=LittlePhone-v0.8.4-12.apk

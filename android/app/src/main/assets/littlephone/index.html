@@ -2393,6 +2393,17 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .xinchaoSvgPetal.active{opacity:.96!important;filter:drop-shadow(0 3px 6px rgba(50,72,108,.12))!important}
 .xinchaoSvgPetal text{fill:#40516b!important;fill-opacity:.84!important}
 
+
+/* v0.8.4-2 pearl lavender glass petals + tip labels */
+.xinchaoFlower::before{inset:15%!important;background:radial-gradient(circle,rgba(255,255,255,.13),rgba(240,237,255,.07) 54%,transparent 76%)!important;box-shadow:none!important;backdrop-filter:blur(1px)!important;-webkit-backdrop-filter:blur(1px)!important}
+.xinchaoSvgPetal{transition:opacity 300ms ease-out,filter 300ms ease-out,transform 300ms ease-out!important}
+.xinchaoSvgPetal path{stroke:rgba(255,255,255,.72)!important;stroke-width:1.15!important;filter:drop-shadow(0 2px 4px rgba(96,88,138,.08))}
+.xinchaoSvgPetal:not(.active){opacity:.92!important}
+.xinchaoSvgPetal.active{opacity:1!important;filter:drop-shadow(0 4px 8px rgba(112,96,160,.14))!important;transform:scale(1.025)!important}
+.xinchaoSvgPetal text{font-size:12px!important;fill:#536078!important;fill-opacity:.88!important}
+.xinchaoSvgPetal.active text{fill:#313b58!important;fill-opacity:1!important;font-weight:650!important}
+.xinchaoPearl{fill:url(#xinchaoPearlGradient)!important;stroke:rgba(190,192,215,.85)!important;stroke-width:1.1!important;filter:drop-shadow(0 3px 5px rgba(78,82,112,.16))!important}
+
 </style>
 
 <style>
@@ -3288,18 +3299,15 @@ function renderXinchaoTide(x,dn){
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
   const cx=180,cy=180,maxLen=118,minLen=maxLen*.38,baseR=18;
   const petals=drives.map((d,i)=>{
-    const v=xinchaoDriveValue(d), key=String(d.key||d.name||i), angle=i*30, len=minLen+v*(maxLen-minLen), half=14;
-    const y0=cy-baseR,y1=y0-len;
-    const path='M '+cx+' '+y0+' C '+(cx-half*.42)+' '+(y0-len*.20)+' '+(cx-half)+' '+(y1+len*.22)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.45)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.45)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.22)+' '+(cx+half*.42)+' '+(y0-len*.20)+' '+cx+' '+y0+' Z';
-    const rad=(angle-90)*Math.PI/180,labelR=baseR+maxLen+28,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4;
-    const anchor=Math.abs(Math.cos(rad))<.25?'middle':Math.cos(rad)>0?'start':'end';
-    const active=key===String(state.xinchaoDriveKey);
-    const fill=active?'#6476a4':(i%3===0?'#7591aa':i%3===1?'#8aadc1':'#8d91b0');
-    const opacity=active?.82:(.44+v*.10);
-    return '<g class="xinchaoSvgPetal '+(active?'active':'')+'" data-xinchao-drive="'+esc(key)+'"><g transform="rotate('+angle+' '+cx+' '+cy+')"><path d="'+path+'" fill="'+fill+'" fill-opacity="'+opacity+'"/></g><text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'">'+esc(d.name||d.label||d.key||'潮')+'</text></g>';
+    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*30,len=minLen+v*(maxLen-minLen),half=14,y0=cy-baseR,y1=y0-len;
+    const path='M '+cx+' '+y0+' C '+(cx-half*.38)+' '+(y0-len*.18)+' '+(cx-half)+' '+(y1+len*.20)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.46)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.46)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.20)+' '+(cx+half*.38)+' '+(y0-len*.18)+' '+cx+' '+y0+' Z';
+    const rad=(angle-90)*Math.PI/180,labelR=baseR+len+18,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4,anchor=Math.abs(Math.cos(rad))<.20?'middle':Math.cos(rad)>0?'start':'end';
+    const active=key===String(state.xinchaoDriveKey),gid='xg'+i;
+    const a=active?.76:(.48+v*.08),b=active?.88:(.58+v*.08);
+    return '<g class="xinchaoSvgPetal '+(active?'active':'')+'" data-xinchao-drive="'+esc(key)+'"><defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fbfaff" stop-opacity="'+a+'"/><stop offset="48%" stop-color="#ddd9f4" stop-opacity="'+b+'"/><stop offset="100%" stop-color="#c5d9eb" stop-opacity="'+a+'"/></linearGradient></defs><g transform="rotate('+angle+' '+cx+' '+cy+')"><path d="'+path+'" fill="url(#'+gid+')"/></g><text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'">'+esc(d.name||d.label||d.key||'潮')+'</text></g>';
   }).join('');
   const v=xinchaoDriveValue(selected),reason=selected?.reason||selected?.recent_reason||selected?.why||'',stateText=selected?.state||selected?.label||'';
-  return '<div class="xinchaoFlowerWrap"><div class="xinchaoFlower"><svg class="xinchaoFlowerSvg" viewBox="0 0 360 360" preserveAspectRatio="xMidYMid meet" aria-label="十二瓣情绪花">'+petals+'<circle class="xinchaoPearl" cx="180" cy="180" r="17"/></svg></div></div><div class="glass xinchaoPetalDetail"><div><small>选中的花瓣</small><h3>'+esc(selected?.name||selected?.label||selected?.key||'驱力')+'</h3></div><strong>'+Math.round(v*100)+'</strong><p>'+esc(reason||stateText||'这一片正在安静变化。')+'</p></div>';
+  return '<div class="xinchaoFlowerWrap"><div class="xinchaoFlower"><svg class="xinchaoFlowerSvg" viewBox="0 0 360 360" preserveAspectRatio="xMidYMid meet" aria-label="十二瓣情绪花"><defs><radialGradient id="xinchaoPearlGradient" cx="38%" cy="30%"><stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#faf8ff"/><stop offset="100%" stop-color="#e6e1f2"/></radialGradient></defs>'+petals+'<circle class="xinchaoPearl" cx="180" cy="180" r="17"/></svg></div></div><div class="glass xinchaoPetalDetail"><div><small>选中的花瓣</small><h3>'+esc(selected?.name||selected?.label||selected?.key||'驱力')+'</h3></div><strong>'+Math.round(v*100)+'</strong><p>'+esc(reason||stateText||'这一片正在安静变化。')+'</p></div>';
 }
 function renderXinchaoApp(){
   const root=$('#xinchaoBody');if(!root)return;

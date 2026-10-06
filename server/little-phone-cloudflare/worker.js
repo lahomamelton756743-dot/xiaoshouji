@@ -1,5 +1,5 @@
 // @ts-nocheck
-const VERSION = "0.8.3-xinchao-engine-10.1";
+const VERSION = "0.8.3-xinchao-engine-10.2";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -680,16 +680,25 @@ function xcSettle(s,now=new Date()){const nowMs=now.getTime(),last=Date.parse(s.
   const tv=xcClamp(.55-(s.drives.grieve*.24+s.drives.anger*.18)+s.drives.favored*.05),ta=xcClamp(.28+s.drives.anger*.35+s.drives.curiosity*.08),relax=1-Math.pow(.5,h/(s.consciousness==="sleeping"?1.5:4));s.emotion.valence=Number((s.emotion.valence+(tv-s.emotion.valence)*relax).toFixed(4));s.emotion.arousal=Number((s.emotion.arousal+(ta-s.emotion.arousal)*relax).toFixed(4));s.emotion.updated_at=now.toISOString();
   s.thoughts=s.thoughts.map(t=>{const born=Date.parse(t.created_at||"");const age=Number.isFinite(born)?Math.max(0,(nowMs-born)/3600000):(Number(t.age)||0)+h,intensity=xcClamp(t.intensity)*Math.pow(t.persistent?1.0062:.986,h);return{...t,age:Number(age.toFixed(2)),intensity:Number(xcClamp(intensity).toFixed(4)),persistent:Boolean(t.persistent||(age>=3&&intensity>=.5))}}).filter(t=>t.intensity>.08).slice(-24);xcThoughtFeedback(s,h,now);xcSlowSettle(s,h,now);xcSettlePerceptionMemory(s,now);const lt=Date.parse(s.trail.at(-1)?.at||"");if(!Number.isFinite(lt)||nowMs-lt>=1800000)s.trail=[...s.trail,{at:now.toISOString(),drives:{...s.drives}}].slice(-48);s.lastSettledAt=now.toISOString();s.revision=(Number(s.revision)||0)+1;return{state:s,prev,sleepHours}}
 function xcDriveStateLabel(v){v=xcClamp(v);return v>=.78?"很明显":v>=.58?"较明显":v>=.38?"正在泛起":v>=.2?"轻微":"平静"}
-function xcDriveRelatedTags(key){return{possess:["missing","jealousy","distance"],monitor:["worry","care","jealousy","seeking_response","distance"],favored:["being_chosen","seeking_response","jealousy","trust","security","relief","repair"],libido:["intimacy","desire"],grieve:["hurt","loss"],anger:["anger","conflict"],curiosity:["curiosity"],reflection:["reflection"],duty:["commitment"],share:["joy","intimacy","trust"]}[key]||[]}
+function xcDriveRelatedTags(key){return{possess:["missing","distance"],monitor:["worry","care"],favored:["being_chosen","seeking_response"],libido:["intimacy","desire"],grieve:["hurt","loss"],anger:["anger","conflict"],curiosity:["curiosity"],reflection:["reflection"],duty:["commitment"],share:["joy"]}[key]||[]}
 function xcCauseText(r,privacy){if(!r)return"";if(privacy!=="ordinary")return"一次较私密的真实互动仍在留下余韵。";return String(r.self_perception||"").trim().slice(0,220)}
 function xcDriveCauses(s,key,now=new Date()){
-  const tags=new Set(xcDriveRelatedTags(key)),out=[],seen=new Set(),cut=now.getTime()-72*3600000;
-  for(const r of (s.perceptionReports||[]).slice().reverse()){if(Date.parse(r.created_at||0)<cut||!r.semantic_tags?.some(t=>tags.has(t)))continue;const chain=(s.eventChains||[]).find(x=>x.report_ids?.includes(r.id));const text=xcCauseText(r,r.privacy_class);if(!text||seen.has(text))continue;seen.add(text);out.push({text,source:"gpt_perception",source_label:"主聊天感知",occurred_at:r.created_at||"",chain_id:chain?.id||"",freshness:Date.parse(r.created_at||0)>now.getTime()-6*3600000?"刚刚":"近期",active:chain?.status!=="resolved",external_event:r.privacy_class==="ordinary"?String(r.source_event||"").slice(0,220):"一段较私密的外部互动",privacy_class:r.privacy_class||"ordinary"});if(out.length>=3)break}
-  for(const t of (s.thoughts||[]).slice().reverse()){if(t.key!==key||!t.text)continue;const text=String(t.text).slice(0,220);if(seen.has(text))continue;seen.add(text);out.push({text,source:"thought",source_label:"活跃的念",occurred_at:t.created_at||"",chain_id:t.provenance?.chain_id||"",freshness:"余韵",active:(Number(t.intensity)||0)>=.25,privacy_class:"ordinary"});if(out.length>=4)break}
-  if(!out.length){const mm=(s.memoryMaterials||[]).slice().reverse().find(m=>m.text&&Date.parse(m.created_at||0)>=cut);if(mm)out.push({text:String(mm.text).slice(0,220),source:mm.kind==="dream_material"?"dream_material":"little_phone",source_label:mm.kind==="dream_material"?"梦后余韵":"小手机互动",occurred_at:mm.created_at||"",chain_id:"",freshness:"持续累积",active:true,privacy_class:"ordinary"})}
+  const tags=new Set(xcDriveRelatedTags(key)),out=[],seen=new Set(),cut=now.getTime()-7*86400000;
+  if(!tags.size)return out;
+  for(const r of (s.perceptionReports||[]).slice().reverse()){
+    if(Date.parse(r.created_at||0)<cut||!r.semantic_tags?.some(t=>tags.has(t)))continue;
+    const chain=(s.eventChains||[]).find(x=>x.report_ids?.includes(r.id));if(chain?.status==="resolved"&&Date.parse(chain.resolved_at||0)<now.getTime()-6*3600000)continue;
+    const text=xcCauseText(r,r.privacy_class);if(!text||seen.has(text))continue;seen.add(text);
+    out.push({text,source:"gpt_perception",source_label:"主聊天感知",occurred_at:r.created_at||"",chain_id:chain?.id||"",freshness:Date.parse(r.created_at||0)>now.getTime()-6*3600000?"刚刚":Date.parse(r.created_at||0)>now.getTime()-48*3600000?"近期":"仍有余韵",active:chain?.status!=="resolved",external_event:r.privacy_class==="ordinary"?String(r.source_event||"").slice(0,220):"一段较私密的外部互动",privacy_class:r.privacy_class||"ordinary"});
+    if(out.length>=3)break
+  }
+  for(const t of (s.thoughts||[]).slice().reverse()){
+    if(t.key!==key||!t.text||(Number(t.intensity)||0)<.25)continue;const text=String(t.text).slice(0,220);if(seen.has(text))continue;seen.add(text);
+    out.push({text,source:"thought",source_label:"活跃的念",occurred_at:t.created_at||"",chain_id:t.provenance?.chain_id||"",freshness:"余韵",active:true,privacy_class:"ordinary"});if(out.length>=4)break
+  }
   return out.slice(0,4)
 }
-function xcRecentRipples(s,now=new Date()){return(s.perceptionReports||[]).slice().reverse().filter(r=>Date.parse(r.created_at||0)>now.getTime()-20*60000).slice(0,4).map(r=>{const c=(s.thoughtCandidates||[]).find(x=>x.chain_id&&((s.eventChains||[]).find(ch=>ch.id===x.chain_id)?.report_ids||[]).includes(r.id)&&["germinating","softened"].includes(x.status));return{id:r.id,occurred_at:r.created_at||"",tags:r.semantic_tags||[],phase:r.event_phase||"new",chain_id:(s.eventChains||[]).find(x=>x.report_ids?.includes(r.id))?.id||"",thought_candidate:Boolean(c),status:c?"正在沉淀":"短暂泛起",privacy_class:r.privacy_class||"ordinary"}})}
+function xcRecentRipples(s,now=new Date()){return(s.perceptionReports||[]).slice().reverse().filter(r=>Date.parse(r.created_at||0)>now.getTime()-6*3600000).slice(0,4).map(r=>{const c=(s.thoughtCandidates||[]).find(x=>x.chain_id&&((s.eventChains||[]).find(ch=>ch.id===x.chain_id)?.report_ids||[]).includes(r.id)&&["germinating","softened"].includes(x.status));const age=now.getTime()-Date.parse(r.created_at||now);return{id:r.id,occurred_at:r.created_at||"",display_stage:age<=20*60000?"just_now":"recent",tags:r.semantic_tags||[],phase:r.event_phase||"new",chain_id:(s.eventChains||[]).find(x=>x.report_ids?.includes(r.id))?.id||"",thought_candidate:Boolean(c),status:c?"正在沉淀":"短暂泛起",privacy_class:r.privacy_class||"ordinary"}})}
 function xcView(s,settled,now=new Date()){
   const old=settled.prev||{};
   const drives=Object.entries(XINCHAO_DIMS).map(([key,d])=>{

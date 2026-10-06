@@ -2430,6 +2430,14 @@ html,body,.shell,.page{background-color:transparent!important}
 #journalBook .journalV2NoteActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 </style>
 
+
+<style id="xinchao-app-v1">
+.xinchaoDesktopIcon{background:linear-gradient(145deg,rgba(224,234,255,.72),rgba(239,220,239,.62))!important}
+.xinchaoHead{display:flex;align-items:end;justify-content:space-between;margin:8px 3px 14px}.xinchaoHead small{font-size:10px;color:#9299aa;letter-spacing:.08em}.xinchaoHead h2{font-family:"Kaiti SC","STKaiti",serif;font-size:32px;font-weight:520;margin:2px 0 0}.xinchaoPulse{font-family:serif;font-size:34px;color:#9a91b8}
+.xinchaoTabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:15px;padding:4px;border-radius:18px;background:rgba(255,255,255,.22)}.xinchaoTabs button{border:0;background:transparent;border-radius:14px;padding:9px 3px;color:#81899b;font-size:12px}.xinchaoTabs button.active{background:rgba(255,255,255,.58);color:#50596e;box-shadow:0 3px 12px rgba(70,78,105,.07)}
+.xinchaoHero{min-height:390px;border-radius:30px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.xinchaoHero>small{align-self:flex-start;color:#9299aa}.xinchaoEmptyMark{font-family:serif;font-size:72px;line-height:1;margin:48px 0 16px;color:#aaa2c3}.xinchaoHero p{max-width:270px;font-size:14px;line-height:1.85;color:#596277}.xinchaoHero>span{margin-top:18px;font-size:10px;color:#9ca3b1}
+</style>
+
 </head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -2461,6 +2469,7 @@ html,body,.shell,.page{background-color:transparent!important}
         <div class="desktopPage" data-desktop-page="1">
           <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">电话</span></button>
           <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
+          <button class="desktopApp" data-open-app="xinchao"><span class="desktopAppIcon glass xinchaoDesktopIcon"><span>≈</span></span><span class="desktopAppLabel">心潮</span></button>
           <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
           
         </div>
@@ -2472,6 +2481,12 @@ html,body,.shell,.page{background-color:transparent!important}
         <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
         <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
       </div>
+    </section>
+
+    <section class="page" id="page-app-xinchao">
+      <div class="xinchaoHead"><div><small>Daddy · 内在天气</small><h2>心潮</h2></div><span class="xinchaoPulse">≈</span></div>
+      <div class="xinchaoTabs" id="xinchaoTabs"><button class="active" data-xinchao-tab="now">此刻</button><button data-xinchao-tab="tide">潮</button><button data-xinchao-tab="thoughts">念</button><button data-xinchao-tab="dream">梦</button><button data-xinchao-tab="self">我</button></div>
+      <div id="xinchaoBody"></div>
     </section>
 
     <section class="page" id="page-diary">
@@ -2754,8 +2769,8 @@ html,body,.shell,.page{background-color:transparent!important}
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false};
-const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
+const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,journalReadPosition:null,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false,xinchaoTab:'now'};
+const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-xinchao':['心潮',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -2809,7 +2824,7 @@ function setUsHubTab(tab,scrollTop=false){
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }
 function openMiniApp(app){
-  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',chat:'app-chat',health:'app-health',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
+  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',chat:'app-chat',health:'app-health',xinchao:'app-xinchao',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
   const page=map[app]||'desktop';go(page);
 }
 function go(page,push=true){
@@ -2837,6 +2852,7 @@ function go(page,push=true){
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
   if(page==='app-health'){openHealthAppV2()}
+  if(page==='app-xinchao'){renderXinchaoApp()}
   if(page==='app-calendar')renderCalendarApp();
   if(page==='app-todo')renderTodoApp();
   if(page==='app-phone')renderPhoneApp();
@@ -3189,12 +3205,33 @@ function bindJournalV2(d,list){
 }
 function renderJournalV2(){
   const root=$('#journalBook'),list=journalSorted();if(!root)return;
+  const prevScroll=root.querySelector('.journalV2Scroll'),prevPage=root.querySelector('.journalV2Page');
+  if(prevScroll&&prevPage){state.journalReadPosition={id:String(prevPage.dataset.jv2Id||''),top:prevScroll.scrollTop,ratio:prevScroll.scrollTop/Math.max(1,prevScroll.scrollHeight-prevScroll.clientHeight)}}
   root.classList.remove('journalTurning');
   if(state.journalCoverOpen){root.innerHTML=journalCoverMarkup();updateJournalPageNo('封面');root.onclick=e=>{if(e.target.closest('button,input,textarea,select,a'))return;if(!list.length)return;state.journalCoverOpen=false;state.journalIndex=0;renderJournalV2()};return}
   if(!list.length){state.journalIndex=-1;root.innerHTML='<div class="journalEmptyPage"><b>写给我们的日子</b><span>这里还没有日记。</span></div>';updateJournalPageNo('—');return}
   if(state.journalIndex<0||state.journalIndex>=list.length)state.journalIndex=0;
   const d=list[state.journalIndex];root.innerHTML=journalV2Page(d,state.journalIndex,list.length);updateJournalPageNo((state.journalIndex+1)+' / '+list.length);bindJournalV2(d,list);
+  const keep=state.journalReadPosition,sc=root.querySelector('.journalV2Scroll');
+  if(sc&&keep&&String(keep.id)===String(d.id)){requestAnimationFrame(()=>{const max=Math.max(0,sc.scrollHeight-sc.clientHeight);sc.scrollTop=Math.min(max,Number.isFinite(keep.top)?keep.top:max*(keep.ratio||0));sc.dispatchEvent(new Event('scroll'))})}
 }
+
+function renderXinchaoApp(){
+  const root=$('#xinchaoBody');if(!root)return;
+  const tab=state.xinchaoTab||'now';
+  const empty={
+    now:'心潮后端接通后，这里会显示 Daddy 此刻的情绪、最强驱力、挂念和内在变化。',
+    tide:'这里会是十二维驱力。每一维都能看到上涨、满足、饱足与最近影响它的原因。',
+    thoughts:'这里会收住闪念、持续念头和反复浮现的记忆，不和日记混在一起。',
+    dream:'这里记录 Daddy 自己的睡眠、梦境、主要意象与醒来后的余韵；与你的小米健康完全分开。',
+    self:'这里会放 14 维性格内核、行为锚点、自我觉察，以及长期以来慢慢发生的变化。'
+  };
+  const title={now:'此刻',tide:'潮',thoughts:'念',dream:'梦',self:'我'}[tab];
+  root.innerHTML='<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">≈</div><p>'+empty[tab]+'</p><span>等待属于这台小手机的心潮实例</span></div>';
+  $('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.classList.toggle('active',b.dataset.xinchaoTab===tab));
+}
+$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;renderXinchaoApp()});
+
 function healthV2Value(v,unit=''){return v===null||v===undefined||v===''?'—':esc(v)+unit}
 function renderHealthAppV2(){
   const root=$('#healthAppBody');if(!root||state.page!=='app-health')return;

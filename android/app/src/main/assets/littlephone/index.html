@@ -2352,6 +2352,25 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .xinchaoPetal.active{filter:saturate(1.15) brightness(.98)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.74),0 9px 23px rgba(75,106,143,.13)!important;z-index:3!important}
 .xinchaoFlowerCaption{position:absolute;left:50%;top:calc(50% + 24px);transform:translateX(-50%);font-size:9px;color:var(--ink3);white-space:nowrap;letter-spacing:.08em}
 
+
+/* v0.8.3-29 Xinchao reference-style clean petal geometry */
+.xinchaoFlowerWrap{min-height:390px!important;padding:26px 0 14px!important}
+.xinchaoFlower{width:350px!important;height:350px!important}
+.xinchaoFlowerCore{width:22px!important;height:22px!important;background:rgba(255,255,255,.92)!important;border:0!important;box-shadow:0 0 0 1px rgba(255,255,255,.72)!important}
+.xinchaoPetal{
+  width:var(--petal-width)!important;height:var(--petal-length)!important;
+  margin:0!important;padding:0!important;left:50%!important;top:50%!important;
+  transform-origin:50% 100%!important;transform:translate(-50%,-100%) rotate(var(--petal-angle))!important;
+  border:0!important;border-radius:50% 50% 18% 18% / 30% 30% 8% 8%!important;
+  background:rgba(148,190,210,var(--petal-alpha))!important;
+  box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  clip-path:polygon(50% 100%,31% 74%,16% 47%,12% 25%,18% 10%,31% 2%,50% 0,69% 2%,82% 10%,88% 25%,84% 47%,69% 74%)!important;
+  overflow:visible!important
+}
+.xinchaoPetal.active{background:rgba(119,171,198,.58)!important;filter:none!important;box-shadow:none!important}
+.xinchaoPetal span{top:-25px!important;width:72px!important;font-size:10px!important;color:#58647a!important;font-weight:400!important}
+.xinchaoFlowerCaption{top:calc(50% + 36px)!important;font-size:9px!important;opacity:.68}
+
 </style>
 
 <style>
@@ -3244,7 +3263,7 @@ function renderXinchaoTide(x,dn){
   const drives=xinchaoList(x.drives);if(!drives.length)return '';
   const selected=drives.find(d=>String(d.key||d.name)===String(state.xinchaoDriveKey||''))||drives.slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a))[0];
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
-  const petals=drives.map((d,i)=>{const v=xinchaoDriveValue(d),a=(360/drives.length)*i,key=String(d.key||d.name||i),len=54+v*62,w=34+v*12;return '<button class="xinchaoPetal '+(key===String(state.xinchaoDriveKey)?'active':'')+'" data-xinchao-drive="'+esc(key)+'" style="--petal-angle:'+a+'deg;--petal-length:'+len+'px;--petal-width:'+w+'px;--petal-strength:'+v+'"><span>'+esc(d.name||d.label||d.key||'潮')+'</span></button>'}).join('');
+  const petals=drives.map((d,i)=>{const v=xinchaoDriveValue(d),a=(360/drives.length)*i,key=String(d.key||d.name||i),len=58+v*86,w=30+v*12,alpha=.25+v*.25;return '<button class="xinchaoPetal '+(key===String(state.xinchaoDriveKey)?'active':'')+'" data-xinchao-drive="'+esc(key)+'" style="--petal-angle:'+a+'deg;--petal-length:'+len+'px;--petal-width:'+w+'px;--petal-alpha:'+alpha+'"><span>'+esc(d.name||d.label||d.key||'潮')+'</span></button>'}).join('');
   const v=xinchaoDriveValue(selected),reason=selected?.reason||selected?.recent_reason||selected?.why||'',stateText=selected?.state||selected?.label||'';
   return '<div class="xinchaoFlowerWrap"><div class="xinchaoFlower">'+petals+'<div class="xinchaoFlowerCore"></div><div class="xinchaoFlowerCaption">'+esc(dn)+' · 此刻的潮</div></div></div><div class="glass xinchaoPetalDetail"><div><small>选中的花瓣</small><h3>'+esc(selected?.name||selected?.label||selected?.key||'驱力')+'</h3></div><strong>'+Math.round(v*100)+'</strong><p>'+esc(reason||stateText||'这一片正在安静变化。')+'</p></div>';
 }

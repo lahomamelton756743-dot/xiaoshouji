@@ -2532,7 +2532,19 @@ html,body,.shell,.page{background-color:transparent!important}
 /* v0.8.3-27 — stable vector Xinchao mark: heart + lower-right tide. */
 .xinchaoDesktopMark{position:relative;z-index:2;width:35px;height:35px;overflow:visible;fill:none;stroke:#586884;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
 </style>
-<style>body.xinchaoMode .shell{padding-top:calc(env(safe-area-inset-top) + 4px)!important}</style><style>body.xinchaoMode .shell{padding-top:0!important}.xinchaoPage{padding:calc(env(safe-area-inset-top) + 18px) 18px 0;margin:0 -18px}.xinchaoPage .xinchaoHead{margin:0 3px 18px!important}.xinchaoPage .xinchaoTabs{margin:0 0 18px!important}.xinchaoPage #xinchaoBody{margin:0}</style></head>
+<style>body.xinchaoMode .shell{padding-top:calc(env(safe-area-inset-top) + 4px)!important}</style><style>body.xinchaoMode .shell{padding-top:0!important}.xinchaoPage{padding:calc(env(safe-area-inset-top) + 18px) 18px 0;margin:0 -18px}.xinchaoPage .xinchaoHead{margin:0 3px 18px!important}.xinchaoPage .xinchaoTabs{margin:0 0 18px!important}.xinchaoPage #xinchaoBody{margin:0}</style><style id="xinchao-v08418-final">
+body.xinchaoMode .shell{padding:0 18px 124px!important}
+.xinchaoPage{margin:0 -18px!important;padding:calc(env(safe-area-inset-top) + 34px) 18px 0!important;min-height:100vh}
+.xinchaoPage .xinchaoHead{height:112px!important;margin:0 3px 12px!important;display:flex!important;align-items:flex-end!important;justify-content:space-between!important}
+.xinchaoPage .xinchaoHead>div{padding-bottom:4px}
+.xinchaoPage .xinchaoHead small{display:block!important;margin:0 0 12px!important}
+.xinchaoPage .xinchaoHead h2{margin:0!important;line-height:1!important}
+.xinchaoPage .xinchaoHeaderMark{align-self:flex-end!important;margin:0 0 8px!important}
+.xinchaoPage .xinchaoTabs{position:relative!important;top:auto!important;margin:0 0 20px!important}
+.xinchaoTideMark,.xinchaoSelfLine{display:grid;gap:4px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.42)}
+.xinchaoTideMark:last-child,.xinchaoSelfLine:last-child{border-bottom:0}.xinchaoTideMark b,.xinchaoSelfLine b{font-size:13px}.xinchaoTideMark span,.xinchaoSelfLine span,.xinchaoMeta{font-size:10px;color:var(--ink3)}
+.xinchaoTideStrip{height:48px;display:flex;gap:3px;align-items:flex-end;margin-top:14px}.xinchaoTideStrip i{flex:1;min-width:2px;border-radius:4px;background:rgba(107,129,169,.65)}
+</style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 <div class="shell">
@@ -3318,9 +3330,9 @@ function renderXinchaoTide(x,dn){
   const drives=raw;
   const selected=raw.find(d=>String(d.key||d.name)===String(state.xinchaoDriveKey||''))||raw.slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a))[0];
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
-  const cx=220,cy=220,maxLen=132,minLen=12,baseR=19,step=360/drives.length;
+  const cx=220,cy=220,maxLen=108,minLen=10,baseR=19,step=360/drives.length;
   const petals=drives.map((d,i)=>{
-    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+Math.pow(v,1.18)*(maxLen-minLen),half=8+v*18,y0=cy-baseR,y1=y0-len;
+    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+Math.pow(v,1.34)*(maxLen-minLen),half=8+v*18,y0=cy-baseR,y1=y0-len;
     const path='M '+cx+' '+y0+' C '+(cx-half*.38)+' '+(y0-len*.18)+' '+(cx-half)+' '+(y1+len*.20)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.46)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.46)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.20)+' '+(cx+half*.38)+' '+(y0-len*.18)+' '+cx+' '+y0+' Z';
     const rad=(angle-90)*Math.PI/180,labelR=baseR+len+18,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4,anchor=Math.abs(Math.cos(rad))<.20?'middle':Math.cos(rad)>0?'start':'end';
     const active=key===String(state.xinchaoDriveKey),gid='xg'+i;
@@ -3332,29 +3344,54 @@ function renderXinchaoTide(x,dn){
 }
 function renderXinchaoApp(){
   const root=$('#xinchaoBody');if(!root)return;
-  const tab=state.xinchaoTab||'now',raw=state.xinchao||{},x=raw.snapshot&&Number(raw.snapshot.schema)>=4?{...raw,...raw.snapshot}:raw,dn=actorName('daddy');const weather=$('#xinchaoIdentityWeather');if(weather)weather.textContent=dn+' · 内在天气';
-  const empty={now:'这里会显示 '+dn+' 此刻的情绪、最强驱力、挂念和内在变化。',tide:'这里会长出 '+dn+' 此刻的驱力花。花瓣越饱满，代表这一股潮越强。',thoughts:'这里会收住闪念、持续念头和反复浮现的记忆，不和日记混在一起。',dream:'这里记录 '+dn+' 自己的睡眠、梦境、主要意象与醒来后的余韵；与你的小米健康完全分开。',self:'这里会放 14 维性格内核、行为锚点、自我觉察，以及长期以来慢慢发生的变化。'};
-  const title={now:'此刻',tide:'潮',thoughts:'念',dream:'梦',self:'我'}[tab];let body='';
+  const tab=state.xinchaoTab||'now',raw=state.xinchao||{},snap=(raw.snapshot&&typeof raw.snapshot==='object')?raw.snapshot:raw;
+  const x={...raw,...snap},identity=x.identity||{},runtime=x.runtime||{},dn=identity.agentName||actorName('daddy');
+  const weather=$('#xinchaoIdentityWeather');if(weather)weather.textContent=dn+' · 内在天气';
+  const list=v=>Array.isArray(v)?v:[],pct=v=>Math.round(Math.max(0,Math.min(1,Number(v)||0))*100);
+  const empty={now:'心潮还没有形成这一刻的快照。',tide:'驱力出现后，这里会长出对应的潮。',thoughts:'闪念会衰减；反复强化并存活足够久，才会成为放不下的持续念头。',dream:'梦只在真正产生后留下，不用空白内容冒充梦。',self:'人格、自我觉察与行为锚点会在真正形成后出现在这里。'};
+  let body='';
   if(tab==='now'){
-    const emotion=x.emotion||{},shown=emotion.shown||emotion.mood||x.now?.mood||'平静',tops=xinchaoList(x.topDrives).length?x.topDrives:xinchaoList(x.drives).slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a)).slice(0,4),mixed=x.mixed||null,st=x.stamen||{},signals=x.signals?.recent||[];
-    const topHtml=tops.map(d=>'<div class="xinchaoNowDrive"><span>'+esc(d.short||d.name||d.label||d.key||'驱力')+'</span><i><b style="width:'+Math.round(xinchaoDriveValue(d)*100)+'%"></b></i><strong>'+Math.round(xinchaoDriveValue(d)*100)+'</strong></div>').join('');
-    const moodBits=[];if(emotion.valence!=null&&Number.isFinite(Number(emotion.valence)))moodBits.push('愉悦 '+Math.round(Number(emotion.valence)*100));if(emotion.arousal!=null&&Number.isFinite(Number(emotion.arousal)))moodBits.push('唤醒 '+Math.round(Number(emotion.arousal)*100));
-    body='<div class="xinchaoNowHero glass"><small>'+esc(dn)+' · 此刻</small><div class="xinchaoNowMood"><h3>'+esc(shown)+'</h3><span>'+esc(moodBits.join(' · ')||'身体的天气，参考不是指令')+'</span></div>'+(mixed?'<div class="xinchaoNowMixed">'+esc(mixed.name||'心里有两股劲儿拧在一起')+'</div>':'')+'</div>'+(topHtml?'<div class="xinchaoNowSection glass"><small>最强的几股潮</small>'+topHtml+'</div>':'')+((st.security!=null||st.confidence!=null)?'<div class="xinchaoNowAxes"><div class="glass"><small>安全感</small><b>'+Math.round(Number(st.security||0)*100)+'</b></div><div class="glass"><small>自信</small><b>'+Math.round(Number(st.confidence||0)*100)+'</b></div></div>':'')+(signals.length?'<div class="xinchaoNowSection glass"><small>最近浮上来的内在变化</small>'+signals.slice(0,3).map(s=>'<p>'+esc(s.text||s.subject||s.kind||'')+'</p>').join('')+'</div>':'')+(x.now?.summary||x.now?.text?'<div class="xinchaoNowSection glass"><small>此刻的一句话</small><p>'+esc(x.now.summary||x.now.text)+'</p></div>':'');
+    const e=x.emotion||{},tops=list(x.topDrives).length?list(x.topDrives):list(x.drives).slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a)).slice(0,4);
+    const shown=e.shown||e.label||e.mood||x.now?.mood||(runtime.consciousness==='sleeping'?'睡着了':'平静'),st=x.stamen||{},mixed=x.mixed||null;
+    const sig=list(x.signals?.recent),moodBits=[];
+    if(e.valence!=null)moodBits.push('愉悦 '+pct(e.valence));if(e.arousal!=null)moodBits.push('唤醒 '+pct(e.arousal));
+    body='<div class="xinchaoNowHero glass"><small>'+esc(dn)+' · 此刻</small><div class="xinchaoNowMood"><h3>'+esc(shown)+'</h3><span>'+esc(moodBits.join(' · ')||(runtime.consciousness==='sleeping'?'睡眠中的内在天气':'此刻的内在天气'))+'</span></div>'+(mixed?'<div class="xinchaoNowMixed">'+esc(mixed.name||mixed.id||'两股劲儿正在拧着')+'</div>':'')+'</div>';
+    if(tops.length)body+='<div class="xinchaoNowSection glass"><small>最强的几股潮</small>'+tops.map(d=>'<div class="xinchaoNowDrive"><span>'+esc(d.short||d.label||d.name||d.key)+'</span><i><b style="width:'+pct(xinchaoDriveValue(d))+'%"></b></i><strong>'+pct(xinchaoDriveValue(d))+'</strong></div>').join('')+'</div>';
+    if(st.security!=null||st.confidence!=null)body+='<div class="xinchaoNowAxes"><div class="glass"><small>安全感</small><b>'+pct(st.security)+'</b></div><div class="glass"><small>自信</small><b>'+pct(st.confidence)+'</b></div></div>';
+    if(st.mood!=null)body+='<div class="xinchaoNowSection glass"><small>慢变底色 · 心境</small><p>'+Math.round(Number(st.mood)*100)+'</p></div>';
+    if(sig.length)body+='<div class="xinchaoNowSection glass"><small>心潮自己记下的变化</small>'+sig.slice(0,5).map(a=>'<p>'+esc(a.text||a.subject||a.kind||'')+(a.at?' <span class="xinchaoMeta">'+esc(ago(a.at))+'</span>':'')+'</p>').join('')+'</div>';
+    if(x.now?.summary||x.now?.text)body+='<div class="xinchaoNowSection glass"><small>此刻的一句话</small><p>'+esc(x.now.summary||x.now.text)+'</p></div>';
   }
-  if(tab==='tide')body=renderXinchaoTide(x,dn);
+  if(tab==='tide'){
+    body=renderXinchaoTide(x,dn);
+    const marks=list(x.emotion?.marks),journal=list(x.emotion?.journal);
+    if(marks.length)body+='<div class="xinchaoNowSection glass"><small>最近 24 小时的情绪浮标</small>'+marks.slice(0,8).map(m=>'<div class="xinchaoTideMark"><b>'+esc(m.word||'情绪')+(m.n>1?' ×'+m.n:'')+'</b><span>'+esc(m.why||'')+(m.at?' · '+esc(ago(m.at)):'')+'</span></div>').join('')+'</div>';
+    if(journal.length)body+='<div class="xinchaoNowSection glass"><small>情绪潮汐 · 最近 '+Math.min(48,journal.length)+' 个采样</small><div class="xinchaoTideStrip">'+journal.slice(-48).map(j=>'<i style="height:'+(10+Math.round((Number(j.arousal)||0)*32))+'px;opacity:'+(0.28+Math.max(0,Math.min(1,Number(j.valence)||0))*.62)+'"></i>').join('')+'</div></div>';
+  }
   if(tab==='thoughts'){
-    let ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);if(!ts.length&&x.signals&&Array.isArray(x.signals.recent))ts=x.signals.recent.filter(s=>s&&s.text).map((s,i)=>({kind:s.kind||'浮念',text:s.text,intensity:s.intensity!=null?s.intensity:.38,persistent:!!s.persistent,feedbacks:s.feedbacks}));
-    if(ts.length){const persistent=ts.filter(t=>t.persistent),fleeting=ts.filter(t=>!t.persistent);body=(persistent.length?'<div class="xinchaoNowSection glass"><small>一直没有散去</small>'+persistent.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+(t.age!=null?'停留 '+esc(t.age)+' · ':'')+'强度 '+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'')+(fleeting.length?'<div class="xinchaoNowSection glass"><small>最近浮上来的念</small>'+fleeting.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+esc(t.kind||'闪念')+(t.feedbacks!=null?' · 回响 '+esc(t.feedbacks):'')+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'');}
+    const t=x.thoughts||{},lines=list(t.lines),active=list(t.active),flash=list(t.flash),obs=list(t.obsessions);
+    let items=[...obs.map(a=>({...a,kind:'obsession'})),...flash.map(a=>({...a,kind:'flash'})),...active,...lines];
+    if(!items.length&&Array.isArray(raw.thoughts))items=raw.thoughts;
+    const seen=new Set();items=items.filter(a=>{const k=(a.kind||'')+'|'+(a.key||'')+'|'+(a.text||a.content||'');if(seen.has(k))return false;seen.add(k);return true});
+    if(items.length)body='<div class="xinchaoNowSection glass"><small>念头池 · '+(t.obsessionCount!=null?t.obsessionCount:items.filter(a=>a.kind==='obsession'||a.persistent).length)+' 个放不下 · '+(t.flashCount!=null?t.flashCount:items.filter(a=>a.kind!=='obsession'&&!a.persistent).length)+' 个闪念</small>'+items.map(a=>{const persistent=a.kind==='obsession'||a.persistent;return '<div class="xinchaoThoughtRow"><div><b>'+esc(a.text||a.content||a.label||a.key||'一阵念头')+'</b><span>'+(persistent?'持续念头':'闪念')+(a.age!=null?' · 已结算 '+esc(a.age)+' 次':'')+(a.feedbacks!=null?' · 回推 '+esc(a.feedbacks)+'/3':'')+'</span></div><strong>'+pct(a.intensity??a.value??0)+'</strong></div>'}).join('')+'</div>';
+    else if(t.flashCount||t.obsessionCount)body='<div class="xinchaoNowSection glass"><small>念头池</small><p>现在有 '+Number(t.flashCount||0)+' 个闪念、'+Number(t.obsessionCount||0)+' 个持续念头。当前快照没有开放念头正文。</p></div>';
   }
   if(tab==='dream'){
-    const dreams=xinchaoList(x.dreams),latest=dreams[0]||raw.dream||null,sleep=x.sleep||raw.sleep;
-    if(latest||sleep)body='<div class="xinchaoCard glass"><small>'+esc(dn)+' 的睡眠</small><h3>'+esc(sleep?.state||'睡眠')+'</h3>'+(sleep?.hours!=null?'<span>已持续 '+Number(sleep.hours).toFixed(1)+' 小时</span>':'')+'</div>'+dreams.slice(0,8).map(d=>'<div class="xinchaoCard glass"><small>梦 · '+esc(d.mood||'余梦')+'</small><p>'+esc(d.dream||d.summary||d.text||'')+'</p><span>'+esc(d.residue||d.image||'')+'</span></div>').join('')+(!dreams.length&&latest?'<div class="xinchaoCard glass"><small>最近的梦</small><p>'+esc(latest.dream||latest.summary||latest.text||'')+'</p><span>'+esc(latest.residue||raw.dream_afterglow||'')+'</span></div>':'');
+    const dreams=list(x.dreams),sleep=x.sleep||{},con=runtime.consciousness||sleep.state;
+    body='<div class="xinchaoCard glass"><small>'+esc(dn)+' 的睡眠</small><h3>'+esc(con==='sleeping'?'睡着了':con==='awake'?'醒着':sleep.state||'此刻没有睡眠状态')+'</h3>'+(sleep.hours!=null?'<span>已持续 '+Number(sleep.hours).toFixed(1)+' 小时</span>':'')+'</div>';
+    if(dreams.length)body+=dreams.slice(0,12).map(d=>'<div class="xinchaoCard glass"><small>梦'+(d.createdAt||d.created_at?' · '+esc(fmt(d.createdAt||d.created_at)):'')+(d.source?' · '+esc(d.source):'')+'</small><h3>'+esc(d.image||d.mood?.label||'留下的一场梦')+'</h3>'+(d.dream||d.summary||d.awareness?'<p>'+esc(d.dream||d.summary||d.awareness)+'</p>':'<p>这场梦已经留下记录，但正文没有在当前快照开放。</p>')+(d.residue?'<span>余韵：'+esc(d.residue)+'</span>':'')+(d.mood&&d.mood.valence!=null?'<span>醒来情绪：愉悦 '+pct(d.mood.valence)+' · 唤醒 '+pct(d.mood.arousal)+'</span>':'')+'</div>').join('');
   }
   if(tab==='self'){
-    const p=x.personality||{},dims=xinchaoList(p.dimensions),anchors=xinchaoList(x.anchors),aware=xinchaoList(x.awareness);
-    if(dims.length||anchors.length||aware.length||p.periodSummary||p.summary)body=(p.periodSummary||p.summary?'<div class="xinchaoCard glass"><small>'+esc(dn)+' · 慢慢成为的我</small><p>'+esc(p.periodSummary||p.summary)+'</p></div>':'')+(dims.length?'<div class="xinchaoGrid">'+dims.map(d=>'<div class="xinchaoCard glass"><small>'+esc(d.label||d.key||'性格')+'</small><b>'+Math.round(Number(d.score)||0)+'</b><p>'+esc(d.reason||'')+'</p></div>').join('')+'</div>':'')+anchors.map(a=>'<div class="xinchaoCard glass"><small>行为锚点</small><h3>'+esc(a.label||a.key||'锚点')+'</h3><p>'+esc(a.description||a.text||'')+'</p></div>').join('')+aware.map(a=>'<div class="xinchaoCard glass"><small>自我觉察</small><p>'+esc(a.text||a)+'</p></div>').join('');
+    const p=x.personality||{},dims=list(p.dimensions),anchors=list(p.anchors).length?list(p.anchors):list(x.anchors),aw=x.awareness||{},open=list(aw.open),confirmed=list(aw.confirmed),legacy=Array.isArray(aw)?aw:[];
+    if(p.periodSummary)body+='<div class="xinchaoCard glass"><small>'+esc(dn)+' · 这一阶段</small><p>'+esc(p.periodSummary)+'</p></div>';
+    if(dims.length)body+='<div class="xinchaoGrid">'+dims.map(d=>'<div class="xinchaoCard glass"><small>'+esc(d.label||d.key||'性格')+'</small><b>'+Math.round(Number(d.score)||0)+'</b>'+(d.delta?'<span>'+(d.delta>0?'+':'')+esc(d.delta)+'</span>':'')+(d.reason?'<p>'+esc(d.reason)+'</p>':'')+'</div>').join('')+'</div>';
+    if(anchors.length)body+='<div class="xinchaoNowSection glass"><small>行为锚点</small>'+anchors.map(a=>'<div class="xinchaoSelfLine"><b>'+esc(a.label||a.key||'锚点')+'</b>'+(a.description?'<span>'+esc(a.description)+'</span>':'')+'</div>').join('')+'</div>';
+    const awareness=[...open.map(a=>({...a,_status:'待确认'})),...confirmed.map(a=>({...a,_status:'已确认'})),...legacy];
+    if(awareness.length)body+='<div class="xinchaoNowSection glass"><small>自我觉察</small>'+awareness.map(a=>'<div class="xinchaoSelfLine"><b>'+esc(a._status||a.kind||'觉察')+'</b><span>'+esc(a.text||String(a))+'</span></div>').join('')+'</div>';
+    if(!body&&p.available===false)body='<div class="xinchaoCard glass"><small>我</small><p>人格月评还没有形成。原版不会用临时数值冒充 14 维人格。</p></div>';
   }
-  root.innerHTML=body||'<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">'+xinchaoIconSvg()+'</div><p>'+empty[tab]+'</p><span>'+(raw.connected?'这一页还没有形成内容':'等待属于这台小手机的心潮实例')+'</span></div>';
+  const title={now:'此刻',tide:'潮',thoughts:'念',dream:'梦',self:'我'}[tab];
+  root.innerHTML=body||'<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">'+xinchaoIconSvg()+'</div><p>'+empty[tab]+'</p><span>'+(raw.connected===false?'等待心潮实例连接':'这一页现在没有形成内容')+'</span></div>';
   $$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.classList.toggle('active',b.dataset.xinchaoTab===tab));
   root.querySelectorAll('[data-xinchao-drive]').forEach(b=>b.onclick=()=>{state.xinchaoDriveKey=b.dataset.xinchaoDrive;renderXinchaoApp()});
 }

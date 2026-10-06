@@ -2386,6 +2386,13 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .xinchaoPearl{fill:#fbfcfa;stroke:#a9b8c8;stroke-width:1.2;filter:drop-shadow(0 3px 5px rgba(65,86,112,.20));pointer-events:none}
 .xinchaoFlowerCore,.xinchaoFlowerCaption,.xinchaoPetal{display:none!important}
 
+
+/* v0.8.4-1 Xinchao airy transparent petals */
+.xinchaoFlower::before{inset:17%!important;background:rgba(245,250,251,.12)!important;box-shadow:0 0 28px rgba(245,250,251,.16)!important;backdrop-filter:blur(1.5px)!important;-webkit-backdrop-filter:blur(1.5px)!important}
+.xinchaoSvgPetal:not(.active){opacity:.82!important}
+.xinchaoSvgPetal.active{opacity:.96!important;filter:drop-shadow(0 3px 6px rgba(50,72,108,.12))!important}
+.xinchaoSvgPetal text{fill:#40516b!important;fill-opacity:.84!important}
+
 </style>
 
 <style>
@@ -3279,16 +3286,16 @@ function renderXinchaoTide(x,dn){
   const drives=Array.from({length:12},(_,i)=>raw[i%raw.length]);
   const selected=raw.find(d=>String(d.key||d.name)===String(state.xinchaoDriveKey||''))||raw.slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a))[0];
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
-  const cx=180,cy=180,maxLen=105,minLen=maxLen*.38,baseR=18;
+  const cx=180,cy=180,maxLen=118,minLen=maxLen*.38,baseR=18;
   const petals=drives.map((d,i)=>{
-    const v=xinchaoDriveValue(d), key=String(d.key||d.name||i), angle=i*30, len=minLen+v*(maxLen-minLen), half=15;
+    const v=xinchaoDriveValue(d), key=String(d.key||d.name||i), angle=i*30, len=minLen+v*(maxLen-minLen), half=14;
     const y0=cy-baseR,y1=y0-len;
     const path='M '+cx+' '+y0+' C '+(cx-half*.42)+' '+(y0-len*.20)+' '+(cx-half)+' '+(y1+len*.22)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.45)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.45)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.22)+' '+(cx+half*.42)+' '+(y0-len*.20)+' '+cx+' '+y0+' Z';
     const rad=(angle-90)*Math.PI/180,labelR=baseR+maxLen+28,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4;
     const anchor=Math.abs(Math.cos(rad))<.25?'middle':Math.cos(rad)>0?'start':'end';
     const active=key===String(state.xinchaoDriveKey);
-    const fill=active?'#4f628e':(i%3===0?'#5d7695':i%3===1?'#7897ae':'#777b9b');
-    const opacity=active?.92:(.58+v*.12);
+    const fill=active?'#6476a4':(i%3===0?'#7591aa':i%3===1?'#8aadc1':'#8d91b0');
+    const opacity=active?.82:(.44+v*.10);
     return '<g class="xinchaoSvgPetal '+(active?'active':'')+'" data-xinchao-drive="'+esc(key)+'"><g transform="rotate('+angle+' '+cx+' '+cy+')"><path d="'+path+'" fill="'+fill+'" fill-opacity="'+opacity+'"/></g><text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'">'+esc(d.name||d.label||d.key||'潮')+'</text></g>';
   }).join('');
   const v=xinchaoDriveValue(selected),reason=selected?.reason||selected?.recent_reason||selected?.why||'',stateText=selected?.state||selected?.label||'';

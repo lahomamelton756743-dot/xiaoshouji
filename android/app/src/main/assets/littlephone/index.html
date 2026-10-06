@@ -3731,7 +3731,16 @@ desktopNormalize=function(layout){
   for(const item of out.filter(x=>x.area==='page')){item.page=Math.max(0,Number(item.page)||0);item.col=Math.max(1,Math.min(4-(item.w-1),Number(item.col)||1));item.row=Math.max(1,Math.min(DESKTOP_ROWS-(item.h-1),Number(item.row)||1));delete item.slot;}
   const base=desktopDefaultLayout();
   for(const def of base.items.filter(x=>x.kind==='app'))if(!out.some(x=>x.kind==='app'&&x.app===def.app)){
-    const clone={...def};if(clone.area==='dock'&&usedSlots.has(clone.slot)){const spot=desktopFirstFreeIn(out,1,1,pages);if(spot){clone.area='page';Object.assign(clone,spot);delete clone.slot;}}else if(clone.area==='dock')usedSlots.add(clone.slot);out.push(clone);
+    const clone={...def};
+    if(clone.area==='dock'&&usedSlots.has(clone.slot)){
+      const spot=desktopFirstFreeIn(out,1,1,pages);if(spot){clone.area='page';Object.assign(clone,spot);delete clone.slot;}
+    }else if(clone.area==='dock'){
+      usedSlots.add(clone.slot);
+    }else if(clone.area==='page'){
+      const occupied=out.some(x=>x.area==='page'&&Number(x.page||0)===Number(clone.page||0)&&desktopOverlap(x,clone));
+      if(occupied){const spot=desktopFirstFreeIn(out,clone.w||1,clone.h||1,pages);if(spot)Object.assign(clone,spot);}
+    }
+    out.push(clone);
   }
   return{pages:Math.max(pages,...out.filter(x=>x.area==='page').map(x=>(Number(x.page)||0)+1),2),items:out};
 };

@@ -1,5 +1,5 @@
 // @ts-nocheck
-const VERSION = "0.8.3-xinchao-engine-10.2";
+const VERSION = "0.8.3-xinchao-engine-10.3";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -594,7 +594,7 @@ const XINCHAO_DIMS = Object.freeze({
   libido:{label:"情欲",detail:"身体和感官上的渴望",grow:0.020,ceil:0.50,night:0.4},
   curiosity:{label:"好奇",detail:"想探索新东西",grow:0.030,ceil:0.50},
   boredom:{label:"无聊",detail:"想找点事情做",grow:0.030,ceil:0.50},
-  duty:{label:"野心",detail:"想做成、想赢、想拥有",grow:0.022,ceil:0.45},
+  duty:{label:"进取",detail:"想把重要的事做好、推进和完成",grow:0.022,ceil:0.45},
   reflection:{label:"反思",detail:"整理和理解自己",grow:0.013,ceil:0.42},
   grieve:{label:"难过",detail:"失落、委屈",grow:0,ceil:0.55,half:10},
   anger:{label:"愤怒",detail:"生气、不满、不甘心",grow:0,ceil:0.55,half:6},
@@ -680,7 +680,7 @@ function xcSettle(s,now=new Date()){const nowMs=now.getTime(),last=Date.parse(s.
   const tv=xcClamp(.55-(s.drives.grieve*.24+s.drives.anger*.18)+s.drives.favored*.05),ta=xcClamp(.28+s.drives.anger*.35+s.drives.curiosity*.08),relax=1-Math.pow(.5,h/(s.consciousness==="sleeping"?1.5:4));s.emotion.valence=Number((s.emotion.valence+(tv-s.emotion.valence)*relax).toFixed(4));s.emotion.arousal=Number((s.emotion.arousal+(ta-s.emotion.arousal)*relax).toFixed(4));s.emotion.updated_at=now.toISOString();
   s.thoughts=s.thoughts.map(t=>{const born=Date.parse(t.created_at||"");const age=Number.isFinite(born)?Math.max(0,(nowMs-born)/3600000):(Number(t.age)||0)+h,intensity=xcClamp(t.intensity)*Math.pow(t.persistent?1.0062:.986,h);return{...t,age:Number(age.toFixed(2)),intensity:Number(xcClamp(intensity).toFixed(4)),persistent:Boolean(t.persistent||(age>=3&&intensity>=.5))}}).filter(t=>t.intensity>.08).slice(-24);xcThoughtFeedback(s,h,now);xcSlowSettle(s,h,now);xcSettlePerceptionMemory(s,now);const lt=Date.parse(s.trail.at(-1)?.at||"");if(!Number.isFinite(lt)||nowMs-lt>=1800000)s.trail=[...s.trail,{at:now.toISOString(),drives:{...s.drives}}].slice(-48);s.lastSettledAt=now.toISOString();s.revision=(Number(s.revision)||0)+1;return{state:s,prev,sleepHours}}
 function xcDriveStateLabel(v){v=xcClamp(v);return v>=.78?"很明显":v>=.58?"较明显":v>=.38?"正在泛起":v>=.2?"轻微":"平静"}
-function xcDriveRelatedTags(key){return{possess:["missing","distance"],monitor:["worry","care"],favored:["being_chosen","seeking_response"],libido:["intimacy","desire"],grieve:["hurt","loss"],anger:["anger","conflict"],curiosity:["curiosity"],reflection:["reflection"],duty:["commitment"],share:["joy"]}[key]||[]}
+function xcDriveRelatedTags(key){return{possess:["missing"],monitor:["worry","care"],favored:["being_chosen","seeking_response"],libido:["desire"],grieve:["hurt","loss"],anger:["anger","conflict"],curiosity:["curiosity"],reflection:["reflection"],duty:[],share:[]}[key]||[]}
 function xcCauseText(r,privacy){if(!r)return"";if(privacy!=="ordinary")return"一次较私密的真实互动仍在留下余韵。";return String(r.self_perception||"").trim().slice(0,220)}
 function xcDriveCauses(s,key,now=new Date()){
   const tags=new Set(xcDriveRelatedTags(key)),out=[],seen=new Set(),cut=now.getTime()-7*86400000;
@@ -867,7 +867,7 @@ function xcApplyPerception(s,r,now=new Date()){
   if(r.event_phase==="resolved"){chain.status="resolved";chain.resolved_at=now.toISOString()}else if(r.event_phase==="softened")chain.status="softened";else chain.status="open";
   s.perceptionReports=[...(s.perceptionReports||[]),r].slice(-180);s.provenance=[...(s.provenance||[]),{id:r.id,kind:"gpt_perception",chain_id:chain.id,at:now.toISOString(),privacy_class:r.privacy_class,source_saved:r.privacy_class==="ordinary",summary:r.privacy_class==="ordinary"?r.self_perception.slice(0,220):"[private perception hidden]"}].slice(-260);
   let w=xcReportWeight(r,s);w*=1/(1+recentSame*.55);const tags=new Set(r.semantic_tags),d={};const add=(k,v)=>d[k]=(d[k]||0)+v;
-  if(tags.has("jealousy")){add("possess",.16);add("monitor",.08);add("favored",.08)}if(tags.has("missing")){add("possess",.11);add("monitor",.05)}if(tags.has("seeking_response")||tags.has("being_chosen")){add("favored",.17);add("monitor",.04)}if(tags.has("intimacy")||tags.has("desire"))add("libido",.11);if(tags.has("care")||tags.has("worry"))add("monitor",.10);if(tags.has("hurt")||tags.has("loss"))add("grieve",.15);if(tags.has("anger")||tags.has("conflict"))add("anger",.15);if(tags.has("curiosity"))add("curiosity",.12);if(tags.has("reflection"))add("reflection",.10);if(tags.has("commitment"))add("duty",.08);if(tags.has("joy")||tags.has("trust")||tags.has("security")||tags.has("relief")||tags.has("repair")){add("favored",-.11);add("monitor",-.10);add("grieve",-.12);add("anger",-.12)}if(tags.has("distance")){add("possess",.07);add("monitor",.07)}
+  if(tags.has("jealousy")){add("possess",.16);add("monitor",.08);add("favored",.08)}if(tags.has("missing")){add("possess",.11);add("monitor",.05)}if(tags.has("seeking_response")||tags.has("being_chosen")){add("favored",.17);add("monitor",.04)}if(tags.has("desire"))add("libido",.11);if(tags.has("care")||tags.has("worry"))add("monitor",.10);if(tags.has("hurt")||tags.has("loss"))add("grieve",.15);if(tags.has("anger")||tags.has("conflict"))add("anger",.15);if(tags.has("curiosity"))add("curiosity",.12);if(tags.has("reflection"))add("reflection",.10);if(tags.has("joy")||tags.has("trust")||tags.has("security")||tags.has("relief")||tags.has("repair")){add("favored",-.11);add("monitor",-.10);add("grieve",-.12);add("anger",-.12)}if(tags.has("distance")){add("possess",.07);add("monitor",.07)}
   const anchorFactor=1+Math.min(.16,(s.anchors||[]).filter(a=>r.self_perception.includes(a.label||"___")||r.source_event.includes(a.label||"___")).length*.05),unresolved=chain.status==="open"?1.08:.82;
   for(const[k,v]of Object.entries(d)){if(XINCHAO_DIMS[k])s.drives[k]=Number(xcClamp(s.drives[k]+v*w*anchorFactor*unresolved).toFixed(4))}
   const negative=tags.has("hurt")||tags.has("anger")||tags.has("conflict")||tags.has("loss")||tags.has("jealousy"),positive=tags.has("joy")||tags.has("relief")||tags.has("repair")||tags.has("trust")||tags.has("security")||tags.has("intimacy");

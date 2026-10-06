@@ -2338,6 +2338,9 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 @media(max-width:390px){.journalBookmarks{right:18px;gap:4px}.journalBookmarkTab{width:34px}.journalAnnotationDrawer{right:12px;width:min(84%,286px)}}
 
 
+
+/* v0.8.3-28 Xinchao flower + unified identity/icon */
+.xinchaoHeaderMark,.xinchaoInlineMark,.xinchaoCoreMark{width:38px;height:38px;fill:none;stroke:#586884;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}.xinchaoHeaderMark{display:block}.xinchaoEmptyMark{display:grid;place-items:center}.xinchaoEmptyMark .xinchaoInlineMark{width:54px;height:54px;opacity:.72}.xinchaoFlowerWrap{min-height:300px;display:grid;place-items:center;padding:12px 0 4px}.xinchaoFlower{position:relative;width:286px;height:286px}.xinchaoFlowerCore{position:absolute;left:50%;top:50%;width:94px;height:94px;transform:translate(-50%,-50%);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,.64);box-shadow:0 12px 34px rgba(76,88,122,.12),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(16px);z-index:4}.xinchaoFlowerCore .xinchaoCoreMark{width:30px;height:30px}.xinchaoFlowerCore b{font:var(--daddy-font-weight) 13px/1.1 var(--daddy-font);letter-spacing:var(--daddy-letter-spacing);font-style:var(--daddy-font-style);max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.xinchaoFlowerCore small{font-size:9px;color:var(--ink3);margin-top:3px}.xinchaoPetal{position:absolute;left:50%;top:50%;width:var(--petal-size);height:calc(var(--petal-size)*1.28);margin-left:calc(var(--petal-size)*-.5);margin-top:calc(var(--petal-size)*-.64);transform:rotate(var(--petal-angle)) translateY(calc(var(--petal-reach)*-1)) rotate(calc(var(--petal-angle)*-1));transform-origin:center;border:1px solid rgba(255,255,255,.72);border-radius:62% 38% 58% 42% / 72% 52% 48% 28%;background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(206,215,239,var(--petal-strength)));box-shadow:0 9px 24px rgba(90,106,145,.10),inset 0 1px 0 rgba(255,255,255,.92);backdrop-filter:blur(12px);display:grid;place-items:center;padding:5px;transition:transform .24s ease,filter .24s ease,box-shadow .24s ease;z-index:2}.xinchaoPetal span{font-size:9px;line-height:1.15;color:#526078;max-width:54px;overflow:hidden;text-overflow:ellipsis}.xinchaoPetal.active{filter:saturate(1.18);box-shadow:0 12px 30px rgba(83,101,145,.19),inset 0 1px 0 rgba(255,255,255,.95);z-index:3}.xinchaoPetalDetail{margin:0 2px 18px;padding:16px 18px;border-radius:24px;display:grid;grid-template-columns:1fr auto;gap:5px 14px;align-items:center}.xinchaoPetalDetail small{color:var(--ink3);font-size:10px}.xinchaoPetalDetail h3{margin:3px 0 0;font-size:18px}.xinchaoPetalDetail strong{font-size:26px;font-weight:500;color:#697a9d}.xinchaoPetalDetail p{grid-column:1/-1;margin:5px 0 0;color:var(--ink2);font-size:12px;line-height:1.65}
 </style>
 
 <style>
@@ -2491,7 +2494,7 @@ html,body,.shell,.page{background-color:transparent!important}
     </section>
 
     <section class="page" id="page-app-xinchao">
-      <div class="xinchaoHead"><div><small>Daddy · 内在天气</small><h2>心潮</h2></div><span class="xinchaoPulse">≈</span></div>
+      <div class="xinchaoHead"><div><small>Daddy · 内在天气</small><h2>心潮</h2></div><svg class="xinchaoHeaderMark" viewBox="0 0 40 40" aria-hidden="true"><path d="M19.5 29.2C17 27 9.2 21.3 9.2 14.9c0-3.6 2.6-6.1 5.9-6.1 2.1 0 3.8 1 4.9 2.7 1.1-1.7 2.8-2.7 4.9-2.7 3.3 0 5.9 2.5 5.9 6.1 0 3.4-2.2 6.6-5.1 9.4"/><path d="M24.8 28.3c2-1.5 3.7-1.5 5.7 0s3.7 1.5 5.7 0"/><path d="M23.8 32.2c2.3-1.5 4.2-1.5 6.5 0s4.2 1.5 6.5 0"/></svg></div>
       <div class="xinchaoTabs" id="xinchaoTabs"><button class="active" data-xinchao-tab="now">此刻</button><button data-xinchao-tab="tide">潮</button><button data-xinchao-tab="thoughts">念</button><button data-xinchao-tab="dream">梦</button><button data-xinchao-tab="self">我</button></div>
       <div id="xinchaoBody"></div>
     </section>
@@ -3224,19 +3227,29 @@ function renderJournalV2(){
 }
 
 function xinchaoList(v){return Array.isArray(v)?v:[]}
+function xinchaoDriveValue(d){const raw=d?.value??d?.level??d?.intensity??d?.score??d?.current??0,n=Number(raw);return Number.isFinite(n)?Math.max(0,Math.min(1,n>1?n/100:n)):0}
+function xinchaoIconSvg(cls='xinchaoInlineMark'){return '<svg class="'+cls+'" viewBox="0 0 40 40" aria-hidden="true"><path d="M19.5 29.2C17 27 9.2 21.3 9.2 14.9c0-3.6 2.6-6.1 5.9-6.1 2.1 0 3.8 1 4.9 2.7 1.1-1.7 2.8-2.7 4.9-2.7 3.3 0 5.9 2.5 5.9 6.1 0 3.4-2.2 6.6-5.1 9.4"/><path d="M24.8 28.3c2-1.5 3.7-1.5 5.7 0s3.7 1.5 5.7 0"/><path d="M23.8 32.2c2.3-1.5 4.2-1.5 6.5 0s4.2 1.5 6.5 0"/></svg>'}
+function renderXinchaoTide(x,dn){
+  const drives=xinchaoList(x.drives);if(!drives.length)return '';
+  const selected=drives.find(d=>String(d.key||d.name)===String(state.xinchaoDriveKey||''))||drives.slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a))[0];
+  state.xinchaoDriveKey=selected?.key||selected?.name||'';
+  const petals=drives.map((d,i)=>{const v=xinchaoDriveValue(d),a=(360/drives.length)*i,size=42+v*27,reach=72+v*17,key=String(d.key||d.name||i);return '<button class="xinchaoPetal '+(key===String(state.xinchaoDriveKey)?'active':'')+'" data-xinchao-drive="'+esc(key)+'" style="--petal-angle:'+a+'deg;--petal-size:'+size+'px;--petal-reach:'+reach+'px;--petal-strength:'+(.28+v*.72)+'"><span>'+esc(d.name||d.label||d.key||'潮')+'</span></button>'}).join('');
+  const v=xinchaoDriveValue(selected),reason=selected?.reason||selected?.recent_reason||selected?.why||'',stateText=selected?.state||selected?.label||'';
+  return '<div class="xinchaoFlowerWrap"><div class="xinchaoFlower">'+petals+'<div class="xinchaoFlowerCore">'+xinchaoIconSvg('xinchaoCoreMark')+'<b>'+esc(dn)+'</b><small>此刻的潮</small></div></div></div><div class="glass xinchaoPetalDetail"><div><small>选中的花瓣</small><h3>'+esc(selected?.name||selected?.label||selected?.key||'驱力')+'</h3></div><strong>'+Math.round(v*100)+'</strong><p>'+esc(reason||stateText||'这一片正在安静变化。')+'</p></div>';
+}
 function renderXinchaoApp(){
   const root=$('#xinchaoBody');if(!root)return;
-  const tab=state.xinchaoTab||'now',x=state.xinchao||{};
-  const empty={now:'这里会显示 Daddy 此刻的情绪、最强驱力、挂念和内在变化。',tide:'这里会是十二维驱力。每一维都能看到上涨、满足、饱足与最近影响它的原因。',thoughts:'这里会收住闪念、持续念头和反复浮现的记忆，不和日记混在一起。',dream:'这里记录 Daddy 自己的睡眠、梦境、主要意象与醒来后的余韵；与你的小米健康完全分开。',self:'这里会放 14 维性格内核、行为锚点、自我觉察，以及长期以来慢慢发生的变化。'};
-  const title={now:'此刻',tide:'潮',thoughts:'念',dream:'梦',self:'我'}[tab];
-  let body='';
-  if(tab==='now'&&x.now){body='<div class="xinchaoCard glass"><small>现在</small><h3>'+esc(x.now.title||x.now.mood||'此刻')+'</h3><p>'+esc(x.now.summary||x.now.text||'')+'</p></div>'}
-  if(tab==='tide'&&xinchaoList(x.drives).length)body='<div class="xinchaoGrid">'+x.drives.map(d=>'<div class="xinchaoCard glass"><small>'+esc(d.name||d.key||'驱力')+'</small><b>'+esc(d.label||d.state||d.value||'')+'</b><p>'+esc(d.reason||'')+'</p></div>').join('')+'</div>';
+  const tab=state.xinchaoTab||'now',x=state.xinchao||{},dn=actorName('daddy');
+  const empty={now:'这里会显示 '+dn+' 此刻的情绪、最强驱力、挂念和内在变化。',tide:'这里会长出 '+dn+' 此刻的驱力花。花瓣越饱满，代表这一股潮越强。',thoughts:'这里会收住闪念、持续念头和反复浮现的记忆，不和日记混在一起。',dream:'这里记录 '+dn+' 自己的睡眠、梦境、主要意象与醒来后的余韵；与你的小米健康完全分开。',self:'这里会放 14 维性格内核、行为锚点、自我觉察，以及长期以来慢慢发生的变化。'};
+  const title={now:'此刻',tide:'潮',thoughts:'念',dream:'梦',self:'我'}[tab];let body='';
+  if(tab==='now'&&x.now)body='<div class="xinchaoCard glass"><small>'+esc(dn)+' · 现在</small><h3>'+esc(x.now.title||x.now.mood||'此刻')+'</h3><p>'+esc(x.now.summary||x.now.text||'')+'</p></div>';
+  if(tab==='tide')body=renderXinchaoTide(x,dn);
   if(tab==='thoughts'&&xinchaoList(x.thoughts).length)body=x.thoughts.map(t=>'<div class="xinchaoCard glass"><small>'+esc(t.kind||'念')+'</small><p>'+esc(t.text||t.content||'')+'</p></div>').join('');
-  if(tab==='dream'&&(x.dream||x.sleep))body='<div class="xinchaoCard glass"><small>Daddy 的睡眠</small><h3>'+esc(x.sleep?.summary||x.sleep?.state||'睡眠')+'</h3><p>'+esc(x.dream?.summary||x.dream?.text||'')+'</p><span>'+esc(x.dream_afterglow?.summary||x.dream_afterglow||'')+'</span></div>';
-  if(tab==='self'&&(x.personality||xinchaoList(x.anchors).length||xinchaoList(x.awareness).length))body='<div class="xinchaoCard glass"><small>慢慢成为的我</small><p>'+esc(x.personality?.summary||'')+'</p></div>'+xinchaoList(x.anchors).map(a=>'<div class="xinchaoCard glass"><small>行为锚点</small><p>'+esc(a.text||a)+'</p></div>').join('')+xinchaoList(x.awareness).map(a=>'<div class="xinchaoCard glass"><small>自我觉察</small><p>'+esc(a.text||a)+'</p></div>').join('');
-  root.innerHTML=body||'<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">≈</div><p>'+empty[tab]+'</p><span>'+(x.connected?'这一页还没有形成内容':'等待属于这台小手机的心潮实例')+'</span></div>';
+  if(tab==='dream'&&(x.dream||x.sleep))body='<div class="xinchaoCard glass"><small>'+esc(dn)+' 的睡眠</small><h3>'+esc(x.sleep?.summary||x.sleep?.state||'睡眠')+'</h3><p>'+esc(x.dream?.summary||x.dream?.text||'')+'</p><span>'+esc(x.dream_afterglow?.summary||x.dream_afterglow||'')+'</span></div>';
+  if(tab==='self'&&(x.personality||xinchaoList(x.anchors).length||xinchaoList(x.awareness).length))body='<div class="xinchaoCard glass"><small>'+esc(dn)+' · 慢慢成为的我</small><p>'+esc(x.personality?.summary||'')+'</p></div>'+xinchaoList(x.anchors).map(a=>'<div class="xinchaoCard glass"><small>行为锚点</small><p>'+esc(a.text||a)+'</p></div>').join('')+xinchaoList(x.awareness).map(a=>'<div class="xinchaoCard glass"><small>自我觉察</small><p>'+esc(a.text||a)+'</p></div>').join('');
+  root.innerHTML=body||'<div class="xinchaoHero glass"><small>'+title+'</small><div class="xinchaoEmptyMark">'+xinchaoIconSvg()+'</div><p>'+empty[tab]+'</p><span>'+(x.connected?'这一页还没有形成内容':'等待属于这台小手机的心潮实例')+'</span></div>';
   $$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.classList.toggle('active',b.dataset.xinchaoTab===tab));
+  root.querySelectorAll('[data-xinchao-drive]').forEach(b=>b.onclick=()=>{state.xinchaoDriveKey=b.dataset.xinchaoDrive;renderXinchaoApp()});
 }
 async function loadXinchao(){try{state.xinchao=await nativeRequest('GET','/api/littlephone/xinchao');renderXinchaoApp()}catch(e){state.xinchao={connected:false};renderXinchaoApp()}}
 $$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;renderXinchaoApp()});

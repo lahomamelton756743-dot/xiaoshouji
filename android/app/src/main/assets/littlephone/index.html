@@ -2412,6 +2412,11 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 
 /* v0.8.4-4 fuller Xinchao petals */
 .xinchaoSvgPetal path{stroke-width:1.25!important}
+
+/* v0.8.4-6 responsive Xinchao flower */
+.xinchaoFlower{width:min(88vw,520px)!important;height:min(88vw,520px)!important;max-width:calc(100vw - 24px)!important;max-height:calc(100vw - 24px)!important}
+.xinchaoFlowerWrap{min-height:min(96vw,560px)!important;padding:6px 0 4px!important;overflow:visible!important}
+.xinchaoFlowerSvg{width:100%!important;height:100%!important;overflow:visible!important}
 </style>
 
 <style>
@@ -3302,10 +3307,10 @@ function xinchaoDriveValue(d){const raw=d?.value??d?.level??d?.intensity??d?.sco
 function xinchaoIconSvg(cls='xinchaoInlineMark'){return '<svg class="'+cls+'" viewBox="0 0 40 40" aria-hidden="true"><path d="M19.5 29.2C17 27 9.2 21.3 9.2 14.9c0-3.6 2.6-6.1 5.9-6.1 2.1 0 3.8 1 4.9 2.7 1.1-1.7 2.8-2.7 4.9-2.7 3.3 0 5.9 2.5 5.9 6.1 0 3.4-2.2 6.6-5.1 9.4"/><path d="M24.8 28.3c2-1.5 3.7-1.5 5.7 0s3.7 1.5 5.7 0"/><path d="M23.8 32.2c2.3-1.5 4.2-1.5 6.5 0s4.2 1.5 6.5 0"/></svg>'}
 function renderXinchaoTide(x,dn){
   const raw=xinchaoList(x.drives);if(!raw.length)return '';
-  const drives=Array.from({length:12},(_,i)=>raw[i%raw.length]);
+  const drives=raw;
   const selected=raw.find(d=>String(d.key||d.name)===String(state.xinchaoDriveKey||''))||raw.slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a))[0];
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
-  const cx=180,cy=180,maxLen=132,minLen=18,baseR=18,step=360/drives.length;
+  const cx=200,cy=200,maxLen=162,minLen=14,baseR=18,step=360/drives.length;
   const petals=drives.map((d,i)=>{
     const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+v*(maxLen-minLen),half=12+v*8,y0=cy-baseR,y1=y0-len;
     const path='M '+cx+' '+y0+' C '+(cx-half*.38)+' '+(y0-len*.18)+' '+(cx-half)+' '+(y1+len*.20)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.46)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.46)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.20)+' '+(cx+half*.38)+' '+(y0-len*.18)+' '+cx+' '+y0+' Z';
@@ -3315,7 +3320,7 @@ function renderXinchaoTide(x,dn){
     return '<g class="xinchaoSvgPetal '+(active?'active':'')+'" data-xinchao-drive="'+esc(key)+'"><defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fbfaff" stop-opacity="'+a+'"/><stop offset="48%" stop-color="#ddd9f4" stop-opacity="'+b+'"/><stop offset="100%" stop-color="#c5d9eb" stop-opacity="'+a+'"/></linearGradient></defs><g transform="rotate('+angle+' '+cx+' '+cy+')"><path d="'+path+'" fill="url(#'+gid+')"/></g><text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'">'+esc(d.name||d.label||d.key||'潮')+'</text></g>';
   }).join('');
   const v=xinchaoDriveValue(selected),reason=selected?.reason||selected?.recent_reason||selected?.why||'',stateText=selected?.state||selected?.label||'';
-  return '<div class="xinchaoFlowerWrap"><div class="xinchaoFlower"><svg class="xinchaoFlowerSvg" viewBox="0 0 360 360" preserveAspectRatio="xMidYMid meet" aria-label="十二瓣情绪花"><defs><radialGradient id="xinchaoPearlGradient" cx="38%" cy="30%"><stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#faf8ff"/><stop offset="100%" stop-color="#e6e1f2"/></radialGradient></defs>'+petals+'<circle class="xinchaoPearl" cx="180" cy="180" r="17"/></svg></div></div><div class="glass xinchaoPetalDetail"><div><small>选中的花瓣</small><h3>'+esc(selected?.name||selected?.label||selected?.key||'驱力')+'</h3></div><strong>'+Math.round(v*100)+'</strong><p>'+esc(reason||stateText||'这一片正在安静变化。')+'</p></div>';
+  return '<div class="xinchaoFlowerWrap"><div class="xinchaoFlower"><svg class="xinchaoFlowerSvg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" aria-label="心潮驱力花"><defs><radialGradient id="xinchaoPearlGradient" cx="38%" cy="30%"><stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#faf8ff"/><stop offset="100%" stop-color="#e6e1f2"/></radialGradient></defs>'+petals+'<circle class="xinchaoPearl" cx="200" cy="200" r="17"/></svg></div></div><div class="glass xinchaoPetalDetail"><div><small>选中的花瓣</small><h3>'+esc(selected?.name||selected?.label||selected?.key||'驱力')+'</h3></div><strong>'+Math.round(v*100)+'</strong><p>'+esc(reason||stateText||'这一片正在安静变化。')+'</p></div>';
 }
 function renderXinchaoApp(){
   const root=$('#xinchaoBody');if(!root)return;

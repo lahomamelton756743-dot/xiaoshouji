@@ -3562,7 +3562,7 @@ function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings
 
 
 const DESKTOP_LAYOUT_KEY='lp_v081_desktop_layout_v3';
-const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},settings:{app:'settings',label:'设置',icon:'⚙'}};
+const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},xinchao:{app:'xinchao',label:'心潮',icon:'≈'},settings:{app:'settings',label:'设置',icon:'⚙'}};
 const DESKTOP_WIDGETS={
   weather:{label:'时钟天气',w:4,h:2,open:'status',desc:'时间、城市和天气。',mode:'compact'},
   together:{label:'相伴天数',w:2,h:2,open:'desktop',desc:'在一起的天数。',mode:'compact'},
@@ -3701,6 +3701,7 @@ desktopDefaultLayout=function(){return{pages:2,items:[
 {id:'app:calendar',kind:'app',app:'calendar',area:'page',page:0,col:1,row:2,w:1,h:1},
 {id:'app:phone',kind:'app',app:'phone',area:'page',page:0,col:2,row:2,w:1,h:1},
 {id:'app:calls',kind:'app',app:'calls',area:'page',page:0,col:3,row:2,w:1,h:1},
+{id:'app:xinchao',kind:'app',app:'xinchao',area:'page',page:0,col:4,row:2,w:1,h:1},
 {id:'app:diary',kind:'app',app:'diary',area:'dock',slot:1,w:1,h:1},
 {id:'app:mail',kind:'app',app:'mail',area:'dock',slot:2,w:1,h:1},
 {id:'app:todo',kind:'app',app:'todo',area:'dock',slot:3,w:1,h:1},

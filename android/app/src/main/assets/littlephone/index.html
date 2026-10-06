@@ -2422,6 +2422,9 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .xinchaoFlower{width:min(96vw,600px)!important;height:min(96vw,600px)!important;max-width:calc(100vw - 8px)!important;max-height:calc(100vw - 8px)!important}
 .xinchaoFlowerWrap{min-height:min(104vw,620px)!important;margin-left:-10px!important;margin-right:-10px!important;padding:0!important}
 .xinchaoSvgPetal path{stroke-width:1.15!important}
+
+/* v0.8.4-8 keep full strong petals, separate short petals */
+.xinchaoSvgPetal path{stroke-width:1.1!important}
 </style>
 
 <style>
@@ -3317,7 +3320,7 @@ function renderXinchaoTide(x,dn){
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
   const cx=220,cy=220,maxLen=188,minLen=14,baseR=19,step=360/drives.length;
   const petals=drives.map((d,i)=>{
-    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+v*(maxLen-minLen),half=18+v*10,y0=cy-baseR,y1=y0-len;
+    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*step,len=minLen+v*(maxLen-minLen),half=8+v*20,y0=cy-baseR,y1=y0-len;
     const path='M '+cx+' '+y0+' C '+(cx-half*.38)+' '+(y0-len*.18)+' '+(cx-half)+' '+(y1+len*.20)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.46)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.46)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.20)+' '+(cx+half*.38)+' '+(y0-len*.18)+' '+cx+' '+y0+' Z';
     const rad=(angle-90)*Math.PI/180,labelR=baseR+len+18,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4,anchor=Math.abs(Math.cos(rad))<.20?'middle':Math.cos(rad)>0?'start':'end';
     const active=key===String(state.xinchaoDriveKey),gid='xg'+i;

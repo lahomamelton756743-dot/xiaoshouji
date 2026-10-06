@@ -2410,6 +2410,8 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .xinchaoFlower::before{display:none!important}
 .xinchaoFlowerWrap{min-height:410px!important;padding:18px 0 8px!important}
 
+/* v0.8.4-4 fuller Xinchao petals */
+.xinchaoSvgPetal path{stroke-width:1.25!important}
 </style>
 
 <style>
@@ -3305,7 +3307,7 @@ function renderXinchaoTide(x,dn){
   state.xinchaoDriveKey=selected?.key||selected?.name||'';
   const cx=180,cy=180,maxLen=132,minLen=maxLen*.48,baseR=18;
   const petals=drives.map((d,i)=>{
-    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*30,len=minLen+v*(maxLen-minLen),half=14,y0=cy-baseR,y1=y0-len;
+    const v=xinchaoDriveValue(d),key=String(d.key||d.name||i),angle=i*30,len=minLen+v*(maxLen-minLen),half=20,y0=cy-baseR,y1=y0-len;
     const path='M '+cx+' '+y0+' C '+(cx-half*.38)+' '+(y0-len*.18)+' '+(cx-half)+' '+(y1+len*.20)+' '+(cx-half*.72)+' '+(y1+9)+' C '+(cx-half*.46)+' '+(y1+1)+' '+(cx-half*.22)+' '+y1+' '+cx+' '+y1+' C '+(cx+half*.22)+' '+y1+' '+(cx+half*.46)+' '+(y1+1)+' '+(cx+half*.72)+' '+(y1+9)+' C '+(cx+half)+' '+(y1+len*.20)+' '+(cx+half*.38)+' '+(y0-len*.18)+' '+cx+' '+y0+' Z';
     const rad=(angle-90)*Math.PI/180,labelR=baseR+len+18,lx=cx+Math.cos(rad)*labelR,ly=cy+Math.sin(rad)*labelR+4,anchor=Math.abs(Math.cos(rad))<.20?'middle':Math.cos(rad)>0?'start':'end';
     const active=key===String(state.xinchaoDriveKey),gid='xg'+i;

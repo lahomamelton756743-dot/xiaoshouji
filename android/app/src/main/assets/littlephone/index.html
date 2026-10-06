@@ -3343,7 +3343,7 @@ function renderXinchaoApp(){
   }
   if(tab==='tide')body=renderXinchaoTide(x,dn);
   if(tab==='thoughts'){
-    let ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);if(!ts.length){const ds=xinchaoList(x.topDrives).length?x.topDrives:xinchaoList(x.drives).slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a));ts=ds.filter(d=>xinchaoDriveValue(d)>=.25).slice(0,4).map((d,i)=>({kind:xinchaoDriveValue(d)>=.5?'持续念头':'闪念',text:(d.name||d.label||d.key||'这股念头')+'还在心里浮着。',intensity:xinchaoDriveValue(d),persistent:xinchaoDriveValue(d)>=.5}));}
+    const ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);
     if(ts.length){const persistent=ts.filter(t=>t.persistent),fleeting=ts.filter(t=>!t.persistent);body=(persistent.length?'<div class="xinchaoNowSection glass"><small>一直没有散去</small>'+persistent.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+(t.age!=null?'停留 '+esc(t.age)+' · ':'')+'强度 '+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'')+(fleeting.length?'<div class="xinchaoNowSection glass"><small>最近浮上来的念</small>'+fleeting.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+esc(t.kind||'闪念')+(t.feedbacks!=null?' · 回响 '+esc(t.feedbacks):'')+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'');}
   }
   if(tab==='dream'){
@@ -3359,7 +3359,7 @@ function renderXinchaoApp(){
   root.querySelectorAll('[data-xinchao-drive]').forEach(b=>b.onclick=()=>{state.xinchaoDriveKey=b.dataset.xinchaoDrive;renderXinchaoApp()});
 }
 async function loadXinchao(){try{state.xinchao=await nativeRequest('GET','/api/littlephone/xinchao');renderXinchaoApp()}catch(e){state.xinchao={connected:false};renderXinchaoApp()}}
-$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;window.scrollTo(0,0);renderXinchaoApp()});
+$$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;renderXinchaoApp()});
 
 function healthV2Value(v,unit=''){return v===null||v===undefined||v===''?'—':esc(v)+unit}
 function renderHealthAppV2(){

@@ -1,4 +1,4 @@
-name: Build Little Phone v0.8.4-12
+name: Build Little Phone v0.8.4-13
 
 on:
   push:
@@ -37,16 +37,16 @@ jobs:
         shell: bash
         run: |
           cd android
-          zip -j "$GITHUB_WORKSPACE/little-phone-v0.8.4-12-build.zip" LittlePhone-v0.8.4-12.apk
+          zip -j "$GITHUB_WORKSPACE/little-phone-v0.8.4-13-build.zip" LittlePhone-v0.8.4-13.apk
 
       - name: Upload APK and ZIP
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: little-phone-v0.8.4-12-build
+          name: little-phone-v0.8.4-13-build
           path: |
-            android/LittlePhone-v0.8.4-12.apk
-            little-phone-v0.8.4-12-build.zip
+            android/LittlePhone-v0.8.4-13.apk
+            little-phone-v0.8.4-13-build.zip
           retention-days: 30
           if-no-files-found: error
 
@@ -57,18 +57,18 @@ jobs:
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
           ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
         run: |
-          cat > BUILD-v0.8.4-12.txt <<EOF
-          version=0.8.4-11
+          cat > BUILD-v0.8.4-13.txt <<EOF
+          version=0.8.4-13
           job_status=${{ job.status }}
           commit=${GITHUB_SHA}
           run_id=${GITHUB_RUN_ID}
           artifact_id=${ARTIFACT_ID}
           artifact_url=${ARTIFACT_URL}
-          zip=little-phone-v0.8.4-12-build.zip
-          apk=LittlePhone-v0.8.4-12.apk
+          zip=little-phone-v0.8.4-13-build.zip
+          apk=LittlePhone-v0.8.4-13.apk
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add BUILD-v0.8.4-12.txt
-          git commit -m "build: publish v0.8.4-12 artifact pointer" || true
+          git add BUILD-v0.8.4-13.txt
+          git commit -m "build: publish v0.8.4-13 artifact pointer" || true
           git push || true

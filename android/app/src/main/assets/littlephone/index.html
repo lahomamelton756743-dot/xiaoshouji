@@ -2428,7 +2428,10 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 
 /* v0.8.4-9 Xinchao Now: real 4.0 snapshot semantics */
 .xinchaoNowHero{margin:18px 2px 12px;padding:22px 20px;border-radius:28px}.xinchaoNowHero>small,.xinchaoNowSection>small{font-size:10px;color:var(--ink3);letter-spacing:.08em}.xinchaoNowMood{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-top:10px}.xinchaoNowMood h3{margin:0;font-size:30px;font-weight:500;letter-spacing:.06em}.xinchaoNowMood span{font-size:10px;color:var(--ink3);padding-bottom:4px;text-align:right}.xinchaoNowMixed{margin-top:15px;padding:9px 12px;border-radius:16px;background:rgba(226,218,241,.32);font-size:11px;color:#5c5871}.xinchaoNowSection{margin:12px 2px;padding:17px 18px;border-radius:24px}.xinchaoNowDrive{display:grid;grid-template-columns:54px 1fr 28px;align-items:center;gap:10px;margin-top:13px;font-size:11px;color:var(--ink2)}.xinchaoNowDrive i{height:7px;border-radius:999px;background:rgba(255,255,255,.38);overflow:hidden}.xinchaoNowDrive i b{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(221,217,244,.76),rgba(171,192,222,.82))}.xinchaoNowDrive strong{font-size:11px;font-weight:600;color:#61708d;text-align:right}.xinchaoNowAxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 2px}.xinchaoNowAxes>div{padding:16px 18px;border-radius:22px}.xinchaoNowAxes small{display:block;color:var(--ink3);font-size:10px}.xinchaoNowAxes b{display:block;margin-top:4px;font-size:24px;font-weight:500;color:#667797}.xinchaoNowSection p{margin:10px 0 0;font-size:12px;line-height:1.65;color:var(--ink2)}
- .xinchaoThoughtRow{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.46)}.xinchaoThoughtRow:last-child{border-bottom:0}.xinchaoThoughtRow div{min-width:0}.xinchaoThoughtRow b{display:block;font-size:13px;line-height:1.65;font-weight:520;color:var(--ink2)}.xinchaoThoughtRow span{display:block;margin-top:5px;font-size:10px;color:var(--ink3)}.xinchaoThoughtRow strong{font-size:17px;font-weight:520;color:#687797;align-self:center}\n #page-app-xinchao{padding-top:0!important;margin-top:0!important;align-self:start!important}\n</style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
+</style>
+
+<style>
+/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
 .phoneAppPage{min-height:calc(100dvh - 8px)!important;padding-top:0!important;padding-bottom:calc(26px + env(safe-area-inset-bottom))!important;background:transparent!important}
@@ -2532,7 +2535,7 @@ html,body,.shell,.page{background-color:transparent!important}
 /* v0.8.3-27 — stable vector Xinchao mark: heart + lower-right tide. */
 .xinchaoDesktopMark{position:relative;z-index:2;width:35px;height:35px;overflow:visible;fill:none;stroke:#586884;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
 </style>
-</head>
+<style>#page-app-xinchao{padding-top:0!important;margin-top:0!important}</style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 <div class="shell">
@@ -3343,8 +3346,8 @@ function renderXinchaoApp(){
   }
   if(tab==='tide')body=renderXinchaoTide(x,dn);
   if(tab==='thoughts'){
-    let ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);if(!ts.length){const ds=xinchaoList(x.topDrives).length?x.topDrives:xinchaoList(x.drives).slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a));ts=ds.filter(d=>xinchaoDriveValue(d)>=.25).slice(0,4).map((d,i)=>({id:'drive-'+(d.key||i),kind:'内在念头',text:(d.name||d.label||d.key||'这股念头')+'还在心里浮着。',intensity:xinchaoDriveValue(d),persistent:xinchaoDriveValue(d)>=.5,derived:true}));}
-    if(ts.length){const persistent=ts.filter(t=>t.persistent),fleeting=ts.filter(t=>!t.persistent);body=(persistent.length?'<div class="xinchaoNowSection glass"><small>一直没有散去</small>'+persistent.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+(t.age!=null?'停留 '+esc(t.age)+' · ':'')+'强度 '+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'')+(fleeting.length?'<div class="xinchaoNowSection glass"><small>最近浮上来的念</small>'+fleeting.map(t=>'<div class="xinchaoThoughtRow"><div><b>'+esc(t.text||t.content||'')+'</b><span>'+esc(t.kind||'闪念')+(t.feedbacks!=null?' · 回响 '+esc(t.feedbacks):'')+'</span></div><strong>'+Math.round(xinchaoDriveValue({value:t.intensity})*100)+'</strong></div>').join('')+'</div>':'');}
+    let ts=x.thoughts&&Array.isArray(x.thoughts.active)?x.thoughts.active:xinchaoList(raw.thoughts);if(!ts.length){const ds=xinchaoList(x.topDrives).length?x.topDrives:xinchaoList(x.drives).slice().sort((a,b)=>xinchaoDriveValue(b)-xinchaoDriveValue(a));ts=ds.filter(d=>xinchaoDriveValue(d)>=.25).slice(0,4).map((d,i)=>({kind:xinchaoDriveValue(d)>=.5?'持续念头':'闪念',text:(d.name||d.label||d.key||'这股念头')+'还在心里浮着。',intensity:xinchaoDriveValue(d),persistent:xinchaoDriveValue(d)>=.5}));}
+    if(ts.length)body=ts.map(t=>'<div class="xinchaoCard glass"><small>'+(t.persistent?'持续念头':esc(t.kind||'念'))+'</small><p>'+esc(t.text||t.content||'')+'</p><span>'+(t.intensity!=null?'强度 '+Math.round(xinchaoDriveValue({value:t.intensity})*100):'')+'</span></div>').join('');
   }
   if(tab==='dream'){
     const dreams=xinchaoList(x.dreams),latest=dreams[0]||raw.dream||null,sleep=x.sleep||raw.sleep;
@@ -3359,7 +3362,7 @@ function renderXinchaoApp(){
   root.querySelectorAll('[data-xinchao-drive]').forEach(b=>b.onclick=()=>{state.xinchaoDriveKey=b.dataset.xinchaoDrive;renderXinchaoApp()});
 }
 async function loadXinchao(){try{state.xinchao=await nativeRequest('GET','/api/littlephone/xinchao');renderXinchaoApp()}catch(e){state.xinchao={connected:false};renderXinchaoApp()}}
-$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;const page=$('#page-app-xinchao');if(page){page.style.paddingTop='0';page.style.marginTop='0'}window.scrollTo(0,0);renderXinchaoApp()});
+$('#xinchaoTabs [data-xinchao-tab]').forEach(b=>b.onclick=()=>{state.xinchaoTab=b.dataset.xinchaoTab;window.scrollTo(0,0);renderXinchaoApp()});
 
 function healthV2Value(v,unit=''){return v===null||v===undefined||v===''?'—':esc(v)+unit}
 function renderHealthAppV2(){

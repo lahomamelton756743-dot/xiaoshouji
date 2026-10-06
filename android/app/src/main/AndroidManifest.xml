@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.littlephone.app"
-    android:versionCode="80407"
-    android:versionName="0.8.4-7" >
+    android:versionCode="80408"
+    android:versionName="0.8.4-8" >
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 

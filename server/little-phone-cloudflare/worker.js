@@ -1,4 +1,4 @@
-const VERSION = "0.8.3-chat-mcp-1";
+const VERSION = "0.8.3-xinchao-bridge-1";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -59,6 +59,7 @@ async function handle(request, env) {
     if (path === "/api/poll") return pollCommand(env, url);
     if (path === "/api/command/status") return commandStatus(env, url);
     if (path === "/api/littlephone/bootstrap") return bootstrapApi(env);
+    if (path === "/api/littlephone/xinchao") return getXinchaoApi(env);
     if (path === "/api/littlephone/visit/latest") return getLatestVisitApi(env, url);
     if (path === "/api/littlephone/events") return listEventsApi(env, url);
     if (path === "/api/littlephone/papers") return listPapersApi(env, url);
@@ -86,6 +87,7 @@ async function handle(request, env) {
 
   if (request.method === "POST") {
     if (path === "/api/littlephone/visit") return queueVisitApi(env, await readJson(request));
+    if (path === "/api/littlephone/xinchao") return putXinchaoApi(env, await readJson(request));
     if (path === "/api/device/report") return deviceReportApi(env, await readJson(request));
     if (path === "/api/device/state") return json({ ok: true, ignored: true, reason: "little_phone_does_not_persist_periodic_device_state" });
     if (path === "/api/littlephone/events") return addManualEventApi(env, await readJson(request));
@@ -550,7 +552,10 @@ async function ensureSchema(env) {
         access_hash TEXT PRIMARY KEY, refresh_hash TEXT NOT NULL UNIQUE, client_id TEXT NOT NULL, scope TEXT NOT NULL, resource TEXT NOT NULL,
         access_expires_epoch INTEGER NOT NULL, refresh_expires_epoch INTEGER NOT NULL, created_at TEXT NOT NULL
       )`,
-      `CREATE INDEX IF NOT EXISTS idx_lp_oauth_tokens_refresh ON lp_oauth_tokens(refresh_hash)`
+      `CREATE INDEX IF NOT EXISTS idx_lp_oauth_tokens_refresh ON lp_oauth_tokens(refresh_hash)`,
+      `CREATE TABLE IF NOT EXISTS lp_xinchao_state (
+        id TEXT PRIMARY KEY, payload_json TEXT NOT NULL DEFAULT '{}', updated_at TEXT NOT NULL
+      )`
     ];
     schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).then(async () => {
       const alters = [
@@ -574,6 +579,25 @@ async function ensureSchema(env) {
     }).catch(err => { schemaReady = null; throw err; });
   }
   return schemaReady;
+}
+
+async function getXinchaoApi(env) {
+  const row = await env.DB.prepare("SELECT payload_json,updated_at FROM lp_xinchao_state WHERE id='daddy'").first();
+  const payload = row ? safeJson(row.payload_json,{}) : {};
+  return json({ok:true,connected:Boolean(row),updated_at:row?.updated_at||"",...payload});
+}
+
+async function putXinchaoApi(env, body={}) {
+  const allowed = {};
+  for (const key of ["now","drives","emotion","emotion_history","thoughts","sleep","dream","dream_afterglow","personality","anchors","awareness","meta"]) {
+    if (body[key] !== undefined) allowed[key] = body[key];
+  }
+  const prev = await env.DB.prepare("SELECT payload_json FROM lp_xinchao_state WHERE id='daddy'").first();
+  const merged = {...(prev?safeJson(prev.payload_json,{}):{}),...allowed};
+  const updated_at = nowIso();
+  await env.DB.prepare("INSERT INTO lp_xinchao_state(id,payload_json,updated_at) VALUES('daddy',?,?) ON CONFLICT(id) DO UPDATE SET payload_json=excluded.payload_json,updated_at=excluded.updated_at")
+    .bind(JSON.stringify(merged),updated_at).run();
+  return json({ok:true,updated_at});
 }
 
 async function pruneEvents(env) {

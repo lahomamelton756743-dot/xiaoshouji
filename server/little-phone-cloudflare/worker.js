@@ -1559,8 +1559,9 @@ async function handleMcp(request,env,url){
 
   if(method==="server/discover"){
     return mcpJson(rpcResult(id,{
-      supportedVersions:MCP_COMPAT_PROTOCOL_VERSIONS,
-      capabilities:{tools:{listChanged:true},events:{}},
+      resultType:"complete",
+      supportedVersions:[MCP_MODERN_PROTOCOL_VERSION],
+      capabilities:{tools:{},events:{}},
       instructions:"Use the Little Phone tools for Ryan's private letters, notes, todos, diaries, dates, calls, statuses, and explicitly authorized one-time device visits.",
       _meta:mcpResultMeta()
     }),200,MCP_MODERN_PROTOCOL_VERSION);

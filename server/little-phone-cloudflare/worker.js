@@ -1,5 +1,5 @@
 // @ts-nocheck
-const VERSION = "0.8.3-xinchao-engine-10.3";
+const VERSION = "0.8.3-xinchao-engine-10.3-events-test1";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MCP_LEGACY_PROTOCOL_VERSION = "2025-11-25";
@@ -485,6 +485,12 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_diary_annotations_diary ON lp_diary_annotations(diary_id,created_at ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_chat_messages (id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
       `CREATE INDEX IF NOT EXISTS idx_lp_chat_messages_created ON lp_chat_messages(created_at ASC)`,
+      `CREATE TABLE IF NOT EXISTS lp_mcp_event_subscriptions (
+        id TEXT PRIMARY KEY, event_name TEXT NOT NULL, arguments_json TEXT NOT NULL DEFAULT '{}',
+        callback_url TEXT NOT NULL, signing_secret TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, expires_at TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_mcp_event_subscriptions_event ON lp_mcp_event_subscriptions(event_name,status)`,
       `CREATE TABLE IF NOT EXISTS lp_todos (
         id TEXT PRIMARY KEY, author TEXT NOT NULL, title TEXT NOT NULL,
         due_at TEXT NOT NULL DEFAULT '', remind_at TEXT NOT NULL DEFAULT '',
@@ -1411,6 +1417,67 @@ async function deviceReportApi(env,report){
   return json({ok:true,report,command:cmd,visit});
 }
 
+
+const LP_TEST_EVENT={
+  name:"littlephone.test",
+  description:"A harmless Little Phone wake-up test event. It does not change chat, Xinchao, diaries, or device state.",
+  delivery:["webhook"],
+  inputSchema:{type:"object",properties:{},additionalProperties:false},
+  payloadSchema:{type:"object",properties:{message:{type:"string"},source:{type:"string"},test_id:{type:"string"}},required:["message","source","test_id"],additionalProperties:false}
+};
+function lpB64Bytes(s){try{const b=atob(String(s||""));return Uint8Array.from(b,c=>c.charCodeAt(0))}catch{return null}}
+function lpB64(buf){let x="";for(const b of new Uint8Array(buf))x+=String.fromCharCode(b);return btoa(x)}
+async function lpEventSubId(url,name,args){return"sub_"+(await sha256Hex([url,name,JSON.stringify(args||{})].join("|"))).slice(0,40)}
+function lpPublicCallback(raw){
+  try{const u=new URL(String(raw||""));if(u.protocol!=="https:")return null;
+    const h=u.hostname.toLowerCase();if(h==="localhost"||h.endsWith(".local")||h==="127.0.0.1"||h==="::1"||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return null;
+    return u.toString()
+  }catch{return null}
+}
+async function lpWebhookSignature(secret,eventId,ts,body){
+  const raw=String(secret||"").replace(/^whsec_/,""),key=lpB64Bytes(raw);if(!key)throw new Error("invalid_signing_secret");
+  const k=await crypto.subtle.importKey("raw",key,{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const sig=await crypto.subtle.sign("HMAC",k,new TextEncoder().encode(eventId+"."+ts+"."+body));
+  return"v1,"+lpB64(sig)
+}
+async function lpSignedWebhook(url,secret,subId,eventId,body){
+  const ts=String(epochSeconds()),sig=await lpWebhookSignature(secret,eventId,ts,body);
+  return fetch(url,{method:"POST",redirect:"manual",headers:{"Content-Type":"application/json","webhook-id":eventId,"webhook-timestamp":ts,"webhook-signature":sig,"X-MCP-Subscription-Id":subId},body})
+}
+async function lpVerifyEventCallback(url,secret,subId){
+  const challenge=randomToken(24),eventId="msg_verification_"+randomToken(12),body=JSON.stringify({type:"verification",challenge});
+  let r;try{r=await lpSignedWebhook(url,secret,subId,eventId,body)}catch(e){return{ok:false,reason:"request_failed",detail:String(e?.message||e)}}
+  if(!r.ok)return{ok:false,reason:"challenge_failed",status:r.status};
+  let data={};try{data=await r.json()}catch{return{ok:false,reason:"challenge_failed"}}
+  return{ok:String(data.challenge||"")===challenge,reason:String(data.challenge||"")===challenge?"":"challenge_failed"}
+}
+async function lpSubscribeEvent(env,p){
+  if(p?.name!==LP_TEST_EVENT.name)return{error:"unknown_event"};
+  const args=p?.arguments&&typeof p.arguments==="object"?p.arguments:{};if(Object.keys(args).length)return{error:"invalid_arguments"};
+  if(p?.delivery?.mode!=="webhook")return{error:"unsupported_delivery"};
+  const url=lpPublicCallback(p?.delivery?.url);if(!url)return{error:"invalid_callback_url"};
+  const secret=String(p?.delivery?.secret||"");const key=secret.startsWith("whsec_")?lpB64Bytes(secret.slice(6)):null;
+  if(!key||key.length<24||key.length>64)return{error:"invalid_signing_secret"};
+  const id=await lpEventSubId(url,p.name,args),verify=await lpVerifyEventCallback(url,secret,id);if(!verify.ok)return{error:"callback_verification_failed",reason:verify.reason,status:verify.status||0};
+  const ttl=p?.ttlMs===null?null:Math.max(3600000,Math.min(Number(p?.ttlMs)||7*86400000,30*86400000));
+  const exp=ttl===null?"":new Date(Date.now()+ttl).toISOString(),now=nowIso();
+  await env.DB.prepare("INSERT INTO lp_mcp_event_subscriptions(id,event_name,arguments_json,callback_url,signing_secret,status,created_at,updated_at,expires_at) VALUES(?,?,?,?,?,'active',?,?,?) ON CONFLICT(id) DO UPDATE SET signing_secret=excluded.signing_secret,status='active',updated_at=excluded.updated_at,expires_at=excluded.expires_at")
+    .bind(id,p.name,JSON.stringify(args),url,secret,now,now,exp).run();
+  return{id,refreshBefore:exp||null,cursor:null,truncated:false}
+}
+async function lpUnsubscribeEvent(env,p){
+  if(p?.name!==LP_TEST_EVENT.name)return{};
+  const url=lpPublicCallback(p?.delivery?.url),args=p?.arguments&&typeof p.arguments==="object"?p.arguments:{};if(!url)return{};
+  const id=await lpEventSubId(url,p.name,args);await env.DB.prepare("UPDATE lp_mcp_event_subscriptions SET status='stopped',updated_at=? WHERE id=?").bind(nowIso(),id).run();return{}
+}
+async function lpEmitTestEvent(env){
+  const now=new Date(),rows=(await env.DB.prepare("SELECT * FROM lp_mcp_event_subscriptions WHERE event_name=? AND status='active' AND (expires_at='' OR expires_at>?)").bind(LP_TEST_EVENT.name,now.toISOString()).all()).results||[];
+  const event={eventId:"evt_"+randomToken(18),name:LP_TEST_EVENT.name,timestamp:now.toISOString(),data:{message:"小手机唤醒测试到了。",source:"little_phone",test_id:uuid()},cursor:null};
+  const body=JSON.stringify(event),deliveries=[];
+  for(const sub of rows){try{const r=await lpSignedWebhook(sub.callback_url,sub.signing_secret,sub.id,event.eventId,body);deliveries.push({subscription_id:sub.id,accepted:r.ok,status:r.status});if(r.status===410)await env.DB.prepare("UPDATE lp_mcp_event_subscriptions SET status='stopped',updated_at=? WHERE id=?").bind(nowIso(),sub.id).run()}catch(e){deliveries.push({subscription_id:sub.id,accepted:false,status:0,error:String(e?.message||e)})}}
+  return{ok:true,event_id:event.eventId,subscriptions:rows.length,deliveries}
+}
+
 // ---------- MCP ----------
 const MCP_TOOLS = [
   tool("get_xinchao_state","读取心潮当前真实状态。默认 compact 精简回传；需要调试完整引擎状态时使用 full。",{mode:{type:"string",enum:["compact","full"],default:"compact"}}),
@@ -1428,6 +1495,7 @@ const MCP_TOOLS = [
   tool("confirm_gpt_memory","确认一条 GPT 记得为正确。",{id:{type:"string"}},["id"]),
   tool("delete_gpt_memory","删除一条 GPT 记得。",{id:{type:"string"}},["id"]),
   tool("little_phone_status","检查小手机 Cloudflare 后端状态。",{}),
+  tool("emit_littlephone_test_event","仅用于 MCP Events 唤醒实验：发送一次隔离测试事件。不会修改聊天、心潮、日记或设备状态。",{}),
   tool("visit_little_phone","发起一次 daddy 来访。只排队一次 Android 设备快照读取，不持续读取。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("get_phone_state","读取小手机最近一次授权来访的设备状态；快照过期时明确返回 expired，不回退旧 Render。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
   tool("get_life_state","读取最近一次授权快照中的电量、网络、屏幕使用、App 使用、天气和媒体摘要；不截图。",{device_id:{type:"string",default:DEFAULT_DEVICE}}),
@@ -1531,7 +1599,7 @@ async function handleMcp(request,env,url){
   if(method==="server/discover"){
     return mcpJson(rpcResult(id,{
       supportedVersions:MCP_COMPAT_PROTOCOL_VERSIONS,
-      capabilities:{tools:{listChanged:true}},
+      capabilities:{tools:{listChanged:true},events:{}},
       instructions:"Use the Little Phone tools for Ryan's private letters, notes, todos, diaries, dates, calls, statuses, and explicitly authorized one-time device visits.",
       _meta:mcpResultMeta()
     }),200,MCP_MODERN_PROTOCOL_VERSION);
@@ -1546,6 +1614,13 @@ async function handleMcp(request,env,url){
   if(method==="ping")return mcpJson(rpcResult(id,{_meta:mcpResultMeta()}),200,responseProtocol);
   if(method==="notifications/initialized")return new Response(null,{status:204,headers:corsHeaders({"MCP-Protocol-Version":MCP_LEGACY_PROTOCOL_VERSION})});
   if(method==="tools/list")return mcpJson(rpcResult(id,{tools:MCP_TOOLS,_meta:mcpResultMeta()}),200,responseProtocol);
+  if(method==="events/list"||method==="events/subscribe"||method==="events/unsubscribe"){
+    if(!modern)return mcpJson(rpcError(id,-32601,"MCP Events requires protocol 2026-07-28"),200,responseProtocol);
+    if(!(await oauthAccessTokenOk(request,env,url)))return mcpJson(rpcError(id,-32001,"Authentication required"),200,responseProtocol);
+    if(method==="events/list")return mcpJson(rpcResult(id,{events:[LP_TEST_EVENT]}),200,responseProtocol);
+    if(method==="events/subscribe"){const out=await lpSubscribeEvent(env,msg.params||{});if(out.error)return mcpJson(rpcError(id,-32015,"CallbackEndpointError",{reason:out.reason||out.error,status:out.status||0}),200,responseProtocol);return mcpJson(rpcResult(id,out),200,responseProtocol)}
+    return mcpJson(rpcResult(id,await lpUnsubscribeEvent(env,msg.params||{})),200,responseProtocol)
+  }
   if(method==="tools/call"){
     if(!(await oauthAccessTokenOk(request,env,url))){
       const metadata=`${originOf(url)}/.well-known/oauth-protected-resource/mcp`;
@@ -1578,6 +1653,7 @@ async function callTool(name,args,env){
     case "update_xinchao_anchor": return mcpFromApiResponse(await updateXinchaoAnchorApi(env,args));
     case "resolve_xinchao_awareness": return mcpFromApiResponse(await resolveXinchaoAwarenessApi(env,args));
     case "little_phone_status": return mcpText({ok:true,service:"little-phone-backend",version:VERSION,screenshot:false,snapshot_ttl_minutes:30,event_ttl_days:7});
+    case "emit_littlephone_test_event": return mcpText(await lpEmitTestEvent(env));
     case "get_phone_state": {const v=await latestVisit(env,args.device_id||DEFAULT_DEVICE);if(!v)return mcpText({ok:false,error:"no_snapshot",message:"还没有成功来访快照；请先调用 visit_little_phone。"},true);if(v.expired)return mcpText({ok:false,error:"snapshot_expired",expired:true,created_at:v.created_at,expires_at:v.expires_at},true);return mcpText({ok:true,fresh:true,created_at:v.created_at,expires_at:v.expires_at,state:v.snapshot});}
     case "get_life_state": {const v=await latestVisit(env,args.device_id||DEFAULT_DEVICE);if(!v||v.expired)return mcpText({ok:false,error:v?"snapshot_expired":"no_snapshot",expired:Boolean(v&&v.expired)},true);const x=v.snapshot||{};return mcpText({ok:true,fresh:true,captured_at_local:x.captured_at_local||"",battery_percent:x.battery_percent,charging:x.charging,network_type:x.network_type,screen_on:x.screen_on,screen_time_today_minutes:x.screen_time_today_minutes,unlock_count_today:x.unlock_count_today,top_apps_today:x.top_apps_today||[],weather_state:x.weather_state||null,current_weather_location:x.current_weather_location||null,media_state:x.media_state||null});}
     case "get_senses_state": {const v=await latestVisit(env,args.device_id||DEFAULT_DEVICE),statuses=await getStatuses(env),calls=await listCalls(env,5),requests=await listUnlockRequests(env,5);return mcpText({ok:true,snapshot:v&&!v.expired?v:null,snapshot_expired:Boolean(v&&v.expired),statuses,recent_calls:calls,unlock_requests:requests});}

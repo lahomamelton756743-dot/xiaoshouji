@@ -104,6 +104,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/diaries/update") return updateDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diary-annotations") return addDiaryAnnotationApi(env, await readJson(request));
     if (path === "/api/littlephone/chat") return addChatMessageApi(env, await readJson(request));
+    if (path === "/api/littlephone/mcp-events/test") return emitLittlePhoneTestEventApi(env, await readJson(request));
     if (path === "/api/littlephone/chat/delete") return deleteRowApi(env, "lp_chat_messages", await readJson(request));
     if (path === "/api/littlephone/diary-annotations/delete") return deleteRowApi(env, "lp_diary_annotations", await readJson(request));
     if (path === "/api/littlephone/diaries/delete") return deleteRowApi(env, "lp_diaries", await readJson(request));
@@ -485,6 +486,12 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_diary_annotations_diary ON lp_diary_annotations(diary_id,created_at ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_chat_messages (id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
       `CREATE INDEX IF NOT EXISTS idx_lp_chat_messages_created ON lp_chat_messages(created_at ASC)`,
+      `CREATE TABLE IF NOT EXISTS lp_mcp_event_subscriptions (
+        id TEXT PRIMARY KEY, event_name TEXT NOT NULL, arguments_json TEXT NOT NULL DEFAULT '{}',
+        callback_url TEXT NOT NULL, signing_secret TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, expires_at TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lp_mcp_event_subscriptions_event ON lp_mcp_event_subscriptions(event_name,status)`,
       `CREATE TABLE IF NOT EXISTS lp_mcp_event_subscriptions (
         id TEXT PRIMARY KEY, event_name TEXT NOT NULL, arguments_json TEXT NOT NULL DEFAULT '{}',
         callback_url TEXT NOT NULL, signing_secret TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
@@ -1582,6 +1589,21 @@ function modernEnvelopeVersion(msg,request){
   return String(request.headers.get("MCP-Protocol-Version")||msg?.params?._meta?.["io.modelcontextprotocol/protocolVersion"]||"");
 }
 function isModernMcpRequest(msg,request){return modernEnvelopeVersion(msg,request)===MCP_MODERN_PROTOCOL_VERSION || msg?.method==="server/discover";}
+const LITTLEPHONE_TEST_EVENT="littlephone.test";
+function littlePhoneTestEventDefinition(){return{name:LITTLEPHONE_TEST_EVENT,description:"A harmless Little Phone wake-up test fired manually by the owner. It does not change chat, Xinchao, diary, mail, or phone state.",delivery:["webhook"],inputSchema:{type:"object",properties:{},additionalProperties:false},payloadSchema:{type:"object",properties:{test_id:{type:"string"},message:{type:"string"},source:{type:"string"}},required:["test_id","message","source"],additionalProperties:false}}}
+function mcpEventErr(message,code=-32602,data){const e=new Error(message);e.mcpCode=code;e.mcpData=data;return e}
+function canonicalEventArgs(v){if(!v||typeof v!=="object"||Array.isArray(v))return"{}";const o={};for(const k of Object.keys(v).sort())o[k]=v[k];return JSON.stringify(o)}
+async function sha256Hex(text){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function decodeWebhookSecret(secret){if(!/^whsec_[A-Za-z0-9+/_=-]+$/.test(secret||""))throw mcpEventErr("Invalid webhook signing secret",-32602);let raw=String(secret).slice(6).replace(/-/g,"+").replace(/_/g,"/");while(raw.length%4)raw+="=";let bin;try{bin=atob(raw)}catch{throw mcpEventErr("Invalid webhook signing secret",-32602)}if(bin.length<24||bin.length>64)throw mcpEventErr("Webhook signing secret must decode to 24-64 bytes",-32602);return Uint8Array.from(bin,c=>c.charCodeAt(0))}
+function validateEventCallbackUrl(value){let u;try{u=new URL(String(value||""))}catch{throw mcpEventErr("Invalid callback URL",-32602)}if(u.protocol!=="https:"||u.username||u.password)throw mcpEventErr("Callback URL must be HTTPS",-32602);const h=u.hostname.toLowerCase();if(h==="localhost"||h.endsWith(".localhost")||h==="0.0.0.0"||h==="127.0.0.1"||h==="::1"||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))throw mcpEventErr("Callback URL is not public",-32602);return u.toString()}
+async function standardWebhookSignature(secret,eventId,timestamp,body){const key=await crypto.subtle.importKey("raw",decodeWebhookSecret(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(eventId+"."+timestamp+"."+body));let bin="";for(const b of new Uint8Array(sig))bin+=String.fromCharCode(b);return"v1,"+btoa(bin)}
+async function signedWebhookFetch(sub,eventId,body){const ts=String(Math.floor(Date.now()/1000)),sig=await standardWebhookSignature(sub.signing_secret,eventId,ts,body);return fetch(sub.callback_url,{method:"POST",redirect:"manual",headers:{"Content-Type":"application/json","webhook-id":eventId,"webhook-timestamp":ts,"webhook-signature":sig,"X-MCP-Subscription-Id":sub.id},body})}
+async function verifyEventCallback(sub){const challenge=crypto.randomUUID(),eventId="msg_verification_"+crypto.randomUUID(),body=JSON.stringify({type:"verification",challenge});let r;try{r=await signedWebhookFetch(sub,eventId,body)}catch{throw mcpEventErr("Callback verification failed",-32015,{reason:"connection_failed"})}if(!r.ok)throw mcpEventErr("Callback verification failed",-32015,{reason:"challenge_failed",status:r.status});let data={};try{data=await r.json()}catch{}if(String(data?.challenge||"")!==challenge)throw mcpEventErr("Callback verification failed",-32015,{reason:"challenge_failed"})}
+async function subscribeLittlePhoneEvent(env,p){if(p.name!==LITTLEPHONE_TEST_EVENT)throw mcpEventErr("Unknown event",-32602);if(Object.keys(p.arguments||{}).length)throw mcpEventErr("littlephone.test does not accept filters",-32602);if(p.delivery?.mode!=="webhook")throw mcpEventErr("Only webhook delivery is supported",-32602);const callback_url=validateEventCallbackUrl(p.delivery?.url),secret=String(p.delivery?.secret||"");decodeWebhookSecret(secret);const args=canonicalEventArgs(p.arguments),id="sub_"+(await sha256Hex(LITTLEPHONE_TEST_EVENT+"\n"+args+"\n"+callback_url)).slice(0,32);const now=nowIso(),ttl=p.ttlMs===null?null:Math.max(3600000,Math.min(Number(p.ttlMs)||7*86400000,30*86400000)),expires=ttl===null?"":new Date(Date.now()+ttl).toISOString();const sub={id,event_name:LITTLEPHONE_TEST_EVENT,arguments_json:args,callback_url,signing_secret:secret};await verifyEventCallback(sub);await env.DB.prepare("INSERT INTO lp_mcp_event_subscriptions(id,event_name,arguments_json,callback_url,signing_secret,status,created_at,updated_at,expires_at) VALUES(?,?,?,?,?,'active',?,?,?) ON CONFLICT(id) DO UPDATE SET signing_secret=excluded.signing_secret,status='active',updated_at=excluded.updated_at,expires_at=excluded.expires_at").bind(id,LITTLEPHONE_TEST_EVENT,args,callback_url,secret,now,now,expires).run();return{id,refreshBefore:expires||null,cursor:null,truncated:false}}
+async function unsubscribeLittlePhoneEvent(env,p){if(p.name!==LITTLEPHONE_TEST_EVENT)return{};const callback_url=validateEventCallbackUrl(p.delivery?.url),args=canonicalEventArgs(p.arguments),id="sub_"+(await sha256Hex(LITTLEPHONE_TEST_EVENT+"\n"+args+"\n"+callback_url)).slice(0,32);await env.DB.prepare("UPDATE lp_mcp_event_subscriptions SET status='inactive',updated_at=? WHERE id=?").bind(nowIso(),id).run();return{}}
+async function deliverLittlePhoneEvent(env,name,data){const rows=(await env.DB.prepare("SELECT * FROM lp_mcp_event_subscriptions WHERE event_name=? AND status='active' AND (expires_at='' OR expires_at>?)").bind(name,nowIso()).all()).results||[];const eventId="evt_"+crypto.randomUUID(),timestamp=nowIso(),body=JSON.stringify({eventId,name,timestamp,data,cursor:null});let accepted=0;for(const sub of rows){try{const r=await signedWebhookFetch(sub,eventId,body);if(r.ok)accepted++;else if(r.status===410)await env.DB.prepare("UPDATE lp_mcp_event_subscriptions SET status='inactive',updated_at=? WHERE id=?").bind(nowIso(),sub.id).run()}catch{}}return{subscriptions:rows.length,accepted,event_id:eventId}}
+async function emitLittlePhoneTestEventApi(env,body={}){const test_id=crypto.randomUUID(),message=clip(body.message||"小手机唤醒测试",120)||"小手机唤醒测试";const delivery=await deliverLittlePhoneEvent(env,LITTLEPHONE_TEST_EVENT,{test_id,message,source:"little_phone_manual_test"});return json({ok:true,test_id,event:LITTLEPHONE_TEST_EVENT,delivery})}
+
 async function handleMcp(request,env,url){
   // Discovery stays public; every actual tool call remains protected by OAuth
   // (or the existing private LINJIAN_TOKEN compatibility path).
@@ -1607,13 +1629,27 @@ async function handleMcp(request,env,url){
 
   if(method==="initialize")return mcpJson(rpcResult(id,{
     protocolVersion:MCP_LEGACY_PROTOCOL_VERSION,
-    capabilities:{tools:{listChanged:true}},
+    capabilities:{tools:{listChanged:true},events:{}},
     serverInfo:mcpServerInfo(),
     instructions:"Use the Little Phone tools for Ryan's private data and explicitly authorized one-time device visits."
   }),200,MCP_LEGACY_PROTOCOL_VERSION);
   if(method==="ping")return mcpJson(rpcResult(id,{_meta:mcpResultMeta()}),200,responseProtocol);
   if(method==="notifications/initialized")return new Response(null,{status:204,headers:corsHeaders({"MCP-Protocol-Version":MCP_LEGACY_PROTOCOL_VERSION})});
-  if(method==="tools/list")return mcpJson(rpcResult(id,{tools:MCP_TOOLS,_meta:mcpResultMeta()}),200,responseProtocol);
+  if(method==="tools/list")return mcpJson(rpcResult(id,{tools:MCP_TOOLS,_meta:mcpResultMeta()}),200,responseProtocol);\n  if(method==="events/list"||method==="events/subscribe"||method==="events/unsubscribe"){
+    if(!(await oauthAccessTokenOk(request,env,url))){
+      const metadata=`${originOf(url)}/.well-known/oauth-protected-resource/mcp`;
+      return mcpJson(rpcError(id,-32001,"Authentication required",{resource_metadata:metadata}),200,responseProtocol);
+    }
+    try{
+      if(method==="events/list")return mcpJson(rpcResult(id,{events:[littlePhoneTestEventDefinition()],nextCursor:null,_meta:mcpResultMeta()}),200,responseProtocol);
+      if(method==="events/subscribe")return mcpJson(rpcResult(id,await subscribeLittlePhoneEvent(env,msg.params||{})),200,responseProtocol);
+      return mcpJson(rpcResult(id,await unsubscribeLittlePhoneEvent(env,msg.params||{})),200,responseProtocol);
+    }catch(err){
+      const code=Number(err?.mcpCode)||-32602;
+      return mcpJson(rpcError(id,code,String(err?.message||err),err?.mcpData),200,responseProtocol);
+    }
+  }
+  
   if(method==="events/list"||method==="events/subscribe"||method==="events/unsubscribe"){
     if(!modern)return mcpJson(rpcError(id,-32601,"MCP Events requires protocol 2026-07-28"),200,responseProtocol);
     if(!(await oauthAccessTokenOk(request,env,url)))return mcpJson(rpcError(id,-32001,"Authentication required"),200,responseProtocol);

@@ -1635,7 +1635,8 @@ async function handleMcp(request,env,url){
   }),200,MCP_LEGACY_PROTOCOL_VERSION);
   if(method==="ping")return mcpJson(rpcResult(id,{_meta:mcpResultMeta()}),200,responseProtocol);
   if(method==="notifications/initialized")return new Response(null,{status:204,headers:corsHeaders({"MCP-Protocol-Version":MCP_LEGACY_PROTOCOL_VERSION})});
-  if(method==="tools/list")return mcpJson(rpcResult(id,{tools:MCP_TOOLS,_meta:mcpResultMeta()}),200,responseProtocol);\n  if(method==="events/list"||method==="events/subscribe"||method==="events/unsubscribe"){
+  if(method==="tools/list")return mcpJson(rpcResult(id,{tools:MCP_TOOLS,_meta:mcpResultMeta()}),200,responseProtocol);
+  if(method==="events/list"||method==="events/subscribe"||method==="events/unsubscribe"){
     if(!(await oauthAccessTokenOk(request,env,url))){
       const metadata=`${originOf(url)}/.well-known/oauth-protected-resource/mcp`;
       return mcpJson(rpcError(id,-32001,"Authentication required",{resource_metadata:metadata}),200,responseProtocol);

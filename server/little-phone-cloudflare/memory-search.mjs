@@ -39,3 +39,36 @@ export function searchLittlePhoneMemory(collections, options = {}) {
   found.sort((a,b) => b.score-a.score || b.date.localeCompare(a.date) || a.source.localeCompare(b.source) || a.id.localeCompare(b.id));
   return {query:plain(options.query || ""),total:found.length,results:found.slice(0,limit),truncated:found.length>limit};
 }
+
+/**
+ * Stable, read-only constellation graph. Each star maps to an existing record.
+ * Links only express an explicit shared title phrase, never an inferred life event.
+ */
+export function buildLittlePhoneMemorySea(collections, options = {}) {
+  const cap = clamp(options.limit, 120, 300);
+  const records = [];
+  for (const source of SOURCES) {
+    const rows = collections?.[source];
+    if (!Array.isArray(rows)) continue;
+    for (const row of rows) {
+      if (!row || typeof row !== "object" || !row.id) continue;
+      const text = textOf(row);
+      if (!text.trim()) continue;
+      records.push({key:source+":"+String(row.id),source,id:String(row.id),
+        date:dateOf(row),title:plain(row.title || row.name) || text.slice(0,32),
+        snippet:text.slice(0,TEXT_MAX)});
+    }
+  }
+  records.sort((a,b)=>b.date.localeCompare(a.date)||a.key.localeCompare(b.key));
+  const nodes = records.slice(0,cap);
+  const edges = [];
+  const keywords = nodes.map(n => new Set((norm(n.title).match(/[\\p{L}\\p{N}]{3,}/gu)||[]).filter(x=>x.length>=3)));
+  for(let i=0;i<nodes.length;i++) {
+    for(let j=i+1;j<nodes.length;j++) {
+      if(edges.length>=400) break;
+      const shared=[...keywords[i]].filter(t=>keywords[j].has(t));
+      if(shared.length) edges.push({from:nodes[i].key,to:nodes[j].key,reason:"shared_title",terms:shared.slice(0,3)});
+    }
+  }
+  return {nodes,edges,total:records.length,truncated:records.length>cap};
+}

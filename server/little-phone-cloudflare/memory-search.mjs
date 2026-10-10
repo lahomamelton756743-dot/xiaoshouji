@@ -50,7 +50,9 @@ function meaningful(t){return t.length>=2&&!STOP.has(t)&&!WEAK.has(t)&&!STOP.has
 function segments(q){return clean(q).match(/[\p{Script=Han}]+|[a-z0-9]+/gu)||[];}
 function tokens(q){
   const out=[];
-  for(const seg of segments(q)){
+  let filtered=clean(q);
+  for(const stop of [...STOP].filter(x=>x.length>=2).sort((a,b)=>b.length-a.length))filtered=filtered.split(stop).join(" ");
+  for(const seg of segments(filtered)){
     if(!/^[\p{Script=Han}]+$/u.test(seg)){if(meaningful(seg))out.push(seg);continue;}
     for(const word of KEYWORDS)if(seg.includes(word))out.push(word);
     for(let n=2;n<=4;n++)for(let i=0;i+n<=seg.length;i++){

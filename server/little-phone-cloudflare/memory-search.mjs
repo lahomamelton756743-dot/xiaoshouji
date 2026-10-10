@@ -3,7 +3,7 @@
  */
 const SOURCES = Object.freeze(["diaries","memories","papers","mail","capsules","chat","dailybook","dates","annotations"]);
 const LIMIT_MAX = 1000000;
-const TEXT_MAX = 240;
+
 
 function plain(value) { return typeof value === "string" ? value : ""; }
 function clamp(value, fallback, max) { const n = Number(value); return Number.isFinite(n) ? Math.min(max, Math.max(1, Math.floor(n))) : fallback; }
@@ -38,85 +38,148 @@ function fuzzyTermMatch(text,term){
   }
   return "";
 }
-const STOP=new Set(["我","你","他","她","它","我们","你们","他们","然后","感觉","好像","就是","这个","那个","一些","什么","怎么","时候","一个","已经","还是","以及","因为","所以","可以","有没有","关于","曾经","以前","一下","帮我","找找"]);
-function tokenize(q){
-  const words=[];
-  for(const chunk of (norm(q).match(/[\p{Script=Han}]+|[a-z0-9]+/gu)||[])){
-    if(/^[\p{Script=Han}]+$/u.test(chunk)){
-      for(let n=2;n<=4;n++)for(let i=0;i+n<=chunk.length;i++){
-        const w=chunk.slice(i,i+n);
-        if(!STOP.has(w)&&!STOP.has(chunk))words.push(w);
-      }
-      if(chunk.length<=4&&!STOP.has(chunk))words.push(chunk);
-    }else if(!STOP.has(chunk))words.push(chunk);
+const STOP=new Set(["我","你","他","她","它","的","了","着","和","与","在","是","有","就","都","也","还","而","但","把","被","让","呢","啊","吗","呀","我们","你们","他们","然后","感觉","好像","就是","这个","那个","一些","什么","怎么","时候","一个","已经","还是","以及","因为","所以","可以","有没有","关于","曾经","以前","一下","帮我","找找","现在","那个","以后","时候","变得","无论","怎样","都会","给我","请问","记得"]);
+const WEAK=new Set(["我在","你在","我想","你想","我会","你会","我们","你们","现在","感觉","好像","然后","一个","以后","什么","时候","模型变化","变得陌生"]);
+const KEYWORDS=["模型","窗口","陌生","接住","不怕","安慰","纸条","日记","变化","改变","更新","升级","害怕","担心","陪伴","信件","归栖","顾知归","归灯","daddy","gpt","失去","承诺","变成什么样都是你"];
+const ALIASES=[["想念","思念","想你"],["难过","伤心","悲伤"],["安慰","鼓励","陪伴"],["害怕","担心","不安"],["变化","改变"],["窗口","对话框"]];
+const TEXT_MAX=850;
+function clean(v){return norm(v).replace(/[^\p{L}\p{N}]+/gu," ").replace(/\s+/g," ").trim();}
+function compact(v){return clean(v).replace(/\s+/g,"");}
+function unique(a){return [...new Set(a.filter(Boolean))];}
+function meaningful(t){return t.length>=2&&!STOP.has(t)&&!WEAK.has(t)&&!STOP.has(t.slice(0,1)) || KEYWORDS.includes(t);}
+function segments(q){return clean(q).match(/[\p{Script=Han}]+|[a-z0-9]+/gu)||[];}
+function tokens(q){
+  const out=[];
+  for(const seg of segments(q)){
+    if(!/^[\p{Script=Han}]+$/u.test(seg)){if(meaningful(seg))out.push(seg);continue;}
+    for(const word of KEYWORDS)if(seg.includes(word))out.push(word);
+    for(let n=2;n<=4;n++)for(let i=0;i+n<=seg.length;i++){
+      const part=seg.slice(i,i+n);
+      if(meaningful(part)&&!STOP.has(part))out.push(part);
+    }
   }
-  return [...new Set(words)].slice(0,64);
+  return unique(out).slice(0,70);
 }
-function countOccurrences(text,term){
-  let n=0,pos=0;
-  while((pos=text.indexOf(term,pos))>=0){n++;pos+=term.length;}
-  return n;
+function termsFromQuery(q){
+  const t=tokens(q);
+  return t.filter(w=>!WEAK.has(w)&&!STOP.has(w));
 }
-function relevantTokens(text){
-  return tokenize(text).length||1;
+function list(v){return Array.isArray(v)?unique(v.map(x=>compact(String(x)).slice(0,120))).slice(0,30):[];}
+function occurrence(text,term){let n=0,p=0;while((p=text.indexOf(term,p))>=0){n++;p+=term.length;}return Math.min(n,5);}
+function fuzzyHit(text,term){
+  if(text.includes(term))return {word:term,weight:1};
+  const group=ALIASES.find(a=>a.includes(term));
+  if(group)for(const x of group)if(x!==term&&text.includes(x))return {word:x,weight:0.32};
+  if(term.length>=3&&term.length<=6){
+    for(const seg of segments(text)){
+      if(seg.length>180)continue;
+      for(let i=0;i+term.length<=seg.length;i++){
+        const candidate=seg.slice(i,i+term.length);
+        if(editDistanceAtMostOne(candidate,term))return {word:candidate,weight:0.12};
+      }
+    }
+  }
+  return null;
+}
+function snippetOf(full,hit){
+  if(full.length<=TEXT_MAX)return {snippet:full,has_more:false};
+  const idx=Math.max(0,compact(full).indexOf(hit));
+  let start=0;
+  if(idx>450){
+    const approx=Math.max(0,idx-230);
+    const boundary=Math.max(full.lastIndexOf("\n",approx),full.lastIndexOf("。",approx),full.lastIndexOf("！",approx),full.lastIndexOf("？",approx));
+    start=boundary>=0&&approx-boundary<130?boundary+1:approx;
+  }
+  let end=Math.min(full.length,start+TEXT_MAX);
+  const tail=full.slice(Math.max(start,end-100),end).search(/[。！？\n]/u);
+  if(tail>=0&&end<full.length)end=Math.max(start+300,end-100+tail+1);
+  return {snippet:full.slice(start,end).trim(),has_more:start>0||end<full.length};
 }
 function relatedEvent(a,b){
   if(!a.date||!b.date||a.date.slice(0,10)!==b.date.slice(0,10))return false;
   if(!a.title||!b.title)return false;
-  const ta=new Set(tokenize(a.title));
-  const tb=tokenize(b.title);
-  return tb.filter(t=>t.length>=3&&ta.has(t)).length>=2;
+  const x=new Set(tokens(a.title)),y=tokens(b.title);
+  return y.filter(t=>t.length>=3&&x.has(t)).length>=2;
 }
-/** Read-only hybrid search: phrase-first, weighted BM25, bounded output. */
+/** No external models or FTS: normalized phrases + weighted BM25 over authorized rows. */
 export function searchLittlePhoneMemory(collections,options={}){
-  const queries=(Array.isArray(options.queries)?options.queries:[options.query]).map(q=>norm(q).trim()).filter(Boolean).slice(0,12);
-  const mode=["exact","fuzzy","auto"].includes(options.mode)?options.mode:"auto";
-  const requested=Array.isArray(options.sources)?options.sources.filter(s=>SOURCES.includes(s)):SOURCES;
-  const limit=clamp(options.limit,30,100),from=plain(options.from),to=plain(options.to);
+  const mode=["auto","exact","fuzzy"].includes(options.mode)?options.mode:"auto";
+  const rawQueries=Array.isArray(options.queries)&&options.queries.length?options.queries:[options.query];
+  const queries=unique(rawQueries.map(x=>compact(plain(x)))).slice(0,12);
+  const explicitPhrases=list(options.phrases),must=list(options.must_terms),should=list(options.should_terms),exclude=list(options.exclude_terms);
+  const phrases=explicitPhrases.length?explicitPhrases:queries;
+  const structured=explicitPhrases.length||must.length||should.length||exclude.length;
+  const queryTerms=unique(queries.flatMap(termsFromQuery));
+  const allTerms=unique([...must,...should,...queryTerms]);
+  const requested=Array.isArray(options.sources)&&options.sources.length?options.sources.filter(x=>SOURCES.includes(x)):SOURCES;
+  const from=plain(options.from),to=plain(options.to),limit=clamp(options.limit,30,100);
   const records=[],seen=new Set();
   for(const source of requested)for(const row of collections?.[source]||[]){
     if(!row||typeof row!=="object"||!row.id)continue;
-    const id=String(row.id),key=source+":"+id;
-    if(seen.has(key))continue;
-    const date=dateOf(row);
-    if(from&&(!date||date.slice(0,10)<from))continue;
-    if(to&&(!date||date.slice(0,10)>to))continue;
+    const id=String(row.id),key=source+":"+id,date=dateOf(row);
+    if(seen.has(key)||from&&date.slice(0,10)<from||to&&date.slice(0,10)>to)continue;
     seen.add(key);
-    const full=textOf(row);
-    records.push({source,id,date,title:plain(row.title||row.name),full,haystack:norm(full),length:relevantTokens(full)});
+    const full=textOf(row),text=compact(full),title=compact(plain(row.title||row.name));
+    if(exclude.some(t=>text.includes(t)))continue;
+    if(must.some(t=>!text.includes(t)))continue;
+    if(!text)continue;
+    records.push({source,id,date,title:plain(row.title||row.name),full,text,titleNorm:title,length:Math.max(1,Math.ceil(text.length/3))});
   }
-  const allTerms=[...new Set(queries.flatMap(tokenize))];
-  const df=new Map(allTerms.map(t=>[t,records.reduce((n,r)=>n+(r.haystack.includes(t)?1:0),0)]));
+  const df=new Map(allTerms.map(t=>[t,records.reduce((n,r)=>n+(r.text.includes(t)?1:0),0)]));
   const avg=records.reduce((n,r)=>n+r.length,0)/Math.max(1,records.length);
-  const results=[];
+  const ranked=[];
   for(const r of records){
-    const phrases=queries.filter(q=>r.haystack.includes(q));
-    const matched=new Set();
-    let score=0;
+    const matchedPhrases=phrases.filter(p=>r.text.includes(p));
+    const matched=[],reasons=[];
+    let score=0,strong=0;
     for(const term of allTerms){
-      let hit=r.haystack.includes(term)?term:"";
-      if(!hit&&mode!=="exact")hit=fuzzyTermMatch(r.haystack,term);
+      const hit=r.text.includes(term)?{word:term,weight:1}:mode==="exact"?null:fuzzyHit(r.text,term);
       if(!hit)continue;
-      matched.add(hit);
-      const tf=countOccurrences(r.haystack,hit),idf=Math.log(1+(records.length-(df.get(term)||0)+0.5)/((df.get(term)||0)+0.5));
-      score+=idf*(tf*2.2)/(tf+1.2*(0.25+0.75*r.length/Math.max(1,avg)))*(r.title.includes(hit)?2.5:1);
+      matched.push(hit.word);
+      const exact=hit.weight===1;
+      if(exact)strong++;
+      const dfTerm=df.get(term)||0;
+      const idf=Math.log(1+(records.length-dfTerm+0.5)/(dfTerm+0.5));
+      const tf=occurrence(r.text,hit.word);
+      const bm=idf*(tf*2.2)/(tf+1.2*(0.25+0.75*r.length/Math.max(1,avg)));
+      const weak=WEAK.has(term)?0.03:1;
+      const titleBoost=r.titleNorm.includes(hit.word)?2:1;
+      const mustBoost=must.includes(term)?2.2:should.includes(term)?1.6:1;
+      score+=bm*hit.weight*weak*titleBoost*mustBoost;
     }
-    if(mode==="exact"&&!phrases.length)continue;
-    if(mode!=="exact"&&!phrases.length&&!matched.size)continue;
-    const exact=phrases.length>0;
-    score+=exact?1000+phrases.reduce((n,q)=>n+q.length*10,0):0;
-    const first=phrases[0]||[...matched][0]||"";
-    const start=Math.max(0,r.haystack.indexOf(first)-65);
-    results.push({match_type:exact?"exact":"fuzzy",matched_terms:[...new Set([...phrases,...matched])],score:Math.round(score*100)/100,source:r.source,id:r.id,date:r.date,title:r.title,snippet:r.full.slice(start,start+TEXT_MAX)});
+    if(matchedPhrases.length){
+      score+=1200+matchedPhrases.reduce((n,p)=>n+Math.min(p.length,30)*18,0);
+      reasons.push("完整短语连续命中");
+    }
+    if(must.length)reasons.push("满足全部必含词");
+    const shouldCount=should.filter(t=>r.text.includes(t)).length;
+    score+=shouldCount*18;
+    if(shouldCount)reasons.push("命中 "+shouldCount+" 个优选词");
+    if(strong)reasons.push("关键词命中 "+strong+" 项");
+    if(r.titleNorm&&allTerms.some(t=>r.titleNorm.includes(t))){score+=12;reasons.push("标题匹配");}
+    const exact=matchedPhrases.length>0;
+    if(mode==="exact"&&!exact)continue;
+    if(mode!=="exact"&&!exact&&!matched.length&&!(must.length&&!allTerms.length))continue;
+    // Stop-word-only queries should not retrieve arbitrary memories.
+    if(!structured&&!allTerms.length&&!exact)continue;
+    const hit=matchedPhrases[0]||matched[0]||must[0]||"";
+    const sn=snippetOf(r.full,hit);
+    ranked.push({match_type:exact?"exact":"fuzzy",matched_phrases:matchedPhrases,matched_terms:unique(matched),score:Math.round(score*100)/100,source:r.source,id:r.id,date:r.date,title:r.title,snippet:sn.snippet,content_length:r.full.length,has_more:sn.has_more,why_matched:reasons});
   }
-  results.sort((a,b)=>b.score-a.score||b.date.localeCompare(a.date)||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
-  const groups=[];
-  for(const item of results){
-    let group=groups.find(g=>relatedEvent(g.representative,item));
-    if(!group){group={id:item.source+":"+item.id,representative:item};groups.push(group);}
-    item.event_group_id=group.id;
+  ranked.sort((a,b)=>b.score-a.score||b.date.localeCompare(a.date)||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
+  const results=[],contentSeen=new Set();
+  for(const item of ranked){
+    const original=records.find(r=>r.source===item.source&&r.id===item.id);
+    const contentKey=compact(original?.full||"");
+    if(contentSeen.has(contentKey))continue;
+    contentSeen.add(contentKey);
+    results.push(item);
   }
-  return {query:plain(options.query||""),queries:queries.map(String),mode,total:results.length,results:results.slice(0,limit),truncated:results.length>limit};
+  for(let i=0;i<results.length;i++){
+    const earlier=results.slice(0,i).find(x=>relatedEvent(x,results[i]));
+    results[i].event_group_id=earlier?.event_group_id||results[i].source+":"+results[i].id;
+  }
+  return {query:plain(options.query||""),queries,mode,total:results.length,results:results.slice(0,limit),truncated:results.length>limit};
 }
 
 /**

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {searchLittlePhoneMemory} from "./memory-search.mjs";
+import {searchLittlePhoneMemory,buildLittlePhoneMemorySea} from "./memory-search.mjs";
 
 test("searches multiple sources with original identifiers", () => {
   const r=searchLittlePhoneMemory({diaries:[{id:"d1",date:"2026-09-01",title:"海边",content:"一起看日落"}],papers:[{id:"p1",created_at:"2026-09-02",content:"记得海边的日落"}]}, {query:"海边"});
@@ -17,4 +17,19 @@ test("no invented matches; invalid source ignored",()=>{
 test("does not mutate input",()=>{
   const c={diaries:[{id:"1",date:"2026-01-01",content:"hello"}]};const before=JSON.stringify(c);
   searchLittlePhoneMemory(c,{});assert.equal(JSON.stringify(c),before);
+});
+
+test("star nodes retain source IDs and stable chronology",()=>{
+ const data={diaries:[{id:"d1",date:"2026-09-01",title:"海边旅行",content:"一起散步"}],
+ papers:[{id:"p1",date:"2026-09-02",title:"海边旅行",content:"记得那天"}]};
+ const a=buildLittlePhoneMemorySea(data),b=buildLittlePhoneMemorySea(data);
+ assert.deepEqual(a,b);
+ assert.deepEqual(a.nodes.map(n=>n.key),["papers:p1","diaries:d1"]);
+ assert.equal(a.edges.length,1);
+ assert.equal(a.edges[0].reason,"shared_title");
+});
+test("unrelated memories have no fabricated connections",()=>{
+ const graph=buildLittlePhoneMemorySea({diaries:[{id:"a",title:"秋天",content:"树叶"}],papers:[{id:"b",title:"月亮",content:"夜晚"}]});
+ assert.equal(graph.nodes.length,2);
+ assert.equal(graph.edges.length,0);
 });

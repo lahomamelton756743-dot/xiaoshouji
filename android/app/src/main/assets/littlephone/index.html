@@ -2575,6 +2575,8 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 .memorySeaViewport{height:62vh;min-height:380px;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
 .memorySeaCanvas{position:relative;min-height:420px;transform-origin:0 0;will-change:transform;background:transparent}
 .memorySeaCanvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#fff9 1px,transparent 1.5px),radial-gradient(#cbb8ff88 .7px,transparent 1.5px),radial-gradient(ellipse at 45% 50%,rgba(132,93,192,.22),transparent 48%);background-size:47px 61px,79px 97px,100% 100%;background-position:8px 14px,23px 44px,0 0}
+.memoryCore{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;z-index:3;color:#fff1d6;text-shadow:0 0 12px #f2c97a;font-size:16px}
+.memoryCore i{display:block;width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#fff8d9,#ffca83 45%,#d38ad7 74%,transparent 78%);box-shadow:0 0 26px 12px #dca5e088,0 0 70px 35px #c59cff44}
 .memorySeaViewport:after{content:"双指缩放 · 单指拖动";position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:#ffffffaa;pointer-events:none;white-space:nowrap}
 .memorySeaCanvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .memorySeaCanvas line{stroke:rgba(222,211,255,.26);stroke-width:.65}
@@ -3667,17 +3669,22 @@ function renderRiverApp(){
   if(mode==='time'){
     root.innerHTML=head+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
   }else{
-    const w=320,h=Math.max(420,Math.ceil(shown.length/3)*90+120);
-    const pos=shown.map((e,i)=>({x:38+(i%3)*122+Math.sin(i*2.37)*17,y:68+Math.floor(i/3)*90+Math.cos(i*1.41)*19}));
+    const w=640,h=Math.max(680,Math.ceil(Math.sqrt(shown.length))*145+220);
+    const cx=w/2,cy=h/2;
+    const pos=shown.map((e,i)=>{
+      const angle=i*2.399963229728653;
+      const radius=75+Math.sqrt(i+1)*53;
+      return {x:cx+Math.cos(angle)*radius,y:cy+Math.sin(angle)*radius};
+    });
     const edges=[];for(let i=0;i<shown.length;i++)for(let j=i+1;j<shown.length&&j<i+18;j++){
       const a=shown[i],b=shown[j],ta=a.title.trim(),tb=b.title.trim();
       if(ta.length>=3&&tb.length>=3&&(ta.includes(tb)||tb.includes(ta)))edges.push('<line x1="'+pos[i].x+'" y1="'+pos[i].y+'" x2="'+pos[j].x+'" y2="'+pos[j].y+'"/>');
     }
-    root.innerHTML=head+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+edges.join('')+'</svg>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+(pos[i].x/w*100)+'%;top:'+pos[i].y+'px;--star:'+color[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div>';
+    root.innerHTML=head+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="height:'+h+'px;width:'+w+'px"><svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+edges.join('')+'</svg>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+pos[i].x+'px;top:'+pos[i].y+'px;--star:'+color[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div>';
   }
   const viewport=root.querySelector('.memorySeaViewport'),canvas=root.querySelector('.memorySeaCanvas');
   if(viewport&&canvas){
-    const saved=root._memoryTransform||{x:0,y:0,z:1};let {x,y,z}=saved;
+    const saved=root._memoryTransform||{x:(viewport.clientWidth-640*.78)/2,y:(viewport.clientHeight-Math.max(680,Math.ceil(Math.sqrt(shown.length))*145+220)*.78)/2,z:.78};let {x,y,z}=saved;
     const active=new Map();let start=null,moved=false;
     const apply=()=>{canvas.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';root._memoryTransform={x,y,z}};
     const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

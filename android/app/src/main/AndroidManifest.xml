@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.littlephone.app"
-    android:versionCode="80420"
-    android:versionName="0.8.4-20" >
+    android:versionCode="80501"
+    android:versionName="0.8.5-1" >
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 
@@ -48,7 +48,7 @@
     </queries>
 
     <application
-        android:label="小手机"
+        android:label="归栖"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="true"
@@ -163,7 +163,7 @@
 
         <service
             android:name=".MediaNotificationService"
-            android:label="小手机媒体状态"
+            android:label="归栖媒体状态"
             android:exported="true"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>

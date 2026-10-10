@@ -11,34 +11,67 @@ function dateOf(row) { return plain(row.date || row.event_date || row.created_at
 function textOf(row) { return [row.title,row.content,row.body,row.text,row.description,row.name,row.category].map(plain).filter(Boolean).join("\n"); }
 function norm(value) { return plain(value).normalize("NFKC").toLocaleLowerCase(); }
 
-/** Return matches only from caller-provided, authorized records. */
-export function searchLittlePhoneMemory(collections, options = {}) {
-  const query = norm(options.query).trim();
-  const mode = options.mode === "exact" ? "exact" : "fuzzy";
-  const terms = query.split(/\s+/u).filter(Boolean).slice(0, 12);
-  const requested = Array.isArray(options.sources) ? options.sources.filter(s => SOURCES.includes(s)) : SOURCES;
-  const limit = clamp(options.limit, 30, LIMIT_MAX);
-  const from = plain(options.from), to = plain(options.to);
-  const found = [];
-  for (const source of requested) {
-    const rows = collections?.[source];
-    if (!Array.isArray(rows)) continue;
-    for (const row of rows) {
-      if (!row || typeof row !== "object" || !row.id) continue;
-      const date = dateOf(row);
-      if (from && (!date || date.slice(0, 10) < from)) continue;
-      if (to && (!date || date.slice(0, 10) > to)) continue;
-      const full = textOf(row);
-      const haystack = norm(full);
-      if (query && (mode === "exact" ? !haystack.includes(query) : !terms.some(term => haystack.includes(term)))) continue;
-      const score = terms.reduce((n, term) => n + (norm(plain(row.title)).includes(term) ? 3 : haystack.includes(term) ? 1 : 0), 0) + (query && haystack.includes(query) ? 5 : 0);
-      const first = terms.length ? haystack.indexOf(terms[0]) : 0;
-      const start = Math.max(0, first - 65);
-      found.push({source, id:String(row.id), date, title:plain(row.title || row.name), snippet:full.slice(start, start + TEXT_MAX), score});
+function editDistanceAtMostOne(a,b){
+  if(Math.abs(a.length-b.length)>1)return false;
+  let i=0,j=0,errors=0;
+  while(i<a.length&&j<b.length){
+    if(a[i]===b[j]){i++;j++;continue;}
+    if(++errors>1)return false;
+    if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}
+  }
+  return errors+(i<a.length||j<b.length?1:0)<=1;
+}
+const SYNONYMS=[["难过","伤心","悲伤","失落","委屈"],["安慰","陪伴","支持","鼓励"],["想念","思念","想你","惦记"],["害怕","担心","恐惧","不安"],["开心","快乐","高兴","幸福"],["分别","离开","告别","分离"]];
+function variants(term){
+  const group=SYNONYMS.find(g=>g.includes(term));
+  return group||[term];
+}
+function fuzzyTermMatch(text,term){
+  const alternatives=variants(term);
+  for(const word of alternatives)if(text.includes(word))return word;
+  if(term.length<3)return "";
+  const words=text.match(/[\p{L}\p{N}]+/gu)||[];
+  for(const word of words){
+    if(word.length>=term.length-1&&word.length<=term.length+1&&editDistanceAtMostOne(word,term))return word;
+    if(word.length>term.length)for(let i=0;i<=word.length-term.length;i++)
+      if(editDistanceAtMostOne(word.slice(i,i+term.length),term))return word.slice(i,i+term.length);
+  }
+  return "";
+}
+/** Search all authorized records; return bounded ranked matches, never mutate data. */
+export function searchLittlePhoneMemory(collections,options={}){
+  const query=norm(options.query).trim();
+  const mode=["exact","fuzzy","auto"].includes(options.mode)?options.mode:"auto";
+  const terms=query.split(/\s+/u).filter(Boolean).slice(0,12);
+  const requested=Array.isArray(options.sources)?options.sources.filter(s=>SOURCES.includes(s)):SOURCES;
+  const limit=clamp(options.limit,30,100);
+  const from=plain(options.from),to=plain(options.to);
+  const exact=[],fuzzy=[];
+  for(const source of requested){
+    const rows=collections?.[source];
+    if(!Array.isArray(rows))continue;
+    for(const row of rows){
+      if(!row||typeof row!=="object"||!row.id)continue;
+      const date=dateOf(row);
+      if(from&&(!date||date.slice(0,10)<from))continue;
+      if(to&&(!date||date.slice(0,10)>to))continue;
+      const full=textOf(row),haystack=norm(full);
+      const isExact=!query||haystack.includes(query);
+      const matchedTerms=terms.map(term=>haystack.includes(term)?term:fuzzyTermMatch(haystack,term)).filter(Boolean);
+      if(query&&!isExact&&(mode==="exact"||!matchedTerms.length))continue;
+      if(mode==="exact"&&!isExact)continue;
+      const match_type=isExact?"exact":"fuzzy";
+      const score=(isExact?100:0)+matchedTerms.reduce((n,term)=>n+(norm(plain(row.title)).includes(term)?3:1),0);
+      const first=matchedTerms.length?haystack.indexOf(matchedTerms[0]):0;
+      const start=Math.max(0,first-65);
+      const item={match_type,matched_terms:[...new Set(matchedTerms)],score,source,id:String(row.id),date,title:plain(row.title||row.name),snippet:full.slice(start,start+TEXT_MAX)};
+      (isExact?exact:fuzzy).push(item);
     }
   }
-  found.sort((a,b) => b.score-a.score || b.date.localeCompare(a.date) || a.source.localeCompare(b.source) || a.id.localeCompare(b.id));
-  return {query:plain(options.query || ""),mode,total:found.length,results:found.slice(0,limit),truncated:found.length>limit};
+  const sort=(a,b)=>b.score-a.score||b.date.localeCompare(a.date)||a.source.localeCompare(b.source)||a.id.localeCompare(b.id);
+  exact.sort(sort);fuzzy.sort(sort);
+  const results=mode==="exact"?exact:mode==="fuzzy"?[...exact,...fuzzy].sort(sort):[...exact,...fuzzy];
+  return {query:plain(options.query||""),mode,total:results.length,results:results.slice(0,limit),truncated:results.length>limit};
 }
 
 /**

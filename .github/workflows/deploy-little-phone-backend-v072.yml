@@ -57,7 +57,9 @@ jobs:
 
       - name: 记忆检索离线回归测试
         working-directory: server/little-phone-cloudflare
-        run: node memory-search.test.mjs
+        run: |
+          node memory-search.test.mjs
+          node memory-search.integration.test.mjs
 
       - name: 只查找现有 D1（绝不新建）
         id: d1

@@ -2,7 +2,7 @@
  * No storage mutation, network calls, or synthetic memories.
  */
 const SOURCES = Object.freeze(["diaries","memories","papers","mail","capsules","chat","dailybook","dates","annotations"]);
-const LIMIT_MAX = 100;
+const LIMIT_MAX = 1000000;
 const TEXT_MAX = 240;
 
 function plain(value) { return typeof value === "string" ? value : ""; }

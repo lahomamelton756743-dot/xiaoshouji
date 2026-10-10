@@ -1134,6 +1134,29 @@ async function listChatMessagesApi(env,url){
   return json({ok:true,messages:await listChatMessages(env,asLimit(url,300,1000),afterCreatedAt,afterId)});
 }
 
+async function allMemoryRows(env,table,mapper=x=>x){
+  const rows=[];let offset=0;
+  while(true){
+    const page=(await env.DB.prepare("SELECT * FROM "+table+" LIMIT 250 OFFSET ?").bind(offset).all()).results||[];
+    rows.push(...page.map(mapper));
+    if(page.length<250)break;
+    offset+=250;
+  }
+  return rows;
+}
+async function memorySearchCollections(env){
+  const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
+    allMemoryRows(env,"lp_diaries",rowDiary),
+    allMemoryRows(env,"lp_memories",rowMemory),
+    allMemoryRows(env,"lp_papers"),
+    allMemoryRows(env,"lp_mail",rowMail),
+    allMemoryRows(env,"lp_capsules",r=>String(r.unlock_at||"9999-12-31")>todayUtc()?lockedCapsulePublic(r):r),
+    allMemoryRows(env,"lp_chat_messages"),
+    allMemoryRows(env,"lp_dailybook",rowDaily),
+    allMemoryRows(env,"lp_dates",rowDate)
+  ]);
+  return {diaries,memories,papers,mail,capsules,chat,dailybook,dates};
+}
 async function searchMemoryApi(env,url){
   const query=String(url.searchParams.get("q")||"").slice(0,160);
   const sources=url.searchParams.getAll("source").flatMap(s=>s.split(",")).filter(Boolean);
@@ -1141,14 +1164,10 @@ async function searchMemoryApi(env,url){
   const to=String(url.searchParams.get("to")||"").slice(0,10);
   const limit=Math.max(1,Math.min(100,Number(url.searchParams.get("limit"))||30));
   // Read-only. Use the existing authorized D1 readers, never mutate records.
-  const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
-    listDiaries(env,300),listMemories(env,300),listPapers(env,300),
-    listMail(env,300),listCapsules(env,300),listChatMessages(env,500),
-    listDailybook(env,300),listDates(env,300)
-  ]);
-  const result=searchLittlePhoneMemory({diaries,memories,papers,mail,capsules,chat,dailybook,dates},
+  const collections=await memorySearchCollections(env);
+  const result=searchLittlePhoneMemory(collections,
     {query,sources:sources.length?sources:undefined,from,to,limit});
-  return json({ok:true,...result,scope:"recent_records",note:"Searches records available through current collection readers; not guaranteed full archive."});
+  return json({ok:true,...result,scope:"all_stored_records"});
 }
 
 async function bootstrapApi(env){
@@ -1706,13 +1725,10 @@ async function callTool(name,args,env){
     case "create_memory":
     case "create_little_phone_memory": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
     case "search_little_phone_memories": {
-      const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
-        listDiaries(env,300),listMemories(env,300),listPapers(env,300),listMail(env,300),
-        listCapsules(env,300),listChatMessages(env,500),listDailybook(env,300),listDates(env,300)
-      ]);
-      return mcpText({ok:true,...searchLittlePhoneMemory({diaries,memories,papers,mail,capsules,chat,dailybook,dates},
+      const collections=await memorySearchCollections(env);
+      return mcpText({ok:true,...searchLittlePhoneMemory(collections,
         {query:String(args.query||"").slice(0,160),sources:args.sources,from:args.from,to:args.to,limit:args.limit}),
-        scope:"recent_records",full_archive:false});
+        scope:"all_stored_records",full_archive:true});
     }
     case "get_gpt_memories":
     case "list_memories":

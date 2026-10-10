@@ -3642,6 +3642,14 @@ async function refreshChatMessages(){
   }catch(e){return 0}finally{state.chatRefreshing=false}
 }
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message){mergeChatMessages([r.message]);saveCache()}input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
+<style id="memorySeaSearch086">
+.memorySeaTools{display:flex;gap:8px;padding:0 12px 6px;align-items:center}
+.memorySeaTools input,.memorySeaTools select{min-width:0;min-height:42px;border:1px solid rgba(178,151,197,.42);background:rgba(255,255,255,.72);color:#756185;border-radius:18px;padding:0 12px;backdrop-filter:blur(8px);outline:none}
+.memorySeaTools input{flex:1;width:60%}.memorySeaTools select{width:112px;font-size:12px}
+.memorySeaCount{padding:2px 15px 8px;color:#887595;font-size:11px}
+.memoryStar i{font-style:normal;color:#785c8b;display:flex;align-items:center;justify-content:center;font-size:10px;width:22px;height:22px}
+.memoryStar small{font-size:10px;color:#8e7b9a;background:rgba(255,255,255,.7);border-radius:9px;padding:2px 5px;white-space:nowrap}
+</style>
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
   const groups=[['dailybook',state.dailybook||[]],['diary',state.diaries||[]],['memory',state.memories||[]],['paper',state.papers||[]],['mail',state.mail||[]],['future_letter',state.capsules||[]],['chat',state.chats||[]],['date',state.dates||[]]];
@@ -3653,11 +3661,16 @@ function renderRiverApp(){
     records.push({source,id:String(raw.id??raw.entry_id??raw.message_id??(source+'-'+index)),title,date,raw});
   }
   records.sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
-  const mode=root.dataset.memoryMode||'sea',shown=records.slice(-160);
+  const sources={dailybook:['日常册','✦'],diary:['日记','✎'],memory:['记住的事','✧'],paper:['纸条','▤'],mail:['信件','✉'],future_letter:['未来信','⌛'],chat:['聊天','☏'],date:['重要日期','♡']};
+  const query=(root.dataset.memoryQuery||'').trim().toLocaleLowerCase();
+  const sourceFilter=root.dataset.memorySource||'all';
+  const matched=records.filter(e=>(sourceFilter==='all'||e.source===sourceFilter)&&(!query||[e.title,e.date,e.raw.content,e.raw.body,e.raw.text,e.raw.message,e.raw.description,e.raw.sender,e.raw.recipient,sources[e.source]?.[0]].some(v=>String(v||'').toLocaleLowerCase().includes(query))));
+  const mode=root.dataset.memoryMode||'sea',shown=matched.slice(-160);
+  const tools='<div class="memorySeaTools"><input type="search" id="memorySeaSearch" placeholder="搜索信件、日记、纸条和记忆…" value="'+esc(root.dataset.memoryQuery||'')+'"><select id="memorySeaSource"><option value="all">全部来源</option>'+Object.entries(sources).map(([key,v])=>'<option value="'+key+'"'+(sourceFilter===key?' selected':'')+'>'+v[0]+'</option>').join('')+'</select></div><div class="memorySeaCount">找到 '+matched.length+' 条记录'+(matched.length>160?' · 星海显示最近160条':'')+'</div>';
   const switcher='<div class="memorySeaSwitch"><button type="button" data-memory-mode="sea" aria-pressed="'+(mode==='sea')+'">记忆星海</button><button type="button" data-memory-mode="time" aria-pressed="'+(mode==='time')+'">时间</button></div>';
   root.style.height='auto';root.style.width='100%';
-  if(!shown.length){root.innerHTML=switcher+'<div class="memorySeaEmpty">'+(state.conn.connected?'暂时没有读到记忆，点这里重新同步。':'尚未连接，先连接小手机后读取记忆。')+'</div>';const retry=root.querySelector('.memorySeaEmpty');if(state.conn.connected)retry.onclick=()=>{retry.textContent='正在重新同步…';loadRemote()}}
-  else if(mode==='time')root.innerHTML=switcher+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
+  if(!shown.length){root.innerHTML=switcher+tools+'<div class="memorySeaEmpty">'+(state.conn.connected?'暂时没有读到记忆，点这里重新同步。':'尚未连接，先连接小手机后读取记忆。')+'</div>';const retry=root.querySelector('.memorySeaEmpty');if(state.conn.connected)retry.onclick=()=>{retry.textContent='正在重新同步…';loadRemote()}}
+  else if(mode==='time')root.innerHTML=switcher+tools+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(sources[e.source]?.[0]||e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
   else {
     const w=1200,h=1200,cx=w/2,cy=h/2;
     const pos=shown.map((e,i)=>{
@@ -3697,13 +3710,16 @@ function renderRiverApp(){
     viewport.addEventListener('wheel',e=>{e.preventDefault();const r=viewport.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top,next=Math.max(.22,Math.min(2.6,z*(e.deltaY<0?1.12:.89)));x=px-(px-x)*next/z;y=py-(py-y)*next/z;z=next;apply()},{passive:false});
     apply();
   }
+  const search=root.querySelector('#memorySeaSearch'),filter=root.querySelector('#memorySeaSource');
+  if(search){search.oninput=()=>{root.dataset.memoryQuery=search.value;const pos=search.selectionStart;renderRiverApp();const next=root.querySelector('#memorySeaSearch');if(next){next.focus();try{next.setSelectionRange(pos,pos)}catch{}}};}
+  if(filter)filter.onchange=()=>{root.dataset.memorySource=filter.value;renderRiverApp()};
   root.querySelectorAll('[data-memory-mode]').forEach(btn=>btn.onclick=()=>{root.dataset.memoryMode=btn.dataset.memoryMode;renderRiverApp();sc.scrollTop=0});
   root.querySelectorAll('[data-memory-idx]').forEach(btn=>btn.onclick=()=>{
     if(root.querySelector('.memorySeaViewport')?.dataset.justDragged)return;
     const e=shown[Number(btn.dataset.memoryIdx)];if(!e)return;
     if(e.source==='dailybook'){openBook(e.id);return}
     const raw=e.raw,content=String(raw.content||raw.body||raw.text||raw.message||raw.description||'');
-    openDetail(e.title,'<div class="detailMeta">'+esc(e.date||'')+' · '+esc(e.source)+'</div><div class="detailText">'+esc(content||e.title)+'</div>');
+    openDetail(e.title,'<div class="detailMeta">'+esc(e.date||'')+' · '+esc(sources[e.source]?.[0]||e.source)+'</div><div class="detailText">'+esc(content||e.title)+'</div>');
   });
 }
 function renderHealthApp(){

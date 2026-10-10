@@ -1159,7 +1159,7 @@ async function memorySearchCollections(env){
 }
 async function searchMemoryApi(env,url){
   const query=String(url.searchParams.get("q")||"").slice(0,160);
-  const mode=url.searchParams.get("mode")==="exact"?"exact":"fuzzy";
+  const mode=["exact","fuzzy","auto"].includes(url.searchParams.get("mode"))?url.searchParams.get("mode"):"auto";
   const sources=url.searchParams.getAll("source").flatMap(s=>s.split(",")).filter(Boolean);
   const from=String(url.searchParams.get("from")||"").slice(0,10);
   const to=String(url.searchParams.get("to")||"").slice(0,10);
@@ -1475,7 +1475,8 @@ const MCP_TOOLS = [
   tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
   tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
-  tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。当前范围受每类记录读取上限限制。",{query:{type:"string"},mode:{type:"string",enum:["fuzzy","exact"],default:"fuzzy"},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),
+  tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。全库检索，单次返回结果有数量限制。",{query:{type:"string"},mode:{type:"string",enum:["auto","exact","fuzzy"],default:"auto"},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),
+  tool("gpt_get_little_phone_memory_item","按检索结果的 source 和 id 读取完整原文；只读，未解锁的未来信不会泄露正文。",{source:{type:"string",enum:["diaries","memories","papers","mail","capsules","chat","dailybook","dates"]},id:{type:"string"}},["source","id"]),
   tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("gpt_remember","把 GPT 当前形成的一条理解写入“GPT记得”。这是 GPT 记得的首选写入工具。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("edit_gpt_memory","修改一条 GPT 记得，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1730,6 +1731,15 @@ async function callTool(name,args,env){
       return mcpText({ok:true,...searchLittlePhoneMemory(collections,
         {query:String(args.query||"").slice(0,160),mode:args.mode,sources:args.sources,from:args.from,to:args.to,limit:args.limit}),
         scope:"all_stored_records",full_archive:true});
+    }
+    case "gpt_get_little_phone_memory_item": {
+      const tables={diaries:"lp_diaries",memories:"lp_memories",papers:"lp_papers",mail:"lp_mail",capsules:"lp_capsules",chat:"lp_chat_messages",dailybook:"lp_dailybook",dates:"lp_dates"};
+      const source=String(args.source||""),id=clip(args.id||"",120);
+      if(!Object.hasOwn(tables,source)||!id)return mcpText({ok:false,error:"invalid_source_or_id"},true);
+      const raw=await env.DB.prepare("SELECT * FROM "+tables[source]+" WHERE id=?").bind(id).first();
+      if(!raw)return mcpText({ok:false,error:"not_found"},true);
+      const item=source==="diaries"?rowDiary(raw):source==="memories"?rowMemory(raw):source==="mail"?rowMail(raw):source==="dailybook"?rowDaily(raw):source==="dates"?rowDate(raw):source==="capsules"&&String(raw.unlock_at||"9999-12-31")>todayUtc()?lockedCapsulePublic(raw):raw;
+      return mcpText({ok:true,source,id,item});
     }
     case "get_gpt_memories":
     case "list_memories":

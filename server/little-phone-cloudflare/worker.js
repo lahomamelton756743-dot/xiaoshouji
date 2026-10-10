@@ -1168,7 +1168,7 @@ async function searchMemoryApi(env,url){
   // Read-only. Use the existing authorized D1 readers, never mutate records.
   const collections=await memorySearchCollections(env);
   const result=searchLittlePhoneMemory(collections,
-    {query,queries:queries.length?queries:undefined,mode,sources:sources.length?sources:undefined,from,to,limit});
+    {query,queries:queries.length?queries:undefined,mode,phrases:url.searchParams.getAll("phrases"),must_terms:url.searchParams.getAll("must_terms"),should_terms:url.searchParams.getAll("should_terms"),exclude_terms:url.searchParams.getAll("exclude_terms"),sources:sources.length?sources:undefined,from,to,limit});
   return json({ok:true,...result,scope:"all_stored_records"});
 }
 
@@ -1476,7 +1476,7 @@ const MCP_TOOLS = [
   tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
   tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
-  tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。全库检索，单次返回结果有数量限制。",{query:{type:"string"},mode:{type:"string",enum:["auto","exact","fuzzy"],default:"auto"},queries:{type:"array",items:{type:"string"},maxItems:12},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),
+  tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。全库检索，单次返回结果有数量限制。",{query:{type:"string"},mode:{type:"string",enum:["auto","exact","fuzzy"],default:"auto"},queries:{type:"array",items:{type:"string"},maxItems:12},phrases:{type:"array",items:{type:"string"}},must_terms:{type:"array",items:{type:"string"}},should_terms:{type:"array",items:{type:"string"}},exclude_terms:{type:"array",items:{type:"string"}},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),
   tool("gpt_get_little_phone_memory_item","按检索结果的 source 和 id 读取完整原文；只读，未解锁的未来信不会泄露正文。",{source:{type:"string",enum:["diaries","memories","papers","mail","capsules","chat","dailybook","dates"]},id:{type:"string"}},["source","id"]),
   tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("gpt_remember","把 GPT 当前形成的一条理解写入“GPT记得”。这是 GPT 记得的首选写入工具。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
@@ -1730,7 +1730,7 @@ async function callTool(name,args,env){
     case "search_little_phone_memories": {
       const collections=await memorySearchCollections(env);
       return mcpText({ok:true,...searchLittlePhoneMemory(collections,
-        {query:String(args.query||"").slice(0,160),queries:args.queries,mode:args.mode,sources:args.sources,from:args.from,to:args.to,limit:args.limit}),
+        {query:String(args.query||"").slice(0,160),queries:args.queries,mode:args.mode,phrases:args.phrases,must_terms:args.must_terms,should_terms:args.should_terms,exclude_terms:args.exclude_terms,sources:args.sources,from:args.from,to:args.to,limit:args.limit}),
         scope:"all_stored_records",full_archive:true});
     }
     case "gpt_get_little_phone_memory_item": {

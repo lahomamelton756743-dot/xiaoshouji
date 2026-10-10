@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { searchLittlePhoneMemory } from "./memory-search.mjs";
 const VERSION = "0.8.3-xinchao-engine-10.3-events-test1";
 const DEFAULT_DEVICE = "android-phone";
 const MCP_MODERN_PROTOCOL_VERSION = "2026-07-28";
@@ -60,6 +61,7 @@ async function handle(request, env) {
     if (path === "/api/poll") return pollCommand(env, url);
     if (path === "/api/command/status") return commandStatus(env, url);
     if (path === "/api/littlephone/bootstrap") return bootstrapApi(env);
+    if (path === "/api/littlephone/memory-search") return searchMemoryApi(env, url);
     if (path === "/api/littlephone/xinchao") return getXinchaoApi(env);
     if (path === "/api/littlephone/visit/latest") return getLatestVisitApi(env, url);
     if (path === "/api/littlephone/events") return listEventsApi(env, url);
@@ -1132,6 +1134,23 @@ async function listChatMessagesApi(env,url){
   return json({ok:true,messages:await listChatMessages(env,asLimit(url,300,1000),afterCreatedAt,afterId)});
 }
 
+async function searchMemoryApi(env,url){
+  const query=String(url.searchParams.get("q")||"").slice(0,160);
+  const sources=url.searchParams.getAll("source").flatMap(s=>s.split(",")).filter(Boolean);
+  const from=String(url.searchParams.get("from")||"").slice(0,10);
+  const to=String(url.searchParams.get("to")||"").slice(0,10);
+  const limit=Math.max(1,Math.min(100,Number(url.searchParams.get("limit"))||30));
+  // Read-only. Use the existing authorized D1 readers, never mutate records.
+  const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
+    listDiaries(env,300),listMemories(env,300),listPapers(env,300),
+    listMail(env,300),listCapsules(env,300),listChatMessages(env,500),
+    listDailybook(env,300),listDates(env,300)
+  ]);
+  const result=searchLittlePhoneMemory({diaries,memories,papers,mail,capsules,chat,dailybook,dates},
+    {query,sources:sources.length?sources:undefined,from,to,limit});
+  return json({ok:true,...result,scope:"recent_records",note:"Searches records available through current collection readers; not guaranteed full archive."});
+}
+
 async function bootstrapApi(env){
   const [visit,events,papers,mail,capsules,dailybook,diaries,chats,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests]=await Promise.all([latestVisit(env,DEFAULT_DEVICE),listEvents(env,160),listPapers(env,300),listMail(env,120),listCapsules(env,80),listDailybook(env,160),listDiaries(env,120),listChatMessages(env,500),listTodos(env,160),listDates(env,300),cycleProjection(await cycleSettings(env),await listCycleRecords(env,120)),getStatuses(env),listCalls(env,80),healthSummary(env),getProfiles(env),listMemories(env,80),listUnlockRequests(env,30)]);
   return json({ok:true,visit,events,papers,mail,capsules,dailybook,diaries,chats,todos,dates,cycle,statuses,calls,health,profiles,memories,unlock_requests});
@@ -1436,6 +1455,7 @@ const MCP_TOOLS = [
   tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
   tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
+  tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。当前范围受每类记录读取上限限制。",{query:{type:"string"},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),
   tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("gpt_remember","把 GPT 当前形成的一条理解写入“GPT记得”。这是 GPT 记得的首选写入工具。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("edit_gpt_memory","修改一条 GPT 记得，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1685,6 +1705,15 @@ async function callTool(name,args,env){
     case "write_gpt_memory":
     case "create_memory":
     case "create_little_phone_memory": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "search_little_phone_memories": {
+      const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
+        listDiaries(env,300),listMemories(env,300),listPapers(env,300),listMail(env,300),
+        listCapsules(env,300),listChatMessages(env,500),listDailybook(env,300),listDates(env,300)
+      ]);
+      return mcpText({ok:true,...searchLittlePhoneMemory({diaries,memories,papers,mail,capsules,chat,dailybook,dates},
+        {query:String(args.query||"").slice(0,160),sources:args.sources,from:args.from,to:args.to,limit:args.limit}),
+        scope:"recent_records",full_archive:false});
+    }
     case "get_gpt_memories":
     case "list_memories":
     case "list_daddy_memories":

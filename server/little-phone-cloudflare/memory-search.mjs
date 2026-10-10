@@ -62,9 +62,10 @@ function relevantTokens(text){
 }
 function relatedEvent(a,b){
   if(!a.date||!b.date||a.date.slice(0,10)!==b.date.slice(0,10))return false;
-  const ta=new Set(tokenize(a.title||a.snippet.slice(0,80)));
-  const tb=tokenize(b.title||b.snippet.slice(0,80));
-  return tb.some(t=>t.length>=3&&ta.has(t));
+  if(!a.title||!b.title)return false;
+  const ta=new Set(tokenize(a.title));
+  const tb=tokenize(b.title);
+  return tb.filter(t=>t.length>=3&&ta.has(t)).length>=2;
 }
 /** Read-only hybrid search: phrase-first, weighted BM25, bounded output. */
 export function searchLittlePhoneMemory(collections,options={}){

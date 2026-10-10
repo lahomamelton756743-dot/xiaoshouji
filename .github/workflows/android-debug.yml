@@ -1,5 +1,5 @@
 name: Build Android Debug APK
-# v0.8.5-4 chat spacing release
+# v0.8.5-5 chat spacing priority fix
 
 on:
   workflow_dispatch:

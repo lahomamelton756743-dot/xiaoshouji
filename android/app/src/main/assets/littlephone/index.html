@@ -2561,26 +2561,28 @@ body.miniAppMode:not(.desktopMode)::-webkit-scrollbar{display:none!important}
 body.miniAppMode:not(.desktopMode) .shell{min-height:100dvh!important}
 body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 </style><style id="memorySea085">
-#page-app-river{isolation:isolate;background:radial-gradient(ellipse at 48% 48%,rgba(100,64,151,.38),transparent 48%),radial-gradient(ellipse at 80% 85%,rgba(33,65,117,.4),transparent 50%),linear-gradient(150deg,#101831,#171439 60%,#09132a)!important;border-radius:20px}
-#page-app-river .riverAppVerticalShell{background:transparent!important;box-shadow:none!important;border:0!important;min-height:460px;padding:0!important}
-#page-app-river .miniAppHead{background:transparent!important}
-#page-app-river .riverAppVerticalScroller{background:transparent!important;overflow:hidden!important;max-height:none!important}
-#page-app-river .riverAppVerticalTrack{background:transparent!important;min-height:450px}
+#page-app-river{isolation:isolate;background:transparent!important;color:#736484!important}
+#page-app-river .riverAppVerticalShell,#page-app-river .riverAppVerticalScroller,#page-app-river .riverAppVerticalTrack,#page-app-river .miniAppHead{background:transparent!important;box-shadow:none!important;border:0!important}
+#page-app-river .riverAppVerticalShell{padding:0!important;min-height:400px}
+#page-app-river .riverAppVerticalScroller{overflow:hidden!important;max-height:none!important}
+#page-app-river .riverAppVerticalTrack{width:100%!important;min-height:400px}
 #page-app-river .riverHint{display:none!important}
-.memorySeaSwitch{display:flex;gap:7px;padding:14px 12px;background:transparent;position:relative;z-index:5}
-.memorySeaSwitch button{flex:1;border:1px solid rgba(255,255,255,.24);border-radius:22px;padding:9px;color:#f3ecff;background:rgba(255,255,255,.07);font-size:13px}
-.memorySeaSwitch button[aria-pressed="true"]{background:rgba(205,186,255,.3);border-color:rgba(255,255,255,.5)}
+#page-app-river .miniAppHead h1,#page-app-river .miniAppHead h2,#page-app-river .miniAppHead button{color:#8b779d!important}
+.memorySeaSwitch{display:flex;gap:8px;padding:14px 12px;background:transparent!important;position:relative;z-index:5}
+.memorySeaSwitch button{flex:1;border:1px solid rgba(175,143,198,.42);border-radius:28px;padding:10px;color:#80688f;background:rgba(255,255,255,.54);backdrop-filter:blur(9px);font-size:13px}
+.memorySeaSwitch button[aria-pressed="true"]{background:rgba(226,208,240,.8);border-color:rgba(179,146,199,.58)}
 .memorySeaViewport{height:60vh;min-height:390px;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
 .memorySeaCanvas{position:relative;transform-origin:0 0;will-change:transform;background:transparent}
-.memorySeaCanvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#fff9 1px,transparent 1.5px),radial-gradient(#cbb8ff88 .7px,transparent 1.5px);background-size:47px 61px,79px 97px;background-position:8px 14px,23px 44px}
+.memorySeaCanvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#bb9fcb80 1px,transparent 1.5px),radial-gradient(#fff9 1px,transparent 1.5px);background-size:71px 83px,113px 127px}
 .memorySeaCanvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.memorySeaCanvas line{stroke:rgba(222,211,255,.24);stroke-width:1}
-.memoryStar{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#f9f4ff;display:flex;align-items:center;flex-direction:column;gap:6px;max-width:130px;padding:8px;z-index:2}
-.memoryStar i{display:block;width:14px;height:14px;border-radius:50%;background:var(--star);box-shadow:0 0 9px 3px var(--star),0 0 26px 6px rgba(201,183,255,.18)}
-.memoryStar span{font-size:12px;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 8px #0a0d28}
+.memorySeaCanvas line{stroke:rgba(166,130,187,.37);stroke-width:1}
+.memoryStar{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#6c577d;display:flex;align-items:center;flex-direction:column;gap:7px;max-width:130px;padding:8px;z-index:2}
+.memoryStar i{display:block;width:14px;height:14px;border-radius:50%;background:var(--star);border:1px solid rgba(255,255,255,.85);box-shadow:0 0 10px 4px var(--star),0 0 23px 7px rgba(190,155,213,.28)}
+.memoryStar span{font-size:12px;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 4px #fff,0 0 8px #fff}
 .memoryTimeline{padding:12px;display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto}
-.memoryTimeItem{text-align:left;color:#fff;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:7px}
-.memoryTimeItem small{opacity:.7}.memoryTimeItem b{font-size:14px;font-weight:500}
+.memoryTimeItem{text-align:left;color:#77618b;background:rgba(255,255,255,.68);border:1px solid rgba(181,152,201,.28);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:7px}
+.memoryTimeItem small{opacity:.72}.memoryTimeItem b{font-size:14px;font-weight:500}
+.memorySeaEmpty{margin:30px 14px;padding:50px 20px;border-radius:24px;text-align:center;color:#80688f;background:rgba(255,255,255,.5);cursor:pointer}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -3072,7 +3074,7 @@ async function loadRemote(){
       const tasks=[['visit','/api/littlephone/visit/latest'],['events','/api/littlephone/events?limit=160'],['papers','/api/littlephone/papers?limit=300'],['mail','/api/mail?limit=120'],['capsules','/api/capsules?limit=80'],['dailybook','/api/littlephone/dailybook?limit=160'],['diaries','/api/littlephone/diaries?limit=160'],['chats','/api/littlephone/chat?limit=500'],['todos','/api/littlephone/todos?limit=160'],['dates','/api/littlephone/dates?limit=300'],['cycle','/api/littlephone/cycle'],['memories','/api/littlephone/memories?limit=80']];let success=0,first='';for(const [key,path] of tasks){try{const x=await nativeRequest('GET',path);success++;if(key==='visit')state.visit=x.visit||null;else if(key==='events')state.events=x.events||[];else if(key==='papers')state.papers=x.papers||[];else if(key==='mail')state.mail=x.mail||[];else if(key==='capsules')state.capsules=x.capsules||[];else if(key==='dailybook')state.dailybook=x.entries||[];else if(key==='diaries')state.diaries=x.diaries||[];else if(key==='chats')state.chats=x.messages||[];else if(key==='todos')state.todos=x.todos||[];else if(key==='dates')state.dates=x.dates||[];else if(key==='memories')state.memories=x.memories||[];else state.cycle=x||{}}catch(ex){if(!first)first=ex.message||'request_failed'}}state.remoteError=success===0;state.lastRemoteError=state.remoteError?first:'';if(success)saveCache();
     }else{state.remoteError=true;state.lastRemoteError=msg}
   }
-  mergePendingEvents();updateOfflineBanner();renderAll();
+  mergePendingEvents();updateOfflineBanner();renderAll();if(state.page==='app-river')renderRiverApp();
 }
 function renderRemoteEmpty(){loadCache();loadPendingEvents();loadPendingWrites();state.remoteError=true;state.lastRemoteError=state.lastRemoteError||'request_failed';updateOfflineBanner();renderAll()}
 async function logOpenOnce(){if(state.openLogged)return;state.openLogged=true;await addLocalTrace(`${state.native.user_name||'瑞安'}打开小手机`,'','app_open')}
@@ -3644,17 +3646,17 @@ function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
   const groups=[['dailybook',state.dailybook||[]],['diary',state.diaries||[]],['memory',state.memories||[]],['paper',state.papers||[]],['mail',state.mail||[]],['future_letter',state.capsules||[]],['chat',state.chats||[]],['date',state.dates||[]]];
   const records=[];
-  for(const [source,rows] of groups)for(const raw of rows){
-    if(!raw||raw.id==null)continue;
+  for(const [source,rows] of groups)for(const [index,raw] of (Array.isArray(rows)?rows:[]).entries()){
+    if(!raw||typeof raw!=='object')continue;
     const title=String(raw.title||raw.subject||raw.name||raw.content||raw.text||'一段记忆').slice(0,60);
     const date=String(raw.date||raw.event_date||raw.created_at||raw.send_at||raw.deliver_at||'').slice(0,10);
-    records.push({source,id:String(raw.id),title,date,raw});
+    records.push({source,id:String(raw.id??raw.entry_id??raw.message_id??(source+'-'+index)),title,date,raw});
   }
   records.sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
   const mode=root.dataset.memoryMode||'sea',shown=records.slice(-160);
   const switcher='<div class="memorySeaSwitch"><button type="button" data-memory-mode="sea" aria-pressed="'+(mode==='sea')+'">记忆星海</button><button type="button" data-memory-mode="time" aria-pressed="'+(mode==='time')+'">时间</button></div>';
   root.style.height='auto';root.style.width='100%';
-  if(!shown.length)root.innerHTML=switcher+'<div class="empty" style="padding:80px 12px">这里还没有可展示的记忆。</div>';
+  if(!shown.length){root.innerHTML=switcher+'<div class="memorySeaEmpty">'+(state.conn.connected?'暂时没有读到记忆，点这里重新同步。':'尚未连接，先连接小手机后读取记忆。')+'</div>';const retry=root.querySelector('.memorySeaEmpty');if(state.conn.connected)retry.onclick=()=>{retry.textContent='正在重新同步…';loadRemote()}}
   else if(mode==='time')root.innerHTML=switcher+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
   else {
     const w=1200,h=1200,cx=w/2,cy=h/2;
@@ -3670,7 +3672,7 @@ function renderRiverApp(){
     }
     root.innerHTML=switcher+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="width:'+w+'px;height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><circle cx="'+cx+'" cy="'+cy+'" r="90" fill="none" stroke="rgba(255,220,170,.18)" stroke-width="2"/>'+edges.join('')+'</svg><div class="memoryCore" style="left:'+cx+'px;top:'+cy+'px"><i></i><span>归栖</span></div>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+pos[i].x+'px;top:'+pos[i].y+'px;--star:'+colors[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div></div>';
     const viewport=root.querySelector('.memorySeaViewport'),canvas=root.querySelector('.memorySeaCanvas');
-    const fit=Math.min(viewport.clientWidth/640,viewport.clientHeight/640,.9);
+    const fit=Math.min(viewport.clientWidth/1100,viewport.clientHeight/1100,.65);
     const initial={x:viewport.clientWidth/2-cx*fit,y:viewport.clientHeight/2-cy*fit,z:fit};
     let {x,y,z}=root._memoryTransform||initial;const active=new Map();let start=null,dragged=false;
     const apply=()=>{canvas.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';root._memoryTransform={x,y,z}};

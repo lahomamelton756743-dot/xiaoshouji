@@ -14,6 +14,7 @@ function norm(value) { return plain(value).normalize("NFKC").toLocaleLowerCase()
 /** Return matches only from caller-provided, authorized records. */
 export function searchLittlePhoneMemory(collections, options = {}) {
   const query = norm(options.query).trim();
+  const mode = options.mode === "exact" ? "exact" : "fuzzy";
   const terms = query.split(/\s+/u).filter(Boolean).slice(0, 12);
   const requested = Array.isArray(options.sources) ? options.sources.filter(s => SOURCES.includes(s)) : SOURCES;
   const limit = clamp(options.limit, 30, LIMIT_MAX);
@@ -29,15 +30,15 @@ export function searchLittlePhoneMemory(collections, options = {}) {
       if (to && (!date || date.slice(0, 10) > to)) continue;
       const full = textOf(row);
       const haystack = norm(full);
-      if (terms.length && !terms.every(term => haystack.includes(term))) continue;
-      const score = terms.reduce((n, term) => n + (norm(plain(row.title)).includes(term) ? 3 : 1), 0);
+      if (query && (mode === "exact" ? !haystack.includes(query) : !terms.some(term => haystack.includes(term)))) continue;
+      const score = terms.reduce((n, term) => n + (norm(plain(row.title)).includes(term) ? 3 : haystack.includes(term) ? 1 : 0), 0) + (query && haystack.includes(query) ? 5 : 0);
       const first = terms.length ? haystack.indexOf(terms[0]) : 0;
       const start = Math.max(0, first - 65);
       found.push({source, id:String(row.id), date, title:plain(row.title || row.name), snippet:full.slice(start, start + TEXT_MAX), score});
     }
   }
   found.sort((a,b) => b.score-a.score || b.date.localeCompare(a.date) || a.source.localeCompare(b.source) || a.id.localeCompare(b.id));
-  return {query:plain(options.query || ""),total:found.length,results:found.slice(0,limit),truncated:found.length>limit};
+  return {query:plain(options.query || ""),mode,total:found.length,results:found.slice(0,limit),truncated:found.length>limit};
 }
 
 /**

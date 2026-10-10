@@ -2560,6 +2560,22 @@ body.miniAppMode:not(.desktopMode){overflow-y:auto!important;overflow-x:hidden!i
 body.miniAppMode:not(.desktopMode)::-webkit-scrollbar{display:none!important}
 body.miniAppMode:not(.desktopMode) .shell{min-height:100dvh!important}
 body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
+</style><style id="memorySea085">
+#page-app-river .riverAppVerticalShell{background:linear-gradient(180deg,rgba(15,24,57,.86),rgba(27,23,60,.88))!important;min-height:460px}
+#page-app-river .riverAppVerticalScroller{overflow-y:auto!important}
+#page-app-river .riverAppVerticalTrack{min-height:450px}
+.memorySeaSwitch{display:flex;gap:7px;padding:14px 12px;position:sticky;top:0;z-index:5;background:rgba(20,25,54,.85);backdrop-filter:blur(14px);border-radius:16px}
+.memorySeaSwitch button{flex:1;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:9px;color:#f3ecff;background:rgba(255,255,255,.07);font-size:13px}
+.memorySeaSwitch button[aria-pressed="true"]{background:rgba(205,186,255,.3);border-color:rgba(255,255,255,.5)}
+.memorySeaCanvas{position:relative;min-height:420px;overflow:hidden;background:radial-gradient(ellipse at 40% 30%,rgba(101,79,160,.24),transparent 55%)}
+.memorySeaCanvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.memorySeaCanvas line{stroke:rgba(222,211,255,.26);stroke-width:.65}
+.memoryStar{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#f9f4ff;display:flex;align-items:center;flex-direction:column;gap:6px;max-width:106px;padding:8px;z-index:2}
+.memoryStar i{display:block;width:13px;height:13px;border-radius:50%;background:var(--star);box-shadow:0 0 9px 3px var(--star),0 0 26px 6px rgba(201,183,255,.18)}
+.memoryStar span{font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 8px #0a0d28}
+.memoryTimeline{padding:12px;display:flex;flex-direction:column;gap:10px}
+.memoryTimeItem{text-align:left;color:#fff;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:7px}
+.memoryTimeItem small{opacity:.7}.memoryTimeItem b{font-size:14px;font-weight:500}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -2583,7 +2599,7 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
           <button class="desktopApp" data-open-app="papers"><span class="desktopAppIcon glass"><span>✎</span></span><span class="desktopAppLabel">纸条</span></button>
           <button class="desktopApp" data-open-app="memory"><span class="desktopAppIcon glass"><span>⌁</span></span><span class="desktopAppLabel">记得</span></button>
           <button class="desktopApp" data-open-app="mail"><span class="desktopAppIcon glass"><span>✉</span></span><span class="desktopAppLabel">信箱</span></button>
-          <button class="desktopApp" data-open-app="river"><span class="desktopAppIcon glass"><span>≈</span></span><span class="desktopAppLabel">时间河</span></button>
+          <button class="desktopApp" data-open-app="river"><span class="desktopAppIcon glass"><span>≈</span></span><span class="desktopAppLabel">记忆星海</span></button>
           <button class="desktopApp" data-open-app="health"><span class="desktopAppIcon glass"><span>♡</span></span><span class="desktopAppLabel">小米健康</span></button>
           <button class="desktopApp" data-open-app="calendar"><span class="desktopAppIcon glass"><span>□</span></span><span class="desktopAppLabel">日历</span></button>
           <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
@@ -2785,7 +2801,7 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
     </section>
 
     <section class="page phoneAppPage" id="page-app-river">
-      <div class="miniAppHead"><div class="miniAppTitle">时间河<small>我们的日常册</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
+      <div class="miniAppHead"><div class="miniAppTitle">记忆星海<small>我们的记忆与时间</small></div><div class="miniAppActions"><button class="softBtn" data-compose="dailybook">写一页</button></div></div>
       <div class="glass riverShell heroGlass riverAppVerticalShell"><div class="riverHint"></div><div class="riverScroller riverAppVerticalScroller" id="riverAppScroller"><div class="riverTrack riverAppVerticalTrack" id="riverAppTrack"></div></div></div>
     </section>
 
@@ -3621,16 +3637,43 @@ async function refreshChatMessages(){
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message){mergeChatMessages([r.message]);saveCache()}input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
-  if(!state.conn.connected&&!state.dailybook.length){root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
-  const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
-  if(!items.length){root.style.height='auto';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
-  const step=112,h=Math.max(250,(items.length-1)*step+104),cy=i=>46+i*step,cx=i=>50+Math.sin(i*.91+.35)*14+Math.sin(i*.37+1.1)*5;
-  let d=`M ${cx(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const x0=cx(i-1),x1=cx(i),y0=cy(i-1),y1=cy(i),m=(y0+y1)/2;d+=` C ${x0} ${m-18}, ${x1} ${m+18}, ${x1} ${y1}`}
-  const stars=[];for(let i=0;i<items.length-1;i++){for(let j=1;j<=4;j++){const t=j/5,y=cy(i)+(cy(i+1)-cy(i))*t,x=cx(i)+(cx(i+1)-cx(i))*t+Math.sin((i+1)*(j+2))*3.8;stars.push(`<i class="galaxyStar ${j%3===0?'small':''} ${j%2===0?'soft':''}" style="left:${x}%;top:${y}px;--tw:${4+j*.7}s;--delay:-${(i+j)*.8}s"></i>`)}}
-  root.style.height=h+'px';
-  root.innerHTML=`<div class="galaxyRiver" style="height:${h}px"><svg class="galaxyRiverSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="galaxyPearl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(250,249,246,.74)"/><stop offset=".26" stop-color="rgba(220,214,242,.62)"/><stop offset=".52" stop-color="rgba(252,251,248,.82)"/><stop offset=".76" stop-color="rgba(215,209,239,.60)"/><stop offset="1" stop-color="rgba(251,250,247,.76)"/></linearGradient></defs><path class="galaxyMist" d="${d}"/><g transform="translate(-1.5 0)"><path class="braidStrand braidS1" d="${d}"/></g><g transform="translate(-.9 0)"><path class="braidStrand braidS2" d="${d}"/></g><g transform="translate(-.3 0)"><path class="braidStrand braidS3" d="${d}"/></g><g transform="translate(.3 0)"><path class="braidStrand braidS4" d="${d}"/></g><g transform="translate(.9 0)"><path class="braidStrand braidS5" d="${d}"/></g><g transform="translate(1.5 0)"><path class="braidStrand braidS6" d="${d}"/></g><path class="braidFlow" d="${d}"/></svg>${stars.join('')}${items.map((e,i)=>{const x=cx(i),y=cy(i),bank=(100-x)>=x?'right':'left',room=Math.max(x,100-x),w=Math.max(116,Math.min(168,Math.round(room*2.55)));return `<article class="galaxyNode ${bank}" data-app-book-id="${esc(e.id)}" style="--rx:${x}%;--ry:${y}px;--bw:${w}px"><span class="galaxyPin"></span><button class="glass contentGlass galaxyBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}</div>`;
-  root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
-  requestAnimationFrame(()=>{root.querySelectorAll('.galaxyNode').forEach(node=>{const b=node.querySelector('.galaxyBubble');if(!b)return;const r=b.getBoundingClientRect(),host=root.getBoundingClientRect(),pad=12;let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)b.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
+  const groups=[
+    ['dailybook',state.dailybook||[]],['diary',state.diaries||[]],['memory',state.memories||[]],
+    ['paper',state.papers||[]],['mail',state.mail||[]],['future_letter',state.capsules||[]],
+    ['chat',state.chats||[]],['date',state.dates||[]]
+  ];
+  const records=[];
+  for(const [source,rows] of groups)for(const e of rows){
+    if(!e||e.id==null)continue;
+    const title=String(e.title||e.subject||e.name||e.content||e.text||'一段记忆').slice(0,36);
+    const date=String(e.date||e.event_date||e.created_at||e.send_at||e.deliver_at||'').slice(0,10);
+    records.push({source,id:String(e.id),title,date,raw:e});
+  }
+  records.sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
+  const mode=root.dataset.memoryMode||'sea';
+  const head='<div class="memorySeaSwitch"><button type="button" data-memory-mode="sea" aria-pressed="'+(mode==='sea')+'">记忆星海</button><button type="button" data-memory-mode="time" aria-pressed="'+(mode==='time')+'">时间</button></div>';
+  root.style.height='auto';root.style.width='100%';
+  if(!records.length){root.innerHTML=head+'<div class="empty" style="padding:80px 12px">这里还没有可展示的记忆。</div>';return}
+  const shown=records.slice(-160);
+  const color={dailybook:'#d6c9ff',diary:'#ffc8dc',memory:'#f9dba0',paper:'#b4e8ec',mail:'#f2d4ff',future_letter:'#e9ccff',chat:'#b7d6ff',date:'#ffd9b3'};
+  if(mode==='time'){
+    root.innerHTML=head+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
+  }else{
+    const w=320,h=Math.max(420,Math.ceil(shown.length/3)*90+120);
+    const pos=shown.map((e,i)=>({x:38+(i%3)*122+Math.sin(i*2.37)*17,y:68+Math.floor(i/3)*90+Math.cos(i*1.41)*19}));
+    const edges=[];for(let i=0;i<shown.length;i++)for(let j=i+1;j<shown.length&&j<i+18;j++){
+      const a=shown[i],b=shown[j],ta=a.title.trim(),tb=b.title.trim();
+      if(ta.length>=3&&tb.length>=3&&(ta.includes(tb)||tb.includes(ta)))edges.push('<line x1="'+pos[i].x+'" y1="'+pos[i].y+'" x2="'+pos[j].x+'" y2="'+pos[j].y+'"/>');
+    }
+    root.innerHTML=head+'<div class="memorySeaCanvas" style="height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+edges.join('')+'</svg>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+(pos[i].x/w*100)+'%;top:'+pos[i].y+'px;--star:'+color[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div>';
+  }
+  root.querySelectorAll('[data-memory-mode]').forEach(btn=>btn.onclick=()=>{root.dataset.memoryMode=btn.dataset.memoryMode;renderRiverApp();sc.scrollTop=0});
+  root.querySelectorAll('[data-memory-idx]').forEach(btn=>btn.onclick=()=>{
+    const e=shown[Number(btn.dataset.memoryIdx)];if(!e)return;
+    if(e.source==='dailybook'){openBook(e.id);return}
+    const raw=e.raw,content=String(raw.content||raw.body||raw.text||raw.message||raw.description||'');
+    openDetail(e.title,'<div class="detailMeta">'+esc(e.date||'')+' · '+esc(e.source)+'</div><div class="detailText">'+esc(content||e.title)+'</div>');
+  });
 }
 function renderHealthApp(){
   const root=$('#healthAppBody');if(!root)return;

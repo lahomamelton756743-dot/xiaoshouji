@@ -1455,6 +1455,7 @@ const MCP_TOOLS = [
   tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
   tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
+  tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。当前范围受每类记录读取上限限制。",{query:{type:"string"},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),
   tool("get_gpt_memories","读取 GPT 记得里的真实条目。",{limit:{type:"integer",minimum:1,maximum:300,default:80}}),
   tool("gpt_remember","把 GPT 当前形成的一条理解写入“GPT记得”。这是 GPT 记得的首选写入工具。",{content:{type:"string"},category:{type:"string",default:"noticed"},confidence:{type:"string",enum:["remembered","tentative"],default:"remembered"},confirmed:{type:"boolean",default:false}},["content"]),
   tool("edit_gpt_memory","修改一条 GPT 记得，保持原 ID。",{id:{type:"string"},content:{type:"string"},category:{type:"string"},confidence:{type:"string",enum:["remembered","tentative"]},confirmed:{type:"boolean"}},["id"]),
@@ -1704,6 +1705,15 @@ async function callTool(name,args,env){
     case "write_gpt_memory":
     case "create_memory":
     case "create_little_phone_memory": {const x=await addMemory(env,args);return mcpText(x.error?{ok:false,error:x.error}:{ok:true,memory:x},Boolean(x.error));}
+    case "search_little_phone_memories": {
+      const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
+        listDiaries(env,300),listMemories(env,300),listPapers(env,300),listMail(env,300),
+        listCapsules(env,300),listChatMessages(env,500),listDailybook(env,300),listDates(env,300)
+      ]);
+      return mcpText({ok:true,...searchLittlePhoneMemory({diaries,memories,papers,mail,capsules,chat,dailybook,dates},
+        {query:String(args.query||"").slice(0,160),sources:args.sources,from:args.from,to:args.to,limit:args.limit}),
+        scope:"recent_records",full_archive:false});
+    }
     case "get_gpt_memories":
     case "list_memories":
     case "list_daddy_memories":

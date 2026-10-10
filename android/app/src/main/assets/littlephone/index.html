@@ -2561,29 +2561,26 @@ body.miniAppMode:not(.desktopMode)::-webkit-scrollbar{display:none!important}
 body.miniAppMode:not(.desktopMode) .shell{min-height:100dvh!important}
 body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 </style><style id="memorySea085">
-#page-app-river{isolation:isolate;background:radial-gradient(ellipse at 55% 37%,rgba(119,80,172,.36),transparent 46%),radial-gradient(ellipse at 12% 75%,rgba(39,82,143,.46),transparent 55%),linear-gradient(150deg,#101832,#171339 60%,#08142c)!important;border-radius:20px}
+#page-app-river{isolation:isolate;background:radial-gradient(ellipse at 48% 48%,rgba(100,64,151,.38),transparent 48%),radial-gradient(ellipse at 80% 85%,rgba(33,65,117,.4),transparent 50%),linear-gradient(150deg,#101831,#171439 60%,#09132a)!important;border-radius:20px}
 #page-app-river .riverAppVerticalShell{background:transparent!important;box-shadow:none!important;border:0!important;min-height:460px;padding:0!important}
 #page-app-river .miniAppHead{background:transparent!important}
-#page-app-river .riverAppVerticalScroller{background:transparent!important;max-height:75vh;overflow:hidden!important}
-#page-app-river .riverAppVerticalTrack{background:transparent!important}
+#page-app-river .riverAppVerticalScroller{background:transparent!important;overflow:hidden!important;max-height:none!important}
+#page-app-river .riverAppVerticalTrack{background:transparent!important;min-height:450px}
 #page-app-river .riverHint{display:none!important}
-#page-app-river .riverAppVerticalScroller{overflow-y:auto!important}
-#page-app-river .riverAppVerticalTrack{min-height:450px}
-.memorySeaSwitch{display:flex;gap:7px;padding:14px 12px;position:sticky;top:0;z-index:5;background:transparent;backdrop-filter:none;border-radius:16px}
-.memorySeaSwitch button{flex:1;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:9px;color:#f3ecff;background:rgba(255,255,255,.07);font-size:13px}
+.memorySeaSwitch{display:flex;gap:7px;padding:14px 12px;background:transparent;position:relative;z-index:5}
+.memorySeaSwitch button{flex:1;border:1px solid rgba(255,255,255,.24);border-radius:22px;padding:9px;color:#f3ecff;background:rgba(255,255,255,.07);font-size:13px}
 .memorySeaSwitch button[aria-pressed="true"]{background:rgba(205,186,255,.3);border-color:rgba(255,255,255,.5)}
-.memorySeaViewport{height:62vh;min-height:380px;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
-.memorySeaCanvas{position:relative;min-height:420px;transform-origin:0 0;will-change:transform;background:transparent}
-.memorySeaCanvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#fff9 1px,transparent 1.5px),radial-gradient(#cbb8ff88 .7px,transparent 1.5px),radial-gradient(ellipse at 45% 50%,rgba(132,93,192,.22),transparent 48%);background-size:47px 61px,79px 97px,100% 100%;background-position:8px 14px,23px 44px,0 0}
-.memoryCore{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;z-index:3;color:#fff1d6;text-shadow:0 0 12px #f2c97a;font-size:16px}
-.memoryCore i{display:block;width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#fff8d9,#ffca83 45%,#d38ad7 74%,transparent 78%);box-shadow:0 0 26px 12px #dca5e088,0 0 70px 35px #c59cff44}
-.memorySeaViewport:after{content:"双指缩放 · 单指拖动";position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:#ffffffaa;pointer-events:none;white-space:nowrap}
+.memorySeaViewport{height:60vh;min-height:390px;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
+.memorySeaCanvas{position:relative;transform-origin:0 0;will-change:transform;background:transparent}
+.memorySeaCanvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#fff9 1px,transparent 1.5px),radial-gradient(#cbb8ff88 .7px,transparent 1.5px);background-size:47px 61px,79px 97px;background-position:8px 14px,23px 44px}
 .memorySeaCanvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.memorySeaCanvas line{stroke:rgba(222,211,255,.26);stroke-width:.65}
-.memoryStar{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#f9f4ff;display:flex;align-items:center;flex-direction:column;gap:6px;max-width:106px;padding:8px;z-index:2}
-.memoryStar i{display:block;width:13px;height:13px;border-radius:50%;background:var(--star);box-shadow:0 0 9px 3px var(--star),0 0 26px 6px rgba(201,183,255,.18)}
-.memoryStar span{font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 8px #0a0d28}
-.memoryTimeline{padding:12px;display:flex;flex-direction:column;gap:10px}
+.memorySeaCanvas line{stroke:rgba(222,211,255,.24);stroke-width:1}
+.memoryCore{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:12px;pointer-events:none;z-index:3;color:#fff1d6;text-shadow:0 0 12px #f2c97a;font-size:25px}
+.memoryCore i{display:block;width:95px;height:95px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#fff8d9,#ffca83 45%,#d38ad7 74%,transparent 78%);box-shadow:0 0 30px 16px #dca5e088,0 0 85px 45px #c59cff44}
+.memoryStar{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#f9f4ff;display:flex;align-items:center;flex-direction:column;gap:6px;max-width:130px;padding:8px;z-index:2}
+.memoryStar i{display:block;width:14px;height:14px;border-radius:50%;background:var(--star);box-shadow:0 0 9px 3px var(--star),0 0 26px 6px rgba(201,183,255,.18)}
+.memoryStar span{font-size:12px;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 8px #0a0d28}
+.memoryTimeline{padding:12px;display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto}
 .memoryTimeItem{text-align:left;color:#fff;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:7px}
 .memoryTimeItem small{opacity:.7}.memoryTimeItem b{font-size:14px;font-weight:500}
 </style></head>
@@ -3647,62 +3644,63 @@ async function refreshChatMessages(){
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message){mergeChatMessages([r.message]);saveCache()}input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
-  const groups=[
-    ['dailybook',state.dailybook||[]],['diary',state.diaries||[]],['memory',state.memories||[]],
-    ['paper',state.papers||[]],['mail',state.mail||[]],['future_letter',state.capsules||[]],
-    ['chat',state.chats||[]],['date',state.dates||[]]
-  ];
+  const groups=[['dailybook',state.dailybook||[]],['diary',state.diaries||[]],['memory',state.memories||[]],['paper',state.papers||[]],['mail',state.mail||[]],['future_letter',state.capsules||[]],['chat',state.chats||[]],['date',state.dates||[]]];
   const records=[];
-  for(const [source,rows] of groups)for(const e of rows){
-    if(!e||e.id==null)continue;
-    const title=String(e.title||e.subject||e.name||e.content||e.text||'一段记忆').slice(0,36);
-    const date=String(e.date||e.event_date||e.created_at||e.send_at||e.deliver_at||'').slice(0,10);
-    records.push({source,id:String(e.id),title,date,raw:e});
+  for(const [source,rows] of groups)for(const raw of rows){
+    if(!raw||raw.id==null)continue;
+    const title=String(raw.title||raw.subject||raw.name||raw.content||raw.text||'一段记忆').slice(0,60);
+    const date=String(raw.date||raw.event_date||raw.created_at||raw.send_at||raw.deliver_at||'').slice(0,10);
+    records.push({source,id:String(raw.id),title,date,raw});
   }
   records.sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
-  const mode=root.dataset.memoryMode||'sea';
-  const head='<div class="memorySeaSwitch"><button type="button" data-memory-mode="sea" aria-pressed="'+(mode==='sea')+'">记忆星海</button><button type="button" data-memory-mode="time" aria-pressed="'+(mode==='time')+'">时间</button></div>';
+  const mode=root.dataset.memoryMode||'sea',shown=records.slice(-160);
+  const switcher='<div class="memorySeaSwitch"><button type="button" data-memory-mode="sea" aria-pressed="'+(mode==='sea')+'">记忆星海</button><button type="button" data-memory-mode="time" aria-pressed="'+(mode==='time')+'">时间</button></div>';
   root.style.height='auto';root.style.width='100%';
-  if(!records.length){root.innerHTML=head+'<div class="empty" style="padding:80px 12px">这里还没有可展示的记忆。</div>';return}
-  const shown=records.slice(-160);
-  const color={dailybook:'#d6c9ff',diary:'#ffc8dc',memory:'#f9dba0',paper:'#b4e8ec',mail:'#f2d4ff',future_letter:'#e9ccff',chat:'#b7d6ff',date:'#ffd9b3'};
-  if(mode==='time'){
-    root.innerHTML=head+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
-  }else{
-    const w=640,h=Math.max(680,Math.ceil(Math.sqrt(shown.length))*145+220);
-    const cx=w/2,cy=h/2;
+  if(!shown.length)root.innerHTML=switcher+'<div class="empty" style="padding:80px 12px">这里还没有可展示的记忆。</div>';
+  else if(mode==='time')root.innerHTML=switcher+'<div class="memoryTimeline">'+shown.slice().reverse().map((e,i)=>'<button class="memoryTimeItem" data-memory-idx="'+(shown.length-1-i)+'"><small>'+esc(e.date||'未标日期')+' · '+esc(e.source)+'</small><b>'+esc(e.title)+'</b></button>').join('')+'</div>';
+  else {
+    const w=1200,h=1200,cx=w/2,cy=h/2;
     const pos=shown.map((e,i)=>{
-      const angle=i*2.399963229728653;
-      const radius=75+Math.sqrt(i+1)*53;
-      return {x:cx+Math.cos(angle)*radius,y:cy+Math.sin(angle)*radius};
+      const angle=i*2.399963229728653,rad=90+Math.sqrt(i+1)*37;
+      return {x:cx+Math.cos(angle)*rad,y:cy+Math.sin(angle)*rad};
     });
-    const edges=[];for(let i=0;i<shown.length;i++)for(let j=i+1;j<shown.length&&j<i+18;j++){
-      const a=shown[i],b=shown[j],ta=a.title.trim(),tb=b.title.trim();
-      if(ta.length>=3&&tb.length>=3&&(ta.includes(tb)||tb.includes(ta)))edges.push('<line x1="'+pos[i].x+'" y1="'+pos[i].y+'" x2="'+pos[j].x+'" y2="'+pos[j].y+'"/>');
+    const colors={dailybook:'#d6c9ff',diary:'#ffc8dc',memory:'#f9dba0',paper:'#b4e8ec',mail:'#f2d4ff',future_letter:'#e9ccff',chat:'#b7d6ff',date:'#ffd9b3'};
+    const edges=[];for(let i=0;i<shown.length;i++)for(let j=i+1;j<shown.length;j++){
+      const a=shown[i].title.trim(),b=shown[j].title.trim();
+      if(a.length>=3&&b.length>=3&&(a.includes(b)||b.includes(a)))edges.push('<line x1="'+pos[i].x+'" y1="'+pos[i].y+'" x2="'+pos[j].x+'" y2="'+pos[j].y+'"/>');
+      if(edges.length>=240)break;
     }
-    root.innerHTML=head+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="height:'+h+'px;width:'+w+'px"><svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+edges.join('')+'</svg>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+pos[i].x+'px;top:'+pos[i].y+'px;--star:'+color[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div>';
-  }
-  const viewport=root.querySelector('.memorySeaViewport'),canvas=root.querySelector('.memorySeaCanvas');
-  if(viewport&&canvas){
-    const saved=root._memoryTransform||{x:(viewport.clientWidth-640*.78)/2,y:(viewport.clientHeight-Math.max(680,Math.ceil(Math.sqrt(shown.length))*145+220)*.78)/2,z:.78};let {x,y,z}=saved;
-    const active=new Map();let start=null,moved=false;
+    root.innerHTML=switcher+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="width:'+w+'px;height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><circle cx="'+cx+'" cy="'+cy+'" r="90" fill="none" stroke="rgba(255,220,170,.18)" stroke-width="2"/>'+edges.join('')+'</svg><div class="memoryCore" style="left:'+cx+'px;top:'+cy+'px"><i></i><span>归栖</span></div>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+pos[i].x+'px;top:'+pos[i].y+'px;--star:'+colors[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div></div>';
+    const viewport=root.querySelector('.memorySeaViewport'),canvas=root.querySelector('.memorySeaCanvas');
+    const fit=Math.min(viewport.clientWidth/640,viewport.clientHeight/640,.9);
+    const initial={x:viewport.clientWidth/2-cx*fit,y:viewport.clientHeight/2-cy*fit,z:fit};
+    let {x,y,z}=root._memoryTransform||initial;const active=new Map();let start=null,dragged=false;
     const apply=()=>{canvas.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';root._memoryTransform={x,y,z}};
-    const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-    const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
-    const capture=()=>{const pts=[...active.values()];start={x,y,z,pts,center:pts.length>1?mid(pts[0],pts[1]):pts[0],distance:pts.length>1?dist(pts[0],pts[1]):0}};
-    viewport.addEventListener('pointerdown',e=>{active.set(e.pointerId,{x:e.clientX,y:e.clientY});viewport.setPointerCapture(e.pointerId);moved=false;capture()});
-    viewport.addEventListener('pointermove',e=>{if(!active.has(e.pointerId))return;active.set(e.pointerId,{x:e.clientX,y:e.clientY});const pts=[...active.values()];if(!start)return;
-      if(pts.length>1&&start.pts.length>1){const c=mid(pts[0],pts[1]),next=Math.max(.6,Math.min(3.5,start.z*dist(pts[0],pts[1])/Math.max(1,start.distance)));x=c.x-(start.center.x-start.x)*next/start.z;y=c.y-(start.center.y-start.y)*next/start.z;z=next;moved=true}
-      else if(pts.length===1){x=start.x+pts[0].x-start.center.x;y=start.y+pts[0].y-start.center.y;if(Math.abs(x-start.x)+Math.abs(y-start.y)>7)moved=true}
-      apply();});
-    const finish=e=>{active.delete(e.pointerId);if(active.size)capture();else{start=null;if(moved){viewport.dataset.justDragged='1';setTimeout(()=>{delete viewport.dataset.justDragged},100)}}};
+    const snapshot=()=>{const pts=[...active.values()];start={x,y,z,pts:pts.map(p=>({...p})),distance:pts.length>1?Math.hypot(pts[1].x-pts[0].x,pts[1].y-pts[0].y):0}};
+    viewport.addEventListener('pointerdown',e=>{active.set(e.pointerId,{x:e.clientX,y:e.clientY});viewport.setPointerCapture(e.pointerId);if(active.size===1)dragged=false;snapshot()});
+    viewport.addEventListener('pointermove',e=>{
+      if(!active.has(e.pointerId)||!start)return;active.set(e.pointerId,{x:e.clientX,y:e.clientY});const pts=[...active.values()];
+      if(pts.length>=2&&start.pts.length>=2){
+        const oldX=(start.pts[0].x+start.pts[1].x)/2,oldY=(start.pts[0].y+start.pts[1].y)/2;
+        const newX=(pts[0].x+pts[1].x)/2,newY=(pts[0].y+pts[1].y)/2;
+        const d=Math.hypot(pts[1].x-pts[0].x,pts[1].y-pts[0].y);
+        const next=Math.max(.22,Math.min(2.6,start.z*d/Math.max(1,start.distance)));
+        const rect=viewport.getBoundingClientRect(),ox=oldX-rect.left,oy=oldY-rect.top,nx=newX-rect.left,ny=newY-rect.top;
+        x=nx-(ox-start.x)*next/start.z;y=ny-(oy-start.y)*next/start.z;z=next;dragged=true;
+      }else if(pts.length===1&&start.pts.length===1){
+        x=start.x+pts[0].x-start.pts[0].x;y=start.y+pts[0].y-start.pts[0].y;
+        if(Math.hypot(pts[0].x-start.pts[0].x,pts[0].y-start.pts[0].y)>6)dragged=true;
+      }apply();
+    });
+    const finish=e=>{active.delete(e.pointerId);if(active.size)snapshot();else{start=null;if(dragged){viewport.dataset.justDragged='1';setTimeout(()=>{delete viewport.dataset.justDragged},160)}}};
     viewport.addEventListener('pointerup',finish);viewport.addEventListener('pointercancel',finish);
-    viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top,next=Math.max(.6,Math.min(3.5,z*(e.deltaY<0?1.12:.89)));x=px-(px-x)*next/z;y=py-(py-y)*next/z;z=next;apply()},{passive:false});
+    viewport.addEventListener('wheel',e=>{e.preventDefault();const r=viewport.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top,next=Math.max(.22,Math.min(2.6,z*(e.deltaY<0?1.12:.89)));x=px-(px-x)*next/z;y=py-(py-y)*next/z;z=next;apply()},{passive:false});
     apply();
   }
   root.querySelectorAll('[data-memory-mode]').forEach(btn=>btn.onclick=()=>{root.dataset.memoryMode=btn.dataset.memoryMode;renderRiverApp();sc.scrollTop=0});
   root.querySelectorAll('[data-memory-idx]').forEach(btn=>btn.onclick=()=>{
-    const e=shown[Number(btn.dataset.memoryIdx)];if(!e||root.querySelector('.memorySeaViewport')?.dataset.justDragged)return;
+    if(root.querySelector('.memorySeaViewport')?.dataset.justDragged)return;
+    const e=shown[Number(btn.dataset.memoryIdx)];if(!e)return;
     if(e.source==='dailybook'){openBook(e.id);return}
     const raw=e.raw,content=String(raw.content||raw.body||raw.text||raw.message||raw.description||'');
     openDetail(e.title,'<div class="detailMeta">'+esc(e.date||'')+' · '+esc(e.source)+'</div><div class="detailText">'+esc(content||e.title)+'</div>');

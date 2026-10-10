@@ -2560,6 +2560,20 @@ body.miniAppMode:not(.desktopMode){overflow-y:auto!important;overflow-x:hidden!i
 body.miniAppMode:not(.desktopMode)::-webkit-scrollbar{display:none!important}
 body.miniAppMode:not(.desktopMode) .shell{min-height:100dvh!important}
 body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
+
+/* Natural water river — scoped to the independent Time River mini-app only. */
+#page-app-river .naturalRiver{position:relative;width:100%;isolation:isolate}
+#page-app-river .naturalRiverSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#page-app-river .naturalRiverBank{fill:none;stroke:rgba(238,255,252,.14);stroke-width:19;stroke-linecap:round;stroke-linejoin:round}
+#page-app-river .naturalRiverWater{fill:none;stroke:url(#naturalRiverWater);stroke-width:14;stroke-linecap:round;stroke-linejoin:round}
+#page-app-river .naturalRiverCurrent{fill:none;stroke:rgba(255,255,255,.15);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+#page-app-river .naturalRiverNode{position:absolute;top:var(--ry);left:50%;width:0;height:0;z-index:2}
+#page-app-river .naturalRiverBubble{position:absolute;top:0;box-sizing:border-box;width:clamp(110px,39vw,172px);max-width:calc(50vw - 29px);min-height:66px;padding:12px 14px;border-radius:25px;text-align:left;transform:translateY(-50%);white-space:normal}
+#page-app-river .naturalRiverNode.left .naturalRiverBubble{right:20px}
+#page-app-river .naturalRiverNode.right .naturalRiverBubble{left:20px}
+#page-app-river .naturalRiverBubble small{display:block;font-size:10px;color:#778a96;margin-bottom:5px}
+#page-app-river .naturalRiverBubble b{display:block;font-size:12px;line-height:1.5;font-weight:650;color:#526679;overflow-wrap:anywhere}
+@media(max-width:360px){#page-app-river .naturalRiverBubble{width:clamp(105px,38vw,150px);padding:10px 11px}#page-app-river .naturalRiverNode.left .naturalRiverBubble{right:14px}#page-app-river .naturalRiverNode.right .naturalRiverBubble{left:14px}}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -3621,16 +3635,40 @@ async function refreshChatMessages(){
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message){mergeChatMessages([r.message]);saveCache()}input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 function renderRiverApp(){
   const root=$('#riverAppTrack'),sc=$('#riverAppScroller');if(!root||!sc)return;
-  if(!state.conn.connected&&!state.dailybook.length){root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
+  if(!state.conn.connected&&!state.dailybook.length){root.style.height='auto';root.innerHTML='<div class="empty" style="padding-top:120px">连接后显示时间河。</div>';return}
   const items=[...state.dailybook].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(new Date(b.created_at||0)-new Date(a.created_at||0)));
   if(!items.length){root.style.height='auto';root.innerHTML='<div class="empty" style="padding-top:120px">时间河还没有第一页。</div>';return}
-  const step=112,h=Math.max(250,(items.length-1)*step+104),cy=i=>46+i*step,cx=i=>50+Math.sin(i*.91+.35)*14+Math.sin(i*.37+1.1)*5;
-  let d=`M ${cx(0)} ${cy(0)}`;for(let i=1;i<items.length;i++){const x0=cx(i-1),x1=cx(i),y0=cy(i-1),y1=cy(i),m=(y0+y1)/2;d+=` C ${x0} ${m-18}, ${x1} ${m+18}, ${x1} ${y1}`}
-  const stars=[];for(let i=0;i<items.length-1;i++){for(let j=1;j<=4;j++){const t=j/5,y=cy(i)+(cy(i+1)-cy(i))*t,x=cx(i)+(cx(i+1)-cx(i))*t+Math.sin((i+1)*(j+2))*3.8;stars.push(`<i class="galaxyStar ${j%3===0?'small':''} ${j%2===0?'soft':''}" style="left:${x}%;top:${y}px;--tw:${4+j*.7}s;--delay:-${(i+j)*.8}s"></i>`)}}
+  // A: a quiet, translucent stream rather than braided neon lines.
+  // Keep the original descending date order, record IDs, and openBook interaction.
+  const step=146,h=Math.max(270,(items.length-1)*step+150),cy=i=>76+i*step;
+  // Small irregular banks; no repeating sine-wave shape or animated light particles.
+  const anchors=[50,46,52,48,54,49,45,51,47,53];
+  const cx=i=>anchors[i%anchors.length];
+  let d=`M ${cx(0)} ${cy(0)}`;
+  for(let i=1;i<items.length;i++){
+    const y0=cy(i-1),y1=cy(i),mid=(y0+y1)/2;
+    d+=` C ${cx(i-1)} ${mid-15}, ${cx(i)} ${mid+15}, ${cx(i)} ${y1}`;
+  }
   root.style.height=h+'px';
-  root.innerHTML=`<div class="galaxyRiver" style="height:${h}px"><svg class="galaxyRiverSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="galaxyPearl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(250,249,246,.74)"/><stop offset=".26" stop-color="rgba(220,214,242,.62)"/><stop offset=".52" stop-color="rgba(252,251,248,.82)"/><stop offset=".76" stop-color="rgba(215,209,239,.60)"/><stop offset="1" stop-color="rgba(251,250,247,.76)"/></linearGradient></defs><path class="galaxyMist" d="${d}"/><g transform="translate(-1.5 0)"><path class="braidStrand braidS1" d="${d}"/></g><g transform="translate(-.9 0)"><path class="braidStrand braidS2" d="${d}"/></g><g transform="translate(-.3 0)"><path class="braidStrand braidS3" d="${d}"/></g><g transform="translate(.3 0)"><path class="braidStrand braidS4" d="${d}"/></g><g transform="translate(.9 0)"><path class="braidStrand braidS5" d="${d}"/></g><g transform="translate(1.5 0)"><path class="braidStrand braidS6" d="${d}"/></g><path class="braidFlow" d="${d}"/></svg>${stars.join('')}${items.map((e,i)=>{const x=cx(i),y=cy(i),bank=(100-x)>=x?'right':'left',room=Math.max(x,100-x),w=Math.max(116,Math.min(168,Math.round(room*2.55)));return `<article class="galaxyNode ${bank}" data-app-book-id="${esc(e.id)}" style="--rx:${x}%;--ry:${y}px;--bw:${w}px"><span class="galaxyPin"></span><button class="glass contentGlass galaxyBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`}).join('')}</div>`;
+  root.innerHTML=`<div class="naturalRiver" style="height:${h}px">
+    <svg class="naturalRiverSvg" viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="naturalRiverWater" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#e8faf9" stop-opacity=".07"/>
+          <stop offset=".18" stop-color="#e0f6f5" stop-opacity=".26"/>
+          <stop offset=".52" stop-color="#f7ffff" stop-opacity=".35"/>
+          <stop offset=".82" stop-color="#d7f1f0" stop-opacity=".25"/>
+          <stop offset="1" stop-color="#e8faf9" stop-opacity=".06"/>
+        </linearGradient>
+      </defs>
+      <path class="naturalRiverBank" d="${d}"/>
+      <path class="naturalRiverWater" d="${d}"/>
+      <path class="naturalRiverCurrent" d="${d}"/>
+    </svg>
+    ${items.map((e,i)=>`<article class="naturalRiverNode ${i%2?'right':'left'}" data-app-book-id="${esc(e.id)}" style="--ry:${cy(i)}px"><button class="glass contentGlass naturalRiverBubble" type="button"><small>${esc(e.date||dayLabel(e.created_at))}</small><b>${esc(e.title||'今天')}</b></button></article>`).join('')}
+  </div>`;
   root.querySelectorAll('[data-app-book-id]').forEach(el=>el.onclick=e=>{e.stopPropagation();openBook(el.dataset.appBookId)});
-  requestAnimationFrame(()=>{root.querySelectorAll('.galaxyNode').forEach(node=>{const b=node.querySelector('.galaxyBubble');if(!b)return;const r=b.getBoundingClientRect(),host=root.getBoundingClientRect(),pad=12;let dx=0;if(r.left<host.left+pad)dx=host.left+pad-r.left;if(r.right>host.right-pad)dx=host.right-pad-r.right;if(dx)b.style.transform=`translate(${dx}px,-50%)`});if(state.page==='app-river')sc.scrollTop=0})
+  if(state.page==='app-river')sc.scrollTop=0;
 }
 function renderHealthApp(){
   const root=$('#healthAppBody');if(!root)return;

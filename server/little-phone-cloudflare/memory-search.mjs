@@ -62,7 +62,7 @@ export function buildLittlePhoneMemorySea(collections, options = {}) {
   records.sort((a,b)=>b.date.localeCompare(a.date)||a.key.localeCompare(b.key));
   const nodes = records.slice(0,cap);
   const edges = [];
-  const keywords = nodes.map(n => new Set((norm(n.title).match(/[\\p{L}\\p{N}]{3,}/gu)||[]).filter(x=>x.length>=3)));
+  const keywords = nodes.map(n => new Set((norm(n.title).match(/[\p{L}\p{N}]{3,}/gu)||[]).filter(x=>x.length>=3)));
   for(let i=0;i<nodes.length;i++) {
     for(let j=i+1;j<nodes.length;j++) {
       if(edges.length>=400) break;

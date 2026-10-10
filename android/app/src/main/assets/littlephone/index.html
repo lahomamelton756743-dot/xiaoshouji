@@ -2315,7 +2315,7 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 
 
 /* v0.8.5-3 chat: fixed header/composer, independently scrollable messages */
-#page-app-chat.chatAppPage.active{display:flex;flex-direction:column;position:fixed;inset:0;z-index:45;width:100%;max-width:760px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 30px);height:100dvh;min-height:0;overflow:hidden;overscroll-behavior:contain}
+#page-app-chat.chatAppPage.active{display:flex;flex-direction:column;position:fixed;inset:0;z-index:45;width:100%;max-width:760px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 30px)!important;padding-top:calc(env(safe-area-inset-top) + 28px)!important;padding-bottom:calc(env(safe-area-inset-bottom) + 30px)!important;box-sizing:border-box;height:100dvh;min-height:0;overflow:hidden;overscroll-behavior:contain}
 #page-app-chat .chatAppHead{flex:0 0 auto;z-index:2;margin-bottom:8px}
 #page-app-chat .chatMessages{flex:1 1 auto;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:16px}
 #page-app-chat .chatComposer{flex:0 0 auto;position:relative;bottom:auto;margin-top:8px;z-index:2}

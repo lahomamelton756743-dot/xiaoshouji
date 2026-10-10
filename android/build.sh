@@ -27,6 +27,19 @@ fi
 rm -rf "$OUT"
 mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/apk" "$OUT/compiled_res"
 
+# Restore three JPEG header bytes omitted during the GitHub binary transfer.
+# Guarded by exact SHA-256; output matches the user's original downsampled image.
+python3 - <<'PYICON'
+from pathlib import Path
+import hashlib
+p=Path("app/src/main/res/drawable-nodpi/guiqi_icon.jpg")
+b=p.read_bytes()
+if hashlib.sha256(b).hexdigest()=="a53e128de754d2e630da6b9111dc49da7279354a9127b4b9558f0088fa5ad756":
+    b=b[:108]+b"000"+b[108:]
+    assert hashlib.sha256(b).hexdigest()=="ad4578f493d03e36e0ec334f6d274bfb38102cde43645a07fe20869a92d2d333"
+    p.write_bytes(b)
+PYICON
+
 echo "=== Compiling resources ==="
 $BUILD_TOOLS/aapt2 compile --dir "$SRC/res" -o "$OUT/compiled_res/"
 

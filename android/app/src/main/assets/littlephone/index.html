@@ -3682,11 +3682,11 @@ function renderRiverApp(){
       if(a.length>=3&&b.length>=3&&(a.includes(b)||b.includes(a)))edges.push('<line x1="'+pos[i].x+'" y1="'+pos[i].y+'" x2="'+pos[j].x+'" y2="'+pos[j].y+'"/>');
       if(edges.length>=240)break;
     }
-    root.innerHTML=switcher+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="width:'+w+'px;height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><circle cx="'+cx+'" cy="'+cy+'" r="90" fill="none" stroke="rgba(255,220,170,.18)" stroke-width="2"/>'+edges.join('')+'</svg><div class="memoryCore" style="left:'+cx+'px;top:'+cy+'px"><i></i><span>归栖</span></div>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+pos[i].x+'px;top:'+pos[i].y+'px;--star:'+colors[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div></div>';
+    root.innerHTML=switcher+tools+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="width:'+w+'px;height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><circle cx="'+cx+'" cy="'+cy+'" r="90" fill="none" stroke="rgba(255,220,170,.18)" stroke-width="2"/>'+edges.join('')+'</svg><div class="memoryCore" style="left:'+cx+'px;top:'+cy+'px"><i></i><span>归栖</span></div>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+pos[i].x+'px;top:'+pos[i].y+'px;--star:'+colors[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div></div>';
     const viewport=root.querySelector('.memorySeaViewport'),canvas=root.querySelector('.memorySeaCanvas');
-    const fit=Math.min(viewport.clientWidth/1100,viewport.clientHeight/1100,.65);
+    const fit=Math.max(.28,Math.min((viewport.clientWidth||360)/1100,(viewport.clientHeight||440)/1100,.65));
     const initial={x:viewport.clientWidth/2-cx*fit,y:viewport.clientHeight/2-cy*fit,z:fit};
-    let {x,y,z}=root._memoryTransform||initial;const active=new Map();let start=null,dragged=false;
+    let {x,y,z}=initial;const active=new Map();let start=null,dragged=false;
     const apply=()=>{canvas.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';root._memoryTransform={x,y,z}};
     const snapshot=()=>{const pts=[...active.values()];start={x,y,z,pts:pts.map(p=>({...p})),distance:pts.length>1?Math.hypot(pts[1].x-pts[0].x,pts[1].y-pts[0].y):0}};
     viewport.addEventListener('pointerdown',e=>{active.set(e.pointerId,{x:e.clientX,y:e.clientY});viewport.setPointerCapture(e.pointerId);if(active.size===1)dragged=false;snapshot()});

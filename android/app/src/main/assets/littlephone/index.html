@@ -2561,13 +2561,21 @@ body.miniAppMode:not(.desktopMode)::-webkit-scrollbar{display:none!important}
 body.miniAppMode:not(.desktopMode) .shell{min-height:100dvh!important}
 body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 </style><style id="memorySea085">
-#page-app-river .riverAppVerticalShell{background:linear-gradient(180deg,rgba(15,24,57,.86),rgba(27,23,60,.88))!important;min-height:460px}
+#page-app-river{isolation:isolate;background:radial-gradient(ellipse at 55% 37%,rgba(119,80,172,.36),transparent 46%),radial-gradient(ellipse at 12% 75%,rgba(39,82,143,.46),transparent 55%),linear-gradient(150deg,#101832,#171339 60%,#08142c)!important;border-radius:20px}
+#page-app-river .riverAppVerticalShell{background:transparent!important;box-shadow:none!important;border:0!important;min-height:460px;padding:0!important}
+#page-app-river .miniAppHead{background:transparent!important}
+#page-app-river .riverAppVerticalScroller{background:transparent!important;max-height:75vh;overflow:hidden!important}
+#page-app-river .riverAppVerticalTrack{background:transparent!important}
+#page-app-river .riverHint{display:none!important}
 #page-app-river .riverAppVerticalScroller{overflow-y:auto!important}
 #page-app-river .riverAppVerticalTrack{min-height:450px}
-.memorySeaSwitch{display:flex;gap:7px;padding:14px 12px;position:sticky;top:0;z-index:5;background:rgba(20,25,54,.85);backdrop-filter:blur(14px);border-radius:16px}
+.memorySeaSwitch{display:flex;gap:7px;padding:14px 12px;position:sticky;top:0;z-index:5;background:transparent;backdrop-filter:none;border-radius:16px}
 .memorySeaSwitch button{flex:1;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:9px;color:#f3ecff;background:rgba(255,255,255,.07);font-size:13px}
 .memorySeaSwitch button[aria-pressed="true"]{background:rgba(205,186,255,.3);border-color:rgba(255,255,255,.5)}
-.memorySeaCanvas{position:relative;min-height:420px;overflow:hidden;background:radial-gradient(ellipse at 40% 30%,rgba(101,79,160,.24),transparent 55%)}
+.memorySeaViewport{height:62vh;min-height:380px;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
+.memorySeaCanvas{position:relative;min-height:420px;transform-origin:0 0;will-change:transform;background:transparent}
+.memorySeaCanvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#fff9 1px,transparent 1.5px),radial-gradient(#cbb8ff88 .7px,transparent 1.5px),radial-gradient(ellipse at 45% 50%,rgba(132,93,192,.22),transparent 48%);background-size:47px 61px,79px 97px,100% 100%;background-position:8px 14px,23px 44px,0 0}
+.memorySeaViewport:after{content:"双指缩放 · 单指拖动";position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:#ffffffaa;pointer-events:none;white-space:nowrap}
 .memorySeaCanvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .memorySeaCanvas line{stroke:rgba(222,211,255,.26);stroke-width:.65}
 .memoryStar{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#f9f4ff;display:flex;align-items:center;flex-direction:column;gap:6px;max-width:106px;padding:8px;z-index:2}
@@ -3665,11 +3673,29 @@ function renderRiverApp(){
       const a=shown[i],b=shown[j],ta=a.title.trim(),tb=b.title.trim();
       if(ta.length>=3&&tb.length>=3&&(ta.includes(tb)||tb.includes(ta)))edges.push('<line x1="'+pos[i].x+'" y1="'+pos[i].y+'" x2="'+pos[j].x+'" y2="'+pos[j].y+'"/>');
     }
-    root.innerHTML=head+'<div class="memorySeaCanvas" style="height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+edges.join('')+'</svg>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+(pos[i].x/w*100)+'%;top:'+pos[i].y+'px;--star:'+color[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div>';
+    root.innerHTML=head+'<div class="memorySeaViewport"><div class="memorySeaCanvas" style="height:'+h+'px"><svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+edges.join('')+'</svg>'+shown.map((e,i)=>'<button class="memoryStar" data-memory-idx="'+i+'" style="left:'+(pos[i].x/w*100)+'%;top:'+pos[i].y+'px;--star:'+color[e.source]+'"><i></i><span>'+esc(e.title.slice(0,12))+'</span></button>').join('')+'</div>';
+  }
+  const viewport=root.querySelector('.memorySeaViewport'),canvas=root.querySelector('.memorySeaCanvas');
+  if(viewport&&canvas){
+    const saved=root._memoryTransform||{x:0,y:0,z:1};let {x,y,z}=saved;
+    const active=new Map();let start=null,moved=false;
+    const apply=()=>{canvas.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';root._memoryTransform={x,y,z}};
+    const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+    const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+    const capture=()=>{const pts=[...active.values()];start={x,y,z,pts,center:pts.length>1?mid(pts[0],pts[1]):pts[0],distance:pts.length>1?dist(pts[0],pts[1]):0}};
+    viewport.addEventListener('pointerdown',e=>{active.set(e.pointerId,{x:e.clientX,y:e.clientY});viewport.setPointerCapture(e.pointerId);moved=false;capture()});
+    viewport.addEventListener('pointermove',e=>{if(!active.has(e.pointerId))return;active.set(e.pointerId,{x:e.clientX,y:e.clientY});const pts=[...active.values()];if(!start)return;
+      if(pts.length>1&&start.pts.length>1){const c=mid(pts[0],pts[1]),next=Math.max(.6,Math.min(3.5,start.z*dist(pts[0],pts[1])/Math.max(1,start.distance)));x=c.x-(start.center.x-start.x)*next/start.z;y=c.y-(start.center.y-start.y)*next/start.z;z=next;moved=true}
+      else if(pts.length===1){x=start.x+pts[0].x-start.center.x;y=start.y+pts[0].y-start.center.y;if(Math.abs(x-start.x)+Math.abs(y-start.y)>7)moved=true}
+      apply();});
+    const finish=e=>{active.delete(e.pointerId);if(active.size)capture();else{start=null;if(moved){viewport.dataset.justDragged='1';setTimeout(()=>{delete viewport.dataset.justDragged},100)}}};
+    viewport.addEventListener('pointerup',finish);viewport.addEventListener('pointercancel',finish);
+    viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top,next=Math.max(.6,Math.min(3.5,z*(e.deltaY<0?1.12:.89)));x=px-(px-x)*next/z;y=py-(py-y)*next/z;z=next;apply()},{passive:false});
+    apply();
   }
   root.querySelectorAll('[data-memory-mode]').forEach(btn=>btn.onclick=()=>{root.dataset.memoryMode=btn.dataset.memoryMode;renderRiverApp();sc.scrollTop=0});
   root.querySelectorAll('[data-memory-idx]').forEach(btn=>btn.onclick=()=>{
-    const e=shown[Number(btn.dataset.memoryIdx)];if(!e)return;
+    const e=shown[Number(btn.dataset.memoryIdx)];if(!e||root.querySelector('.memorySeaViewport')?.dataset.justDragged)return;
     if(e.source==='dailybook'){openBook(e.id);return}
     const raw=e.raw,content=String(raw.content||raw.body||raw.text||raw.message||raw.description||'');
     openDetail(e.title,'<div class="detailMeta">'+esc(e.date||'')+' · '+esc(e.source)+'</div><div class="detailText">'+esc(content||e.title)+'</div>');

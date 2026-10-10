@@ -1,3 +1,4 @@
+import { searchLittlePhoneMemory } from "./memory-search.mjs";
 // @ts-nocheck
 const VERSION = "0.8.3-xinchao-engine-10.3-events-test1";
 const DEFAULT_DEVICE = "android-phone";
@@ -60,6 +61,7 @@ async function handle(request, env) {
     if (path === "/api/poll") return pollCommand(env, url);
     if (path === "/api/command/status") return commandStatus(env, url);
     if (path === "/api/littlephone/bootstrap") return bootstrapApi(env);
+    if (path === "/api/littlephone/memory-search") return searchMemoryApi(env, url);
     if (path === "/api/littlephone/xinchao") return getXinchaoApi(env);
     if (path === "/api/littlephone/visit/latest") return getLatestVisitApi(env, url);
     if (path === "/api/littlephone/events") return listEventsApi(env, url);
@@ -1130,6 +1132,23 @@ async function listChatMessages(env,limit=300,afterCreatedAt="",afterId=""){
 async function listChatMessagesApi(env,url){
   const afterCreatedAt=clip(url.searchParams.get("after_created_at")||"",80),afterId=clip(url.searchParams.get("after_id")||"",120);
   return json({ok:true,messages:await listChatMessages(env,asLimit(url,300,1000),afterCreatedAt,afterId)});
+}
+
+async function searchMemoryApi(env,url){
+  const query=String(url.searchParams.get("q")||"").slice(0,160);
+  const sources=url.searchParams.getAll("source").flatMap(s=>s.split(",")).filter(Boolean);
+  const from=String(url.searchParams.get("from")||"").slice(0,10);
+  const to=String(url.searchParams.get("to")||"").slice(0,10);
+  const limit=Math.max(1,Math.min(100,Number(url.searchParams.get("limit"))||30));
+  // Read-only. Use the existing authorized D1 readers, never mutate records.
+  const [diaries,memories,papers,mail,capsules,chat,dailybook,dates]=await Promise.all([
+    listDiaries(env,300),listMemories(env,300),listPapers(env,300),
+    listMail(env,300),listCapsules(env,300),listChatMessages(env,500),
+    listDailybook(env,300),listDates(env,300)
+  ]);
+  const result=searchLittlePhoneMemory({diaries,memories,papers,mail,capsules,chat,dailybook,dates},
+    {query,sources:sources.length?sources:undefined,from,to,limit});
+  return json({ok:true,...result,scope:"recent_records",note:"Searches records available through current collection readers; not guaranteed full archive."});
 }
 
 async function bootstrapApi(env){

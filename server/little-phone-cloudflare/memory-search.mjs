@@ -38,40 +38,84 @@ function fuzzyTermMatch(text,term){
   }
   return "";
 }
-/** Search all authorized records; return bounded ranked matches, never mutate data. */
-export function searchLittlePhoneMemory(collections,options={}){
-  const query=norm(options.query).trim();
-  const mode=["exact","fuzzy","auto"].includes(options.mode)?options.mode:"auto";
-  const terms=query.split(/\s+/u).filter(Boolean).slice(0,12);
-  const requested=Array.isArray(options.sources)?options.sources.filter(s=>SOURCES.includes(s)):SOURCES;
-  const limit=clamp(options.limit,30,100);
-  const from=plain(options.from),to=plain(options.to);
-  const exact=[],fuzzy=[];
-  for(const source of requested){
-    const rows=collections?.[source];
-    if(!Array.isArray(rows))continue;
-    for(const row of rows){
-      if(!row||typeof row!=="object"||!row.id)continue;
-      const date=dateOf(row);
-      if(from&&(!date||date.slice(0,10)<from))continue;
-      if(to&&(!date||date.slice(0,10)>to))continue;
-      const full=textOf(row),haystack=norm(full);
-      const isExact=!query||haystack.includes(query);
-      const matchedTerms=terms.map(term=>haystack.includes(term)?term:fuzzyTermMatch(haystack,term)).filter(Boolean);
-      if(query&&!isExact&&(mode==="exact"||!matchedTerms.length))continue;
-      if(mode==="exact"&&!isExact)continue;
-      const match_type=isExact?"exact":"fuzzy";
-      const score=(isExact?100:0)+matchedTerms.reduce((n,term)=>n+(norm(plain(row.title)).includes(term)?3:1),0);
-      const first=matchedTerms.length?haystack.indexOf(matchedTerms[0]):0;
-      const start=Math.max(0,first-65);
-      const item={match_type,matched_terms:[...new Set(matchedTerms)],score,source,id:String(row.id),date,title:plain(row.title||row.name),snippet:full.slice(start,start+TEXT_MAX)};
-      (isExact?exact:fuzzy).push(item);
-    }
+const STOP=new Set(["我","你","他","她","它","我们","你们","他们","然后","感觉","好像","就是","这个","那个","一些","什么","怎么","时候","一个","已经","还是","以及","因为","所以","可以","有没有","关于","曾经","以前","一下","帮我","找找"]);
+function tokenize(q){
+  const words=[];
+  for(const chunk of (norm(q).match(/[\p{Script=Han}]+|[a-z0-9]+/gu)||[])){
+    if(/^[\p{Script=Han}]+$/u.test(chunk)){
+      for(let n=2;n<=4;n++)for(let i=0;i+n<=chunk.length;i++){
+        const w=chunk.slice(i,i+n);
+        if(!STOP.has(w)&&!STOP.has(chunk))words.push(w);
+      }
+      if(chunk.length<=4&&!STOP.has(chunk))words.push(chunk);
+    }else if(!STOP.has(chunk))words.push(chunk);
   }
-  const sort=(a,b)=>b.score-a.score||b.date.localeCompare(a.date)||a.source.localeCompare(b.source)||a.id.localeCompare(b.id);
-  exact.sort(sort);fuzzy.sort(sort);
-  const results=mode==="exact"?exact:mode==="fuzzy"?[...exact,...fuzzy].sort(sort):[...exact,...fuzzy];
-  return {query:plain(options.query||""),mode,total:results.length,results:results.slice(0,limit),truncated:results.length>limit};
+  return [...new Set(words)].slice(0,64);
+}
+function countOccurrences(text,term){
+  let n=0,pos=0;
+  while((pos=text.indexOf(term,pos))>=0){n++;pos+=term.length;}
+  return n;
+}
+function relevantTokens(text){
+  return tokenize(text).length||1;
+}
+function relatedEvent(a,b){
+  if(!a.date||!b.date||a.date.slice(0,10)!==b.date.slice(0,10))return false;
+  const ta=new Set(tokenize(a.title||a.snippet.slice(0,80)));
+  const tb=tokenize(b.title||b.snippet.slice(0,80));
+  return tb.some(t=>t.length>=3&&ta.has(t));
+}
+/** Read-only hybrid search: phrase-first, weighted BM25, bounded output. */
+export function searchLittlePhoneMemory(collections,options={}){
+  const queries=(Array.isArray(options.queries)?options.queries:[options.query]).map(q=>norm(q).trim()).filter(Boolean).slice(0,12);
+  const mode=["exact","fuzzy","auto"].includes(options.mode)?options.mode:"auto";
+  const requested=Array.isArray(options.sources)?options.sources.filter(s=>SOURCES.includes(s)):SOURCES;
+  const limit=clamp(options.limit,30,100),from=plain(options.from),to=plain(options.to);
+  const records=[],seen=new Set();
+  for(const source of requested)for(const row of collections?.[source]||[]){
+    if(!row||typeof row!=="object"||!row.id)continue;
+    const id=String(row.id),key=source+":"+id;
+    if(seen.has(key))continue;
+    const date=dateOf(row);
+    if(from&&(!date||date.slice(0,10)<from))continue;
+    if(to&&(!date||date.slice(0,10)>to))continue;
+    seen.add(key);
+    const full=textOf(row);
+    records.push({source,id,date,title:plain(row.title||row.name),full,haystack:norm(full),length:relevantTokens(full)});
+  }
+  const allTerms=[...new Set(queries.flatMap(tokenize))];
+  const df=new Map(allTerms.map(t=>[t,records.reduce((n,r)=>n+(r.haystack.includes(t)?1:0),0)]));
+  const avg=records.reduce((n,r)=>n+r.length,0)/Math.max(1,records.length);
+  const results=[];
+  for(const r of records){
+    const phrases=queries.filter(q=>r.haystack.includes(q));
+    const matched=new Set();
+    let score=0;
+    for(const term of allTerms){
+      let hit=r.haystack.includes(term)?term:"";
+      if(!hit&&mode!=="exact")hit=fuzzyTermMatch(r.haystack,term);
+      if(!hit)continue;
+      matched.add(hit);
+      const tf=countOccurrences(r.haystack,hit),idf=Math.log(1+(records.length-(df.get(term)||0)+0.5)/((df.get(term)||0)+0.5));
+      score+=idf*(tf*2.2)/(tf+1.2*(0.25+0.75*r.length/Math.max(1,avg)))*(r.title.includes(hit)?2.5:1);
+    }
+    if(mode==="exact"&&!phrases.length)continue;
+    if(mode!=="exact"&&!phrases.length&&!matched.size)continue;
+    const exact=phrases.length>0;
+    score+=exact?1000+phrases.reduce((n,q)=>n+q.length*10,0):0;
+    const first=phrases[0]||[...matched][0]||"";
+    const start=Math.max(0,r.haystack.indexOf(first)-65);
+    results.push({match_type:exact?"exact":"fuzzy",matched_terms:[...new Set([...phrases,...matched])],score:Math.round(score*100)/100,source:r.source,id:r.id,date:r.date,title:r.title,snippet:r.full.slice(start,start+TEXT_MAX)});
+  }
+  results.sort((a,b)=>b.score-a.score||b.date.localeCompare(a.date)||a.source.localeCompare(b.source)||a.id.localeCompare(b.id));
+  const groups=[];
+  for(const item of results){
+    let group=groups.find(g=>relatedEvent(g.representative,item));
+    if(!group){group={id:item.source+":"+item.id,representative:item};groups.push(group);}
+    item.event_group_id=group.id;
+  }
+  return {query:plain(options.query||""),queries:queries.map(String),mode,total:results.length,results:results.slice(0,limit),truncated:results.length>limit};
 }
 
 /**

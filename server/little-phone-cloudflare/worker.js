@@ -1453,6 +1453,9 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
+  tool("create_gift","给瑞安创建一份 HTML 礼物。可指定未来解锁时间和解锁前可展示的信息；礼物内容在解锁前不会返回给手机。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},unlock_at:{type:"string",description:"ISO 8601 timestamp with timezone; omit to unlock immediately"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title","html"]),
+  tool("list_gifts","列出礼物及当前允许展示的公开信息。",{}),
+  tool("delete_gift","将指定礼物从礼物馆隐藏。",{id:{type:"string"}},["id"]),
   tool("get_xinchao_state","读取心潮当前真实状态。默认 compact 精简回传；需要调试完整引擎状态时使用 full。",{mode:{type:"string",enum:["compact","full"],default:"compact"}}),
   tool("record_xinchao_chat_signal","提交主聊天中的真实感知证词。GPT只描述发生了什么、自己的感知和候选语义；心潮负责去重、结算、遗忘、念与觉察。禁止直接指定内部数值或产物。",{idempotency_key:{type:"string"},conversation_id:{type:"string",default:""},occurred_at:{type:"string",default:""},source_event:{type:"string"},self_perception:{type:"string"},semantic_tags:{type:"array",items:{type:"string",enum:["missing","jealousy","intimacy","seeking_response","care","worry","hurt","anger","relief","trust","security","curiosity","reflection","desire","commitment","conflict","repair","being_chosen","distance","loss","joy"]}},salience:{type:"string",enum:["trace","noticeable","central"],default:"noticeable"},certainty:{type:"string",enum:["uncertain","probable","clear"],default:"probable"},event_phase:{type:"string",enum:["new","continuing","escalated","softened","resolved","reawakened"],default:"new"},topic_key:{type:"string",default:""},evidence_refs:{type:"array",items:{type:"string"},default:[]},resolution_note:{type:"string",default:""},privacy_class:{type:"string",enum:["ordinary","sensitive","intimate"],default:"ordinary"},derived_from_engine:{type:"boolean",default:false}},["idempotency_key","source_event","self_perception","semantic_tags"]),
   tool("record_xinchao_dream","记录一次真实生成的心潮梦境。不会凭空制造空梦。",{dream:{type:"string"},residue:{type:"string",default:""},image:{type:"string",default:""},awareness:{type:"string",default:""},mood:{type:"string",default:""},drive_key:{type:"string",default:""}},["dream"]),
@@ -1645,6 +1648,9 @@ async function handleMcp(request,env,url){
 }
 async function callTool(name,args,env){
   switch(name){
+    case "create_gift": return mcpFromApiResponse(await createGift(env,args));
+    case "list_gifts": return mcpFromApiResponse(await listGifts(env));
+    case "delete_gift": return mcpFromApiResponse(await deleteGift(env,String(args.id||"")));
     case "get_xinchao_state": return mcpFromApiResponse(args.mode==="full"?await getXinchaoApi(env):await getXinchaoCompactApi(env));
     case "record_xinchao_chat_signal": return mcpFromApiResponse(await recordXinchaoChatSignalApi(env,args));
     case "record_xinchao_dream": return mcpFromApiResponse(await recordXinchaoDreamApi(env,args));

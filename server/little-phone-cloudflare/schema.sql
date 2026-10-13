@@ -252,3 +252,12 @@ CREATE TABLE IF NOT EXISTS lp_oauth_tokens (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_lp_oauth_tokens_refresh ON lp_oauth_tokens(refresh_hash);
+
+-- Gift metadata; HTML is stored in LITTLEPHONE_GIFTS R2 or inline D1 fallback.
+CREATE TABLE IF NOT EXISTS lp_gifts (
+ id TEXT PRIMARY KEY, title TEXT NOT NULL, message TEXT NOT NULL DEFAULT '',
+ preview_mode TEXT NOT NULL DEFAULT 'none', unlock_at TEXT,
+ created_at TEXT NOT NULL, content_key TEXT, html_inline TEXT,
+ content_type TEXT NOT NULL DEFAULT 'text/html', deleted INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_lp_gifts_created ON lp_gifts(created_at DESC);

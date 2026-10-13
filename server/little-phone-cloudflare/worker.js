@@ -1,3 +1,4 @@
+import { listGifts, openGift, createGift, deleteGift } from "./gifts.mjs";
 import { searchLittlePhoneMemory } from "./memory-search.mjs";
 // @ts-nocheck
 const VERSION = "0.8.3-xinchao-engine-10.3-events-test1";
@@ -61,6 +62,8 @@ async function handle(request, env) {
     if (path === "/api/poll") return pollCommand(env, url);
     if (path === "/api/command/status") return commandStatus(env, url);
     if (path === "/api/littlephone/bootstrap") return bootstrapApi(env);
+    if (path === "/api/littlephone/gifts") return listGifts(env);
+    if (/^\\/api\\/littlephone\\/gifts\\/[^/]+\\/open$/.test(path)) return openGift(env, decodeURIComponent(path.split("/")[4]));
     if (path === "/api/littlephone/memory-search") return searchMemoryApi(env, url);
     if (path === "/api/littlephone/xinchao") return getXinchaoApi(env);
     if (path === "/api/littlephone/visit/latest") return getLatestVisitApi(env, url);
@@ -101,6 +104,8 @@ async function handle(request, env) {
     if (path === "/api/device/state") return json({ ok: true, ignored: true, reason: "little_phone_does_not_persist_periodic_device_state" });
     if (path === "/api/littlephone/events") return addManualEventApi(env, await readJson(request));
     if (path === "/api/littlephone/papers") return addPaperApi(env, await readJson(request));
+    if (path === "/api/littlephone/gifts") return createGift(env, await readJson(request));
+    if (path === "/api/littlephone/gifts/delete") return deleteGift(env, String((await readJson(request)).id||""));
     if (path === "/api/littlephone/dailybook") return addDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/dailybook/update") return updateDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries") return addDiaryApi(env, await readJson(request));

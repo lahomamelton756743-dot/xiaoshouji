@@ -4121,6 +4121,7 @@ function loadDesktopLayout(){
     state.desktopLayout.pages=Math.max(Number(state.desktopLayout.pages)||1,spot.page+1);
     saveDesktopLayout();
   }
+  desktopEnsureGiftIcon();
 }
 /* Migrate existing personalized desktops without resetting their saved arrangement. */
 function desktopEnsureGiftIcon(){
@@ -4135,7 +4136,6 @@ function desktopEnsureGiftIcon(){
  items.push({id:'app:gift',kind:'app',app:'gift',area:'page',...spot,w:1,h:1});
  state.desktopLayout.pages=Math.max(Number(state.desktopLayout.pages)||2,spot.page+1);
  saveDesktopLayout();
-  desktopEnsureGiftIcon();
 }
 function saveDesktopLayout(){desktopEnsureState();localDataSet(DESKTOP_LAYOUT_KEY,JSON.stringify(state.desktopLayout));}
 function desktopItems(){desktopEnsureState();return state.desktopLayout.items||[]}

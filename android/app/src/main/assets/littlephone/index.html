@@ -3765,10 +3765,10 @@ function showCalendarRecord(ds){
  $('#calendarRecordAdd').onclick=()=>{setDateModalMode(false);resetDateForm();$('#dateValue').value=ds;renderDates();show('#dateModal')};
  $('#calendarRecordClose').onclick=()=>panel.hidden=true;
 }
-function searchCalendarRecords(){
+async function searchCalendarRecords(){
  const q=($('#calendarSearchInput')?.value||'').trim().toLocaleLowerCase(),root=$('#calendarSearchResults');if(!root)return;
  if(!q){root.innerHTML='<div class="meta" style="margin-top:12px">输入关键词，可搜索所有年份。</div>';return}
- const hits=(state.dates||[]).filter(x=>[x.title,x.note,x.date].some(v=>String(v||'').toLocaleLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ let hits=(state.dates||[]).filter(x=>[x.title,x.note,x.date].some(v=>String(v||'').toLocaleLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));try{const remote=await nativeRequest('GET','/api/littlephone/dates/search?q='+encodeURIComponent(q));if(($('#calendarSearchInput')?.value||'').trim().toLocaleLowerCase()!==q)return;if(Array.isArray(remote.dates)){const all=new Map([...hits,...remote.dates].map(x=>[String(x.id),x]));hits=[...all.values()].sort((a,b)=>String(b.date).localeCompare(String(a.date)))}}catch{}
  root.innerHTML=hits.length?hits.map(x=>'<button class="glass contentGlass" data-record-date="'+esc(x.date)+'" style="display:block;width:100%;text-align:left;margin-top:9px;padding:12px"><b>'+esc(x.title||'重要日期')+'</b><small style="display:block;margin-top:4px">'+esc(x.date)+'</small><span style="display:block;white-space:pre-wrap;margin-top:5px;font-size:12px">'+esc((x.note||'').slice(0,110))+'</span></button>').join(''):'<div class="meta" style="margin-top:12px">没有找到相关记录</div>';
  root.querySelectorAll('[data-record-date]').forEach(b=>b.onclick=()=>{const ds=b.dataset.recordDate,d=new Date(ds+'T12:00:00');if(!isNaN(d)){const now=new Date();state.appCalendarOffset=(d.getFullYear()-now.getFullYear())*12+d.getMonth()-now.getMonth();renderCalendarApp()}showCalendarRecord(ds)});
 }

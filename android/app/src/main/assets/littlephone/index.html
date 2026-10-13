@@ -4058,7 +4058,7 @@ function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings
 
 
 const DESKTOP_LAYOUT_KEY='lp_v081_desktop_layout_v3';
-const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},xinchao:{app:'xinchao',label:'心潮',icon:'♥'},settings:{app:'settings',label:'设置',icon:'⚙'}};
+const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},xinchao:{app:'xinchao',label:'心潮',icon:'♥'},gift:{app:'gift',label:'礼物',icon:'♧'},settings:{app:'settings',label:'设置',icon:'⚙'}};
 const DESKTOP_WIDGETS={
   weather:{label:'时钟天气',w:4,h:2,open:'status',desc:'时间、城市和天气。',mode:'compact'},
   together:{label:'相伴天数',w:2,h:2,open:'desktop',desc:'在一起的天数。',mode:'compact'},
@@ -4121,6 +4121,21 @@ function loadDesktopLayout(){
     state.desktopLayout.pages=Math.max(Number(state.desktopLayout.pages)||1,spot.page+1);
     saveDesktopLayout();
   }
+}
+/* Migrate existing personalized desktops without resetting their saved arrangement. */
+function desktopEnsureGiftIcon(){
+ desktopEnsureState();const items=state.desktopLayout.items||[];
+ if(items.some(x=>x.kind==='app'&&x.app==='gift'))return;
+ const page=Math.max(1,desktopPagesCount()-1);let spot=null;
+ for(let row=1;row<=6&&!spot;row++)for(let col=1;col<=4;col++){
+  const occupied=items.some(x=>x.area==='page'&&Number(x.page||0)===page&&row>=Number(x.row||1)&&row<Number(x.row||1)+Number(x.h||1)&&col>=Number(x.col||1)&&col<Number(x.col||1)+Number(x.w||1));
+  if(!occupied){spot={page,row,col};break;}
+ }
+ if(!spot)spot={page:page+1,row:1,col:1};
+ items.push({id:'app:gift',kind:'app',app:'gift',area:'page',...spot,w:1,h:1});
+ state.desktopLayout.pages=Math.max(Number(state.desktopLayout.pages)||2,spot.page+1);
+ saveDesktopLayout();
+  desktopEnsureGiftIcon();
 }
 function saveDesktopLayout(){desktopEnsureState();localDataSet(DESKTOP_LAYOUT_KEY,JSON.stringify(state.desktopLayout));}
 function desktopItems(){desktopEnsureState();return state.desktopLayout.items||[]}

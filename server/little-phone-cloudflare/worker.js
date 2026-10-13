@@ -63,7 +63,7 @@ async function handle(request, env) {
     if (path === "/api/command/status") return commandStatus(env, url);
     if (path === "/api/littlephone/bootstrap") return bootstrapApi(env);
     if (path === "/api/littlephone/gifts") return listGifts(env);
-    if (/^\\/api\\/littlephone\\/gifts\\/[^/]+\\/open$/.test(path)) return openGift(env, decodeURIComponent(path.split("/")[4]));
+    if (path.startsWith("/api/littlephone/gifts/") && path.endsWith("/open") && path.split("/").length === 6) return openGift(env, decodeURIComponent(path.split("/")[4]));
     if (path === "/api/littlephone/memory-search") return searchMemoryApi(env, url);
     if (path === "/api/littlephone/xinchao") return getXinchaoApi(env);
     if (path === "/api/littlephone/visit/latest") return getLatestVisitApi(env, url);

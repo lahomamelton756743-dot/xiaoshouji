@@ -2495,6 +2495,29 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .miniSearchCount{white-space:nowrap;color:#697a91;font-size:11px}
 .chatAppHead .chatSearchIcon{margin-left:auto!important}
 .chatAppHead .chatSettingsBtn{position:static!important;inset:auto!important;transform:none!important;flex-shrink:0!important}
+
+/* Gift app — uses the same glass surfaces as the other mini apps. */
+#page-app-gift .giftSummary{padding:17px;border-radius:19px;margin:17px 0 21px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;color:#6b7c97;background:rgba(233,240,251,.55)}
+#page-app-gift .giftSummary span{width:100%;font-size:12px}
+#page-app-gift .giftSummary strong{font-size:32px;color:#415678;font-weight:650}
+#page-app-gift .giftSummary small{font-size:12px}
+#page-app-gift .giftListHead{display:flex;align-items:center;justify-content:space-between;margin:0 4px 12px;color:#455977;font-size:14px}
+#page-app-gift .giftCard{width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.5);border-radius:19px;padding:12px;display:flex;align-items:center;gap:13px;text-align:left;color:#435674;margin-bottom:11px;box-shadow:0 6px 20px rgba(80,100,140,.05)}
+#page-app-gift .giftIcon{width:65px;height:65px;border-radius:15px;background:rgba(225,234,247,.8);display:grid;place-items:center;flex-shrink:0;font-size:27px;color:#8598b9}
+#page-app-gift .giftCardText{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+#page-app-gift .giftCardText b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+#page-app-gift .giftCardText small{font-size:11px;color:#8391a7}
+#page-app-gift .giftArrow{color:#9baac1;font-size:22px}
+#page-app-gift .giftBack{background:none;border:0;color:#627897;font-size:14px;padding:14px 2px}
+#page-app-gift .giftCover{height:155px;width:155px;max-width:80%;background:rgba(226,235,249,.75);border-radius:23px;display:grid;place-items:center;font-size:42px;color:#8094b6;margin:22px auto}
+#page-app-gift .giftTitle{text-align:center;font-size:19px;color:#405473;margin:12px 0 6px}
+#page-app-gift .giftStatus{text-align:center;color:#8392aa;font-size:12px;margin-bottom:24px}
+#page-app-gift .giftInfo{padding:17px;border-radius:19px;background:rgba(255,255,255,.55);color:#526783;font-size:13px;line-height:1.9}
+#page-app-gift .giftInfoRow{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(130,151,180,.14);padding:8px 0}
+#page-app-gift .giftInfoRow:last-child{border:0}
+#page-app-gift .giftAction{display:block;width:100%;margin-top:18px;padding:13px;border:0;border-radius:15px;background:#748bad;color:white;font-size:14px}
+#page-app-gift .giftAction:disabled{background:#dbe2ed;color:#7788a2}
+#page-app-gift #giftFrame{width:100%;height:calc(100dvh - 175px);min-height:340px;border:0;border-radius:15px;background:white}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -2679,6 +2702,7 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
           <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">电话</span></button>
           <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
           <button class="desktopApp" data-open-app="xinchao"><span class="desktopAppIcon glass xinchaoDesktopIcon"><span>≈</span></span><span class="desktopAppLabel">心潮</span></button>
+          <button class="desktopApp" data-open-app="gift"><span class="desktopAppIcon glass"><span>♧</span></span><span class="desktopAppLabel">礼物</span></button>
           <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
           
         </div>
@@ -2865,7 +2889,18 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
       <div class="appList" id="memoryAppList"></div>
     </section>
 
-    <section class="page phoneAppPage" id="page-app-mail">
+    <section class="page phoneAppPage" id="page-app-gift">
+ <div class="miniAppHead"><div class="miniAppTitle">礼物<small>知归送来的小小惊喜</small></div></div>
+ <div id="giftGallery">
+  <div class="giftSummary glass"><span>收藏的礼物</span><strong id="giftCount">00</strong><small id="giftWaiting">份礼物 · 0 份等待开启</small></div>
+  <div class="giftListHead"><b>全部礼物</b><button class="appSearchIcon" type="button" data-search-toggle="gift" aria-label="搜索礼物">⌕</button></div>
+  <div class="appSearchBar" data-search-bar="gift" hidden><input type="search" data-search-input="gift" placeholder="搜索礼物名称、留言、日期…" autocomplete="off"><button type="button" data-search-close="gift">取消</button></div>
+  <div id="giftList" class="appList"></div>
+ </div>
+ <div id="giftDetail" hidden><button type="button" class="giftBack" data-gift-back="gallery">‹ 返回礼物馆</button><div id="giftDetailBody"></div></div>
+ <div id="giftViewer" hidden><button type="button" class="giftBack" data-gift-back="detail">‹ 关闭礼物</button><iframe id="giftFrame" title="礼物内容" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div>
+</section>
+<section class="page phoneAppPage" id="page-app-mail">
       <div class="miniAppHead"><div class="miniAppTitle">信箱<small>普通信与未来信</small></div><div class="miniAppActions"><button class="softBtn" data-compose="capsule">未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
       <div class="mailKindTabs appMailKindTabs" role="tablist" aria-label="信件分类"><button type="button" class="mailKindTab active" data-app-mail-kind="normal" aria-selected="true">普通信</button><button type="button" class="mailKindTab" data-app-mail-kind="future" aria-selected="false">未来信</button><button type="button" class="appSearchIcon" data-search-toggle="mail" aria-label="搜索信件" title="搜索信件">⌕</button></div>
       <div class="appSearchBar" data-search-bar="mail" hidden><input type="search" data-search-input="mail" placeholder="搜索普通信和未来信内容、日期…" autocomplete="off"><button type="button" data-search-close="mail">取消</button></div>
@@ -2987,7 +3022,7 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,journalReadPosition:null,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false,xinchaoTab:'now',xinchao:{connected:false}};
-const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-xinchao':['心潮',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
+const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-gift':['礼物',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-xinchao':['心潮',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -3043,7 +3078,7 @@ function setUsHubTab(tab,scrollTop=false){
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }
 function openMiniApp(app){
-  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',river:'app-river',chat:'app-chat',health:'app-health',xinchao:'app-xinchao',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
+  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',gift:'app-gift',river:'app-river',chat:'app-chat',health:'app-health',xinchao:'app-xinchao',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
   const page=map[app]||'desktop';go(page);
 }
 function go(page,push=true){
@@ -3067,6 +3102,7 @@ function go(page,push=true){
   if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournalV2();return}
   if(page==='app-papers')renderPaperApp();
   if(page==='app-memory')renderMemoryApp();
+  if(page==='app-gift'){renderGiftApp();loadGiftApp();}
   if(page==='app-mail'){renderMailApp();setAppMailKindTab(state.appMailKindTab||'normal');}
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
@@ -3628,10 +3664,39 @@ function renderDesktopSystemBar(){
   if($('#desktopBatteryFill'))$('#desktopBatteryFill').style.width=`${battery}%`;
 }
 function renderDesktopShell(){renderDesktopSystemBar();applyAvatars();applyIdentityTheme()}
+
+/* Gift app: metadata is read from the server, never unlocked on the client. */
+const giftStore={items:[],selected:null,query:'',loading:false,loaded:false,view:'gallery'};
+function giftSafeDate(v){if(!v)return '';const d=new Date(v);return Number.isNaN(d.getTime())?String(v).slice(0,24):d.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'});}
+function giftPublic(g){return g&&g.unlocked!==false&&g.status!=='locked'&&g.locked!==true;}
+function giftAllowedText(g){return [g.title,g.name,g.message,g.preview_message,g.created_at,g.unlock_at].filter(Boolean).join(' ');}
+function renderGiftApp(){
+ const gallery=$('#giftGallery'),detail=$('#giftDetail'),viewer=$('#giftViewer');if(!gallery||!detail||!viewer)return;
+ gallery.hidden=giftStore.view!=='gallery';detail.hidden=giftStore.view!=='detail';viewer.hidden=giftStore.view!=='viewer';
+ const list=$('#giftList');const items=giftStore.items;
+ $('#giftCount').textContent=String(items.length).padStart(2,'0');$('#giftWaiting').textContent='份礼物 · '+items.filter(g=>!giftPublic(g)).length+' 份等待开启';
+ const q=giftStore.query.trim().toLocaleLowerCase();const found=items.filter(g=>giftAllowedText(g).toLocaleLowerCase().includes(q));
+ list.innerHTML=found.length?found.map(g=>{const unlocked=giftPublic(g);const name=g.title||g.name||(unlocked?'未命名的礼物':'神秘礼物');return '<button type="button" class="giftCard" data-gift-id="'+esc(g.id)+'"><span class="giftIcon">'+(unlocked?'✧':'♧')+'</span><span class="giftCardText"><b>'+esc(name)+'</b><small>'+esc(giftSafeDate(g.created_at||g.unlock_at))+'</small><small>'+(unlocked?'已经可以打开':'等待开启')+'</small></span><span class="giftArrow">›</span></button>'}).join(''):'<div class="glass appEmpty">'+(giftStore.loading?'正在读取礼物…':q?'没有找到这份礼物':giftStore.loaded?'还没有收到礼物。':'连接后查看礼物。')+'</div>';
+ if(giftStore.view==='detail')renderGiftDetail();
+}
+function renderGiftDetail(){const g=giftStore.selected;if(!g)return;const unlocked=giftPublic(g);const title=g.title||g.name||(unlocked?'未命名的礼物':'神秘礼物');const note=g.message||g.preview_message||'知归还没有留下可展示的留言。';const date=giftSafeDate(unlocked?g.created_at:g.unlock_at);
+ $('#giftDetailBody').innerHTML='<div class="giftCover">'+(unlocked?'✧':'♧')+'</div><div class="giftTitle">'+esc(title)+'</div><div class="giftStatus">'+(unlocked?'已经解锁':'等待开启')+'</div><div class="giftInfo"><div class="giftInfoRow"><span>赠送者</span><span>知归</span></div><div class="giftInfoRow"><span>'+(unlocked?'收到时间':'解锁时间')+'</span><span>'+esc(date||'暂不公开')+'</span></div><div>知归的话</div><div>'+esc(note)+'</div></div><button class="giftAction" data-gift-open '+(unlocked?'':'disabled')+'>'+(unlocked?'打开礼物':'尚未解锁')+'</button>';
+}
+async function loadGiftApp(){if(giftStore.loading||!state.conn.connected)return;giftStore.loading=true;renderGiftApp();try{const d=await nativeRequest('GET','/api/littlephone/gifts');giftStore.items=(Array.isArray(d)?d:Array.isArray(d.gifts)?d.gifts:[]).filter(g=>g&&g.id!=null);giftStore.items.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));giftStore.loaded=true;}catch(e){console.warn('gift list unavailable',e);giftStore.loaded=false;}finally{giftStore.loading=false;renderGiftApp();}}
+function giftCloseViewer(){const frame=$('#giftFrame');if(frame)frame.removeAttribute('src');giftStore.view='detail';renderGiftApp();}
+document.addEventListener('click',async function(e){
+ const toggle=e.target.closest('[data-search-toggle="gift"]');if(toggle){e.preventDefault();const bar=$('[data-search-bar="gift"]');bar.hidden=false;$('[data-search-input="gift"]').focus();return;}
+ const cancel=e.target.closest('[data-search-close="gift"]');if(cancel){e.preventDefault();giftStore.query='';$('[data-search-input="gift"]').value='';$('[data-search-bar="gift"]').hidden=true;renderGiftApp();return;}
+ const card=e.target.closest('[data-gift-id]');if(card){giftStore.selected=giftStore.items.find(g=>String(g.id)===card.dataset.giftId)||null;giftStore.view='detail';renderGiftApp();return;}
+ const back=e.target.closest('[data-gift-back]');if(back){if(giftStore.view==='viewer')giftCloseViewer();else{giftStore.view='gallery';renderGiftApp();}return;}
+ const open=e.target.closest('[data-gift-open]');if(open&&giftStore.selected&&giftPublic(giftStore.selected)){const g=giftStore.selected;try{const d=await nativeRequest('GET','/api/littlephone/gifts/'+encodeURIComponent(g.id)+'/open');if(!d||typeof d.html!=='string')throw Error('礼物内容暂不可用');const frame=$('#giftFrame');frame.srcdoc=d.html;giftStore.view='viewer';renderGiftApp();}catch(err){toast(err.message||'礼物打开失败');}}
+});
+document.addEventListener('input',function(e){if(e.target.matches('[data-search-input="gift"]')){giftStore.query=e.target.value;renderGiftApp();}});
+
 function renderMiniApps(){
   // Health is intentionally lazy: the cached Xiaomi payload can be large.
   // Rendering every field during app boot caused WebView memory spikes.
-  renderPaperApp();renderMemoryApp();renderMailApp();setAppMailKindTab(state.appMailKindTab||'normal');miniRefreshSearch();renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
+  renderPaperApp();renderMemoryApp();renderMailApp();renderGiftApp();setAppMailKindTab(state.appMailKindTab||'normal');miniRefreshSearch();renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
   if(state.page==='app-health')renderHealthAppV2();
 }
 async function sendPaperReplyFromApp(rootId){

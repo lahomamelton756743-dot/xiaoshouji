@@ -2469,6 +2469,10 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .mailKindPanel{display:none!important}.mailKindPanel.active{display:block!important}
 /* Hearts always occupy the upper-right corner, even with multiple layered marks. */
 .calendarMarkLayer.layer-heart{top:1px!important;right:1px!important;left:auto!important;bottom:auto!important;transform:none!important;z-index:8}
+
+#page-app-mail .appMailKindTabs{margin:16px 0 18px}
+#page-app-mail .appMailKindPanel{display:none!important}
+#page-app-mail .appMailKindPanel.active{display:block!important}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -2840,8 +2844,9 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 
     <section class="page phoneAppPage" id="page-app-mail">
       <div class="miniAppHead"><div class="miniAppTitle">信箱<small>普通信与未来信</small></div><div class="miniAppActions"><button class="softBtn" data-compose="capsule">未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
-      <div class="appSectionTitle">普通信</div><div id="mailAppNormal"></div>
-      <div class="appSectionTitle">未来信</div><div id="mailAppFuture"></div>
+      <div class="mailKindTabs appMailKindTabs" role="tablist" aria-label="信件分类"><button type="button" class="mailKindTab active" data-app-mail-kind="normal" aria-selected="true">普通信</button><button type="button" class="mailKindTab" data-app-mail-kind="future" aria-selected="false">未来信</button></div>
+      <div class="appMailKindPanel active" data-app-mail-panel="normal"><div id="mailAppNormal"></div></div>
+      <div class="appMailKindPanel" data-app-mail-panel="future"><div id="mailAppFuture"></div></div>
     </section>
 
     <section class="page phoneAppPage chatAppPage" id="page-app-chat">
@@ -3038,7 +3043,7 @@ function go(page,push=true){
   if(page==='diary'){if(!same){state.journalCoverOpen=true;state.journalIndex=-1}renderJournalV2();return}
   if(page==='app-papers')renderPaperApp();
   if(page==='app-memory')renderMemoryApp();
-  if(page==='app-mail')renderMailApp();
+  if(page==='app-mail'){renderMailApp();setAppMailKindTab(state.appMailKindTab||'normal');}
   if(page==='app-river')renderRiverApp();
   if(page==='app-chat'){loadChatCache();renderChatApp();refreshChatMessages();}
   if(page==='app-health'){openHealthAppV2()}
@@ -3602,7 +3607,7 @@ function renderDesktopShell(){renderDesktopSystemBar();applyAvatars();applyIdent
 function renderMiniApps(){
   // Health is intentionally lazy: the cached Xiaomi payload can be large.
   // Rendering every field during app boot caused WebView memory spikes.
-  renderPaperApp();renderMemoryApp();renderMailApp();renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
+  renderPaperApp();renderMemoryApp();renderMailApp();setAppMailKindTab(state.appMailKindTab||'normal');renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
   if(state.page==='app-health')renderHealthAppV2();
 }
 async function sendPaperReplyFromApp(rootId){
@@ -3626,6 +3631,8 @@ function renderMemoryApp(){
   root.querySelectorAll('[data-app-memory-correct]').forEach(b=>b.onclick=()=>correctMemory(b.dataset.appMemoryCorrect));
   root.querySelectorAll('[data-app-memory-delete]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/memories/delete',b.dataset.appMemoryDelete,'这条记忆'));
 }
+function setAppMailKindTab(kind){const next=kind==='future'?'future':'normal';state.appMailKindTab=next;$('[data-app-mail-panel]').forEach(p=>p.classList.toggle('active',p.dataset.appMailPanel===next));$('[data-app-mail-kind]').forEach(b=>{const on=b.dataset.appMailKind===next;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-app-mail-kind]');if(b)setAppMailKindTab(b.dataset.appMailKind)});
 function renderMailApp(){
   const normal=$('#mailAppNormal'),future=$('#mailAppFuture');if(!normal||!future)return;
   const roots=unifiedMailItems();

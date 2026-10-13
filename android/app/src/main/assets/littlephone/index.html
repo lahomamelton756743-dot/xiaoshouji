@@ -2485,6 +2485,16 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 #page-app-mail .appMailKindPanel.searchAll[hidden]{display:none!important}
 #page-app-mail .mailAppCard[hidden],#paperAppList .paperThreadCard[hidden],#memoryAppList .memoryItem[hidden],#chatMessages .chatGroup[hidden],#chatMessages .chatDateDivider[hidden]{display:none!important}
 .chatSearchIcon{margin-left:auto;flex-shrink:0}.chatAppHead .chatSettingsBtn{position:static!important;inset:auto!important;transform:none!important;flex-shrink:0;margin-left:0!important}.chatAppHead{display:flex!important;align-items:center!important;gap:10px!important}.chatAppHead .chatHeadText{flex:1;min-width:0}.chatAppHead .chatSearchIcon{margin-left:0!important}
+
+/* Independent search controls */
+#page-app-mail .appMailKindPanel{display:none!important}
+#page-app-mail .appMailKindPanel.active{display:block!important}
+#page-app-mail .appMailKindTabs{display:flex!important;align-items:center!important}
+#page-app-mail .appMailKindTabs .appSearchIcon{margin-left:auto!important}
+.appSearchBar[hidden]{display:none!important}
+.miniSearchCount{white-space:nowrap;color:#697a91;font-size:11px}
+.chatAppHead .chatSearchIcon{margin-left:auto!important}
+.chatAppHead .chatSettingsBtn{position:static!important;inset:auto!important;transform:none!important;flex-shrink:0!important}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -3621,7 +3631,7 @@ function renderDesktopShell(){renderDesktopSystemBar();applyAvatars();applyIdent
 function renderMiniApps(){
   // Health is intentionally lazy: the cached Xiaomi payload can be large.
   // Rendering every field during app boot caused WebView memory spikes.
-  renderPaperApp();renderMemoryApp();renderMailApp();setAppMailKindTab(state.appMailKindTab||'normal');renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
+  renderPaperApp();renderMemoryApp();renderMailApp();setAppMailKindTab(state.appMailKindTab||'normal');miniRefreshSearch();renderRiverApp();renderCalendarApp();renderTodoApp();renderPhoneApp();
   if(state.page==='app-health')renderHealthAppV2();
 }
 async function sendPaperReplyFromApp(rootId){
@@ -3645,12 +3655,60 @@ function renderMemoryApp(){
   root.querySelectorAll('[data-app-memory-correct]').forEach(b=>b.onclick=()=>correctMemory(b.dataset.appMemoryCorrect));
   root.querySelectorAll('[data-app-memory-delete]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/memories/delete',b.dataset.appMemoryDelete,'这条记忆'));
 }
-function filterAppRecords(kind){const input=$('[data-search-input="'+kind+'"]'),q=(input?.value||'').trim().toLocaleLowerCase();let selector='';if(kind==='papers')selector='#paperAppList .paperThreadCard';else if(kind==='memory')selector='#memoryAppList .memoryItem';else if(kind==='chat')selector='#chatMessages .chatGroup';else if(kind==='mail')selector='#mailAppNormal .mailAppCard,#mailAppFuture .mailAppCard';$(selector).forEach(card=>{card.hidden=!!q&&!(card.dataset.searchText||card.textContent).toLocaleLowerCase().includes(q)});if(kind==='mail'&&q){$('[data-app-mail-panel]').forEach(p=>p.classList.add('searchAll'));}else if(kind==='mail'){$('[data-app-mail-panel]').forEach(p=>p.classList.remove('searchAll'));setAppMailKindTab(state.appMailKindTab||'normal');}if(kind==='chat'){$('#chatMessages .chatDateDivider').forEach(d=>d.hidden=!!q);}}
-function toggleAppSearch(kind,show){const bar=$('[data-search-bar="'+kind+'"]');if(!bar)return;bar.hidden=!show;const input=$('[data-search-input="'+kind+'"]');if(!show&&input){input.value='';filterAppRecords(kind)}if(show)input?.focus();}
-document.addEventListener('click',e=>{const toggle=e.target.closest('[data-search-toggle]'),close=e.target.closest('[data-search-close]');if(toggle)toggleAppSearch(toggle.dataset.searchToggle,true);if(close)toggleAppSearch(close.dataset.searchClose,false)});
-document.addEventListener('input',e=>{const kind=e.target?.dataset?.searchInput;if(kind)filterAppRecords(kind)});
-function setAppMailKindTab(kind){const next=kind==='future'?'future':'normal';state.appMailKindTab=next;$('[data-app-mail-panel]').forEach(p=>p.classList.toggle('active',p.dataset.appMailPanel===next));$('[data-app-mail-kind]').forEach(b=>{const on=b.dataset.appMailKind===next;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-app-mail-kind]');if(b)setAppMailKindTab(b.dataset.appMailKind)});
+/* Independent mini-app navigation and search, rebuilt without the legacy $/$$ wrappers. */
+const miniSearchKinds=['mail','papers','memory','chat'];
+const miniSearchState={mail:'',papers:'',memory:'',chat:''};
+let activeMailCategory='normal';
+function miniNodes(selector,root=document){return Array.from(root.querySelectorAll(selector));}
+function miniOne(selector,root=document){return root.querySelector(selector);}
+function miniSearchValue(kind){return String(miniSearchState[kind]||'').trim().toLocaleLowerCase();}
+function miniMatch(text,query){return String(text||'').toLocaleLowerCase().includes(query);}
+function miniApplySearch(kind){
+ const query=miniSearchValue(kind);
+ const selectors={mail:'#mailAppNormal .mailAppCard,#mailAppFuture .mailAppCard',papers:'#paperAppList .paperThreadCard',memory:'#memoryAppList .memoryItem',chat:'#chatMessages .chatGroup'};
+ miniNodes(selectors[kind]||'body > .nothing').forEach(card=>{
+   const searchable=card.getAttribute('data-search-text')||card.textContent||'';
+   card.style.setProperty('display',query&&!miniMatch(searchable,query)?'none':'','important');
+   if(!query)card.style.removeProperty('display');
+ });
+ if(kind==='mail')miniUpdateMailView();
+ if(kind==='chat')miniNodes('#chatMessages .chatDateDivider').forEach(el=>{el.style.display=query?'none':'';});
+ const container=miniOne('[data-search-bar="'+kind+'"]');
+ if(container){let info=container.querySelector('.miniSearchCount');if(!info){info=document.createElement('span');info.className='miniSearchCount';container.appendChild(info);}
+ const visible=miniNodes(selectors[kind]||'body > .nothing').filter(el=>el.style.display!=='none').length;
+ info.textContent=query?'找到 '+visible+' 条':'';}
+}
+function miniUpdateMailView(){
+ const query=miniSearchValue('mail');
+ miniNodes('#page-app-mail [data-app-mail-kind]').forEach(button=>{const on=button.dataset.appMailKind===activeMailCategory;button.classList.toggle('active',on);button.setAttribute('aria-selected',String(on));});
+ miniNodes('#page-app-mail [data-app-mail-panel]').forEach(panel=>{
+  const show=!!query||panel.dataset.appMailPanel===activeMailCategory;
+  panel.classList.toggle('active',show);
+  panel.style.setProperty('display',show?'block':'none','important');
+ });
+}
+function setAppMailKindTab(kind){activeMailCategory=kind==='future'?'future':'normal';state.appMailKindTab=activeMailCategory;miniUpdateMailView();}
+function miniToggleSearch(kind,show){
+ if(!miniSearchKinds.includes(kind))return;
+ const bar=miniOne('[data-search-bar="'+kind+'"]'),input=miniOne('[data-search-input="'+kind+'"]');
+ if(!bar||!input)return;
+ bar.hidden=!show;bar.style.display=show?'flex':'none';
+ if(show){input.focus();input.select();}else{input.value='';miniSearchState[kind]='';miniApplySearch(kind);}
+}
+document.addEventListener('click',function(event){
+ const category=event.target.closest('#page-app-mail [data-app-mail-kind]');
+ if(category){event.preventDefault();setAppMailKindTab(category.dataset.appMailKind);return;}
+ const open=event.target.closest('[data-search-toggle]');
+ if(open){event.preventDefault();miniToggleSearch(open.dataset.searchToggle,true);return;}
+ const close=event.target.closest('[data-search-close]');
+ if(close){event.preventDefault();miniToggleSearch(close.dataset.searchClose,false);}
+},true);
+document.addEventListener('input',function(event){
+ const input=event.target.closest('[data-search-input]');if(!input)return;
+ const kind=input.dataset.searchInput;if(!miniSearchKinds.includes(kind))return;
+ miniSearchState[kind]=input.value;miniApplySearch(kind);
+},true);
+function miniRefreshSearch(){miniSearchKinds.forEach(kind=>{if(miniSearchValue(kind))miniApplySearch(kind);});}
 function renderMailApp(){
   const normal=$('#mailAppNormal'),future=$('#mailAppFuture');if(!normal||!future)return;
   const roots=unifiedMailItems();

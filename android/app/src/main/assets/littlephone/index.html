@@ -2473,6 +2473,18 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 #page-app-mail .appMailKindTabs{margin:16px 0 18px}
 #page-app-mail .appMailKindPanel{display:none!important}
 #page-app-mail .appMailKindPanel.active{display:block!important}
+
+.appSearchIcon{border:0;background:transparent;color:#53637f;font-size:29px;line-height:1;min-width:38px;min-height:38px;cursor:pointer}
+.appMailKindTabs .appSearchIcon{margin-left:auto}
+.appSearchBar{display:flex;align-items:center;gap:8px;margin:9px 2px 16px;padding:8px 10px;border:1px solid rgba(255,255,255,.7);border-radius:17px;background:rgba(255,255,255,.34)}
+.appSearchBar[hidden]{display:none!important}
+.appSearchBar input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#34425f;font-size:13px;padding:6px}
+.appSearchBar button{border:0;background:transparent;color:#66758f;font-size:12px}
+#page-app-mail .appMailKindPanel.searchAll{display:block!important}
+#page-app-mail .appMailKindPanel.searchAll[data-app-mail-panel="future"]{margin-top:12px}
+#page-app-mail .appMailKindPanel.searchAll[hidden]{display:none!important}
+#page-app-mail .mailAppCard[hidden],#paperAppList .paperThreadCard[hidden],#memoryAppList .memoryItem[hidden],#chatMessages .chatGroup[hidden],#chatMessages .chatDateDivider[hidden]{display:none!important}
+.chatSearchIcon{margin-left:auto;flex-shrink:0}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -2833,25 +2845,27 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 
 
     <section class="page phoneAppPage" id="page-app-papers">
-      <div class="miniAppHead"><div class="miniAppTitle">纸条<small>你和 daddy 留下来的小纸片</small></div><div class="miniAppActions"><button class="softBtn" data-compose="paper">写纸条</button></div></div>
-      <div class="appList" id="paperAppList"></div>
+      <div class="miniAppHead"><div class="miniAppTitle">纸条<small>你和 daddy 留下来的小纸片</small></div><div class="miniAppActions"><button type="button" class="appSearchIcon" data-search-toggle="papers" aria-label="搜索纸条">⌕</button><button class="softBtn" data-compose="paper">写纸条</button></div></div>
+      <div class="appSearchBar" data-search-bar="papers" hidden><input type="search" data-search-input="papers" placeholder="搜索纸条和回复…" autocomplete="off"><button type="button" data-search-close="papers">取消</button></div><div class="appList" id="paperAppList"></div>
     </section>
 
     <section class="page phoneAppPage" id="page-app-memory">
-      <div class="miniAppHead"><div class="miniAppTitle">记得<small>真正留下来的理解</small></div></div>
+      <div class="miniAppHead"><div class="miniAppTitle">记得<small>真正留下来的理解</small></div><div class="miniAppActions"><button type="button" class="appSearchIcon" data-search-toggle="memory" aria-label="搜索记得">⌕</button></div></div>
+      <div class="appSearchBar" data-search-bar="memory" hidden><input type="search" data-search-input="memory" placeholder="搜索记得的内容…" autocomplete="off"><button type="button" data-search-close="memory">取消</button></div>
       <div class="appList" id="memoryAppList"></div>
     </section>
 
     <section class="page phoneAppPage" id="page-app-mail">
       <div class="miniAppHead"><div class="miniAppTitle">信箱<small>普通信与未来信</small></div><div class="miniAppActions"><button class="softBtn" data-compose="capsule">未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
-      <div class="mailKindTabs appMailKindTabs" role="tablist" aria-label="信件分类"><button type="button" class="mailKindTab active" data-app-mail-kind="normal" aria-selected="true">普通信</button><button type="button" class="mailKindTab" data-app-mail-kind="future" aria-selected="false">未来信</button></div>
+      <div class="mailKindTabs appMailKindTabs" role="tablist" aria-label="信件分类"><button type="button" class="mailKindTab active" data-app-mail-kind="normal" aria-selected="true">普通信</button><button type="button" class="mailKindTab" data-app-mail-kind="future" aria-selected="false">未来信</button><button type="button" class="appSearchIcon" data-search-toggle="mail" aria-label="搜索信件" title="搜索信件">⌕</button></div>
+      <div class="appSearchBar" data-search-bar="mail" hidden><input type="search" data-search-input="mail" placeholder="搜索普通信和未来信内容、日期…" autocomplete="off"><button type="button" data-search-close="mail">取消</button></div>
       <div class="appMailKindPanel active" data-app-mail-panel="normal"><div id="mailAppNormal"></div></div>
       <div class="appMailKindPanel" data-app-mail-panel="future"><div id="mailAppFuture"></div></div>
     </section>
 
     <section class="page phoneAppPage chatAppPage" id="page-app-chat">
-      <div class="chatAppHead glass"><div class="chatHeadAvatar" data-avatar-view="daddy"></div><div class="chatHeadText"><b id="chatPartnerName">daddy</b><small>我们的聊天</small></div><button class="chatSettingsBtn" id="chatSettingsBtn" type="button" aria-label="聊天设置">⚙</button></div><div class="chatSettingsLayer" id="chatSettingsLayer" hidden><div class="glass chatSettingsCard"><div class="chatSettingsTop"><b>聊天设置</b><button type="button" data-chat-settings-close>×</button></div><button class="chatSettingsEntry" id="chatBubbleSettingsEntry" type="button"><span>气泡设置</span><small>玻璃、模糊、高光和双方淡色</small><i>›</i></button></div></div><div class="chatSettingsLayer" id="chatBubbleSettingsLayer" hidden><div class="glass chatSettingsCard chatBubbleSettingsCard"><div class="chatSettingsTop"><button type="button" data-chat-bubble-back>‹</button><b>气泡设置</b><button type="button" data-chat-settings-close>×</button></div><div id="chatBubbleControls"></div></div></div>
-      <div class="chatMessages" id="chatMessages"></div>
+      <div class="chatAppHead glass"><div class="chatHeadAvatar" data-avatar-view="daddy"></div><div class="chatHeadText"><b id="chatPartnerName">daddy</b><small>我们的聊天</small></div><button type="button" class="appSearchIcon chatSearchIcon" data-search-toggle="chat" aria-label="搜索聊天">⌕</button><button class="chatSettingsBtn" id="chatSettingsBtn" type="button" aria-label="聊天设置">⚙</button></div><div class="chatSettingsLayer" id="chatSettingsLayer" hidden><div class="glass chatSettingsCard"><div class="chatSettingsTop"><b>聊天设置</b><button type="button" data-chat-settings-close>×</button></div><button class="chatSettingsEntry" id="chatBubbleSettingsEntry" type="button"><span>气泡设置</span><small>玻璃、模糊、高光和双方淡色</small><i>›</i></button></div></div><div class="chatSettingsLayer" id="chatBubbleSettingsLayer" hidden><div class="glass chatSettingsCard chatBubbleSettingsCard"><div class="chatSettingsTop"><button type="button" data-chat-bubble-back>‹</button><b>气泡设置</b><button type="button" data-chat-settings-close>×</button></div><div id="chatBubbleControls"></div></div></div>
+      <div class="appSearchBar chatSearchBar" data-search-bar="chat" hidden><input type="search" data-search-input="chat" placeholder="搜索聊天内容…" autocomplete="off"><button type="button" data-search-close="chat">取消</button></div><div class="chatMessages" id="chatMessages"></div>
       <form class="chatComposer glass" id="chatComposer"><textarea id="chatInput" rows="1" maxlength="6000" placeholder="发一条消息…"></textarea><button type="submit">发送</button></form>
     </section>
 
@@ -3631,6 +3645,10 @@ function renderMemoryApp(){
   root.querySelectorAll('[data-app-memory-correct]').forEach(b=>b.onclick=()=>correctMemory(b.dataset.appMemoryCorrect));
   root.querySelectorAll('[data-app-memory-delete]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/memories/delete',b.dataset.appMemoryDelete,'这条记忆'));
 }
+function filterAppRecords(kind){const input=$('[data-search-input="'+kind+'"]'),q=(input?.value||'').trim().toLocaleLowerCase();let selector='';if(kind==='papers')selector='#paperAppList .paperThreadCard';else if(kind==='memory')selector='#memoryAppList .memoryItem';else if(kind==='chat')selector='#chatMessages .chatGroup';else if(kind==='mail')selector='#mailAppNormal .mailAppCard,#mailAppFuture .mailAppCard';$(selector).forEach(card=>{card.hidden=!!q&&!card.textContent.toLocaleLowerCase().includes(q)});if(kind==='mail'&&q){$('[data-app-mail-panel]').forEach(p=>p.classList.add('searchAll'));}else if(kind==='mail'){$('[data-app-mail-panel]').forEach(p=>p.classList.remove('searchAll'));setAppMailKindTab(state.appMailKindTab||'normal');}if(kind==='chat'){$('#chatMessages .chatDateDivider').forEach(d=>d.hidden=!!q);}}
+function toggleAppSearch(kind,show){const bar=$('[data-search-bar="'+kind+'"]');if(!bar)return;bar.hidden=!show;const input=$('[data-search-input="'+kind+'"]');if(!show&&input){input.value='';filterAppRecords(kind)}if(show)input?.focus();}
+document.addEventListener('click',e=>{const toggle=e.target.closest('[data-search-toggle]'),close=e.target.closest('[data-search-close]');if(toggle)toggleAppSearch(toggle.dataset.searchToggle,true);if(close)toggleAppSearch(close.dataset.searchClose,false)});
+document.addEventListener('input',e=>{const kind=e.target?.dataset?.searchInput;if(kind)filterAppRecords(kind)});
 function setAppMailKindTab(kind){const next=kind==='future'?'future':'normal';state.appMailKindTab=next;$('[data-app-mail-panel]').forEach(p=>p.classList.toggle('active',p.dataset.appMailPanel===next));$('[data-app-mail-kind]').forEach(b=>{const on=b.dataset.appMailKind===next;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-app-mail-kind]');if(b)setAppMailKindTab(b.dataset.appMailKind)});
 function renderMailApp(){

@@ -2460,6 +2460,15 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 .calendarMarkLayer.layer-underline{left:14%;right:14%;bottom:calc(3px + var(--layer-index)*3px);height:2px;background:var(--layer-color);border-radius:100%;transform:rotate(-4deg)}
 .calendarMarkLayer.layer-star,.calendarMarkLayer.layer-heart,.calendarMarkLayer.layer-flag{font-size:11px;line-height:1;top:calc(1px + (var(--layer-index) % 3)*9px);right:calc(1px + (var(--layer-index) % 2)*12px);text-shadow:0 0 2px rgba(255,255,255,.8)}
 .calendarMarkLayer.layer-heart{color:#e34560}
+
+/* Mail categories use the same quiet tab language as the time river. */
+.mailKindTabs{display:flex;gap:22px;align-items:center;border-bottom:1px solid rgba(112,131,170,.15);margin:10px 2px 18px;padding:0 4px 9px}
+.mailKindTab{position:relative;border:0;background:transparent;padding:5px 3px 9px;color:#8b92a3;font-family:"Songti SC","STSong",serif;font-size:17px}
+.mailKindTab.active{font-weight:650;color:#34425f}
+.mailKindTab.active:after{content:"";position:absolute;bottom:-10px;left:0;right:0;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(102,132,199,.78),rgba(188,145,202,.62))}
+.mailKindPanel{display:none!important}.mailKindPanel.active{display:block!important}
+/* Hearts always occupy the upper-right corner, even with multiple layered marks. */
+.calendarMarkLayer.layer-heart{top:1px!important;right:1px!important;left:auto!important;bottom:auto!important;transform:none!important;z-index:8}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -2696,9 +2705,14 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
       </div>
       <div class="usHubPanel" id="page-mail" data-us-panel="mail">
       <div class="usHubPanelTop"><div class="usHubIntro">普通信留在这里，未来信单独收好。</div><div class="row" style="gap:7px"><button class="softBtn" data-compose="capsule">写未来信</button><button class="softBtn" data-compose="mail">写信</button></div></div>
+      <div class="mailKindTabs" role="tablist" aria-label="信件分类"><button type="button" class="mailKindTab active" data-mail-kind="normal" aria-selected="true">普通信</button><button type="button" class="mailKindTab" data-mail-kind="future" aria-selected="false">未来信</button></div>
+      <div class="mailKindPanel active" data-mail-panel="normal">
       <div class="glass mailWindow heroGlass normalMailWindow"><div class="mailSectionEyebrow">普通信</div><div id="mailList"></div><div class="mailPager"><button class="softBtn" id="mailPrevCard">‹</button><button class="softBtn" id="mailAllButton">按日期查看全部</button><button class="softBtn" id="mailNextCard">›</button></div></div>
+      </div>
+      <div class="mailKindPanel" data-mail-panel="future">
       <div class="mailSectionHead"><div><b class="editorialTitle">未来信</b><small>无论是否已经解锁，都一直放在这里。</small></div></div>
       <div class="glass mailWindow futureMailWindow"><div id="capsuleList"></div><div class="mailPager"><button class="softBtn" id="capsulePrevCard">‹</button><button class="softBtn" id="capsuleAllButton">查看全部未来信</button><button class="softBtn" id="capsuleNextCard">›</button></div></div>
+      </div>
       </div>
     </section>
 
@@ -2988,12 +3002,14 @@ function tick(){const d=new Date(),wd='日一二三四五六'[d.getDay()],clock=
 function ago(iso){if(!iso)return'';const t=new Date(iso).getTime();if(!Number.isFinite(t))return'';const s=Math.max(0,Math.floor((Date.now()-t)/1000));if(s<60)return'刚刚';if(s<3600)return`${Math.floor(s/60)} 分钟前`;if(s<86400)return`${Math.floor(s/3600)} 小时前`;return`${Math.floor(s/86400)} 天前`}
 function fmt(iso){if(!iso)return'';const d=new Date(iso);return Number.isNaN(d.getTime())?iso:d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
 function dayLabel(iso){const d=new Date(iso);if(Number.isNaN(+d))return iso||'某一天';const now=new Date();if(d.toDateString()===now.toDateString())return'今天';const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return'昨天';return`${d.getMonth()+1}月${d.getDate()}日`}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-mail-kind]');if(b)setMailKindTab(b.dataset.mailKind)});
+function setMailKindTab(kind){const next=kind==='future'?'future':'normal';state.mailKindTab=next;$('[data-mail-panel]').forEach(p=>p.classList.toggle('active',p.dataset.mailPanel===next));$('[data-mail-kind]').forEach(b=>{const active=b.dataset.mailKind===next;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false')});}
 function setUsHubTab(tab,scrollTop=false){
   const next=tab==='mail'?'mail':'traces';
   state.usHubTab=next;
   $$('[data-us-panel]').forEach(p=>p.classList.toggle('active',p.dataset.usPanel===next));
   $$('[data-us-tab]').forEach(b=>{const on=b.dataset.usTab===next;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});
-  if(next==='traces'){renderTraceHub();renderRiver()}else{renderMail();renderCapsules()}
+  if(next==='traces'){renderTraceHub();renderRiver()}else{renderMail();renderCapsules();setMailKindTab(state.mailKindTab||'normal')}
   applyPageBackground();
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }

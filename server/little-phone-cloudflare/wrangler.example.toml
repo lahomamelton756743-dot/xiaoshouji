@@ -20,3 +20,9 @@ database_id = "把你现有 D1 database_id 填在这里"
 # [vars]
 # XIAOMI_HEALTH_BRIDGE_URL = "https://your-health-bridge.example.com"
 # npx wrangler secret put XIAOMI_HEALTH_BRIDGE_TOKEN
+
+# Optional private gift HTML storage. Without this binding, single-file HTML
+# (up to 1 MiB) is stored in D1 instead. Never expose this bucket publicly.
+# [[r2_buckets]]
+# binding = "LITTLEPHONE_GIFTS"
+# bucket_name = "little-phone-gifts"

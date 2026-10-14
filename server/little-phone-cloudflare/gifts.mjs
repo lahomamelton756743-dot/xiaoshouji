@@ -15,7 +15,7 @@ export async function ensureGifts(env){
    created_at TEXT NOT NULL, content_key TEXT, html_inline TEXT,
    content_type TEXT NOT NULL DEFAULT 'text/html', deleted INTEGER NOT NULL DEFAULT 0
   )`).run();
-  for(const [col,ddl] of [["creator_note","TEXT NOT NULL DEFAULT ''"],["updated_at","TEXT"],["gift_state","TEXT NOT NULL DEFAULT 'published'"]]){try{await env.DB.prepare("ALTER TABLE lp_gifts ADD COLUMN "+col+" "+ddl).run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
+  for(const [col,ddl] of [["creator_note","TEXT NOT NULL DEFAULT ''"],["prompt","TEXT NOT NULL DEFAULT ''"],["updated_at","TEXT"],["gift_state","TEXT NOT NULL DEFAULT 'published'"]]){try{await env.DB.prepare("ALTER TABLE lp_gifts ADD COLUMN "+col+" "+ddl).run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_gift_versions (gift_id TEXT NOT NULL,version INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(gift_id,version))").run();
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lp_gifts_created ON lp_gifts(created_at DESC)").run();
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_gift_design_notes (id TEXT PRIMARY KEY,gift_id TEXT NOT NULL,stage TEXT NOT NULL,version INTEGER,design_idea TEXT NOT NULL DEFAULT '',symbolism TEXT NOT NULL DEFAULT '',revision_reason TEXT NOT NULL DEFAULT '',decision TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL)").run();
@@ -52,7 +52,7 @@ export async function openGift(env,giftId){
 export async function createGift(env,body){
  await ensureGifts(env);
  const title=safeText(body.title,120).trim(),message=safeText(body.message,3000);
- const creatorNote=safeText(body.creator_note,30000),giftState=body.gift_state==="draft"?"draft":"published";
+ const creatorNote=safeText(body.creator_note,30000),prompt=safeText(body.prompt,30000),giftState=body.gift_state==="draft"?"draft":"published";
  const html=typeof body.html==="string"?body.html:"";
  if(!title||(giftState==="published"&&!html))return respond({ok:false,error:"title_and_html_required"},400);
  const bytes=new TextEncoder().encode(html);
@@ -67,10 +67,10 @@ export async function createGift(env,body){
   await env.LITTLEPHONE_GIFTS.put(key,bytes,{httpMetadata:{contentType:"text/html; charset=utf-8"}});
  }else inline=html;
  try{
-  await env.DB.prepare("INSERT INTO lp_gifts(id,title,message,preview_mode,unlock_at,created_at,content_key,html_inline,creator_note,updated_at,gift_state) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-   .bind(giftId,title,message,mode,unlock,created,key,inline,creatorNote,created,giftState).run();
+  await env.DB.prepare("INSERT INTO lp_gifts(id,title,message,preview_mode,unlock_at,created_at,content_key,html_inline,creator_note,prompt,updated_at,gift_state) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+   .bind(giftId,title,message,mode,unlock,created,key,inline,creatorNote,prompt,created,giftState).run();
  }catch(e){if(key)await env.LITTLEPHONE_GIFTS.delete(key);throw e}
- return respond({ok:true,gift:metadata({id:giftId,title,message,preview_mode:mode,unlock_at:unlock,created_at:created})},201);
+ return respond({ok:true,id:giftId,gift_state:giftState,gift:metadata({id:giftId,title,message,preview_mode:mode,unlock_at:unlock,created_at:created})},201);
 }
 export async function deleteGift(env,giftId){
  await ensureGifts(env);
@@ -78,7 +78,7 @@ export async function deleteGift(env,giftId){
  return respond({ok:true,deleted:Number(result.meta?.changes||0)>0});
 }
 
-const ownFields="id,title,message,preview_mode,unlock_at,created_at,updated_at,creator_note,gift_state,deleted,content_key,html_inline";
+const ownFields="id,title,message,preview_mode,unlock_at,created_at,updated_at,creator_note,prompt,gift_state,deleted,content_key,html_inline";
 async function fullGift(env,r){
  let html=r.html_inline;
  if(r.content_key && html==null){const obj=await env.LITTLEPHONE_GIFTS?.get(r.content_key);html=obj?await obj.text():null}
@@ -100,11 +100,11 @@ export async function updateGift(env,body){
  const old=await env.DB.prepare("SELECT "+ownFields+" FROM lp_gifts WHERE id=? AND deleted=0").bind(giftId).first();
  if(!old)return respond({ok:false,error:"not_found"},404);
  const prior=await fullGift(env,old),next={...prior};
- for(const k of ["title","message","creator_note","html","preview_mode","unlock_at","gift_state"]){
+ for(const k of ["title","message","creator_note","prompt","html","preview_mode","unlock_at","gift_state"]){
   if(Object.prototype.hasOwnProperty.call(body,k))next[k]=body[k];
  }
  next.title=safeText(next.title,120).trim();next.message=safeText(next.message,3000);
- next.creator_note=safeText(next.creator_note,30000);
+ next.creator_note=safeText(next.creator_note,30000);next.prompt=safeText(next.prompt,30000);
  if(!next.title||typeof next.html!=="string"||(next.gift_state==="published"&&!next.html))return respond({ok:false,error:"title_and_html_required"},400);
  if(new TextEncoder().encode(next.html).byteLength>MAX_HTML_BYTES)return respond({ok:false,error:"html_too_large"},413);
  if(!["none","title","message","full"].includes(next.preview_mode))return respond({ok:false,error:"invalid_preview_mode"},400);
@@ -116,8 +116,8 @@ export async function updateGift(env,body){
  await env.DB.prepare("INSERT INTO lp_gift_versions(gift_id,version,snapshot,created_at) VALUES(?,?,?,?)").bind(giftId,version,JSON.stringify(prior),now).run();
  // Store revised HTML in D1 to avoid an R2 overwrite before the DB update commits.
 
- await env.DB.prepare("UPDATE lp_gifts SET title=?,message=?,creator_note=?,preview_mode=?,unlock_at=?,gift_state=?,updated_at=?,html_inline=?,content_key=NULL WHERE id=?")
-  .bind(next.title,next.message,next.creator_note,next.preview_mode,next.unlock_at||null,next.gift_state,now,next.html,giftId).run();
+ await env.DB.prepare("UPDATE lp_gifts SET title=?,message=?,creator_note=?,prompt=?,preview_mode=?,unlock_at=?,gift_state=?,updated_at=?,html_inline=?,content_key=NULL WHERE id=?")
+  .bind(next.title,next.message,next.creator_note,next.prompt,next.preview_mode,next.unlock_at||null,next.gift_state,now,next.html,giftId).run();
  return respond({ok:true,id:giftId,version,updated_at:now});
 }
 export async function giftVersions(env,giftId){

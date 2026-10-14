@@ -4,6 +4,7 @@ on:
     branches: [feature/v0.8.5-memory-sea]
     paths:
       - 'server/little-phone-cloudflare/gifts.mjs'
+      - 'server/little-phone-cloudflare/worker.js'
       - 'server/little-phone-cloudflare/gifts.test.mjs'
       - '.github/workflows/gift-tests.yml'
   workflow_dispatch:
@@ -15,5 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check backend JavaScript syntax
+        run: |
+          node --check server/little-phone-cloudflare/gifts.mjs
+          node --check server/little-phone-cloudflare/worker.js
+          node --check server/little-phone-cloudflare/gifts.test.mjs
       - name: Test gift backend against isolated SQLite
         run: node --test server/little-phone-cloudflare/gifts.test.mjs

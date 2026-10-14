@@ -39,7 +39,7 @@ export async function openGift(env,giftId){
  if(!r)return respond({ok:false,error:"not_found"},404);
  if(r.gift_state!=="published"||!isOpen(r))return respond({ok:false,error:"gift_locked"},423);
  let html=r.html_inline;
- if(r.content_key){if(!env.LITTLEPHONE_GIFTS)return respond({ok:false,error:"gift_storage_unavailable"},503);
+ if(r.content_key && html==null){if(!env.LITTLEPHONE_GIFTS)return respond({ok:false,error:"gift_storage_unavailable"},503);
   const obj=await env.LITTLEPHONE_GIFTS.get(r.content_key);if(!obj)return respond({ok:false,error:"gift_content_missing"},404);
   html=await obj.text();
  }
@@ -51,7 +51,7 @@ export async function createGift(env,body){
  const title=safeText(body.title,120).trim(),message=safeText(body.message,3000);
  const creatorNote=safeText(body.creator_note,30000),giftState=body.gift_state==="draft"?"draft":"published";
  const html=typeof body.html==="string"?body.html:"";
- if(!title||!html)return respond({ok:false,error:"title_and_html_required"},400);
+ if(!title||(giftState==="published"&&!html))return respond({ok:false,error:"title_and_html_required"},400);
  const bytes=new TextEncoder().encode(html);
  if(bytes.byteLength>MAX_HTML_BYTES)return respond({ok:false,error:"html_too_large",limit_bytes:MAX_HTML_BYTES},413);
  const mode=["none","title","message","full"].includes(body.preview_mode)?body.preview_mode:"none";
@@ -78,7 +78,7 @@ export async function deleteGift(env,giftId){
 const ownFields="id,title,message,preview_mode,unlock_at,created_at,updated_at,creator_note,gift_state,deleted,content_key,html_inline";
 async function fullGift(env,r){
  let html=r.html_inline;
- if(r.content_key){const obj=await env.LITTLEPHONE_GIFTS?.get(r.content_key);html=obj?await obj.text():null}
+ if(r.content_key && html==null){const obj=await env.LITTLEPHONE_GIFTS?.get(r.content_key);html=obj?await obj.text():null}
  return {...r,html,html_inline:undefined,content_key:undefined};
 }
 export async function creatorListGifts(env,trash=false){
@@ -102,7 +102,7 @@ export async function updateGift(env,body){
  }
  next.title=safeText(next.title,120).trim();next.message=safeText(next.message,3000);
  next.creator_note=safeText(next.creator_note,30000);
- if(!next.title||typeof next.html!=="string"||!next.html)return respond({ok:false,error:"title_and_html_required"},400);
+ if(!next.title||typeof next.html!=="string"||(next.gift_state==="published"&&!next.html))return respond({ok:false,error:"title_and_html_required"},400);
  if(new TextEncoder().encode(next.html).byteLength>MAX_HTML_BYTES)return respond({ok:false,error:"html_too_large"},413);
  if(!["none","title","message","full"].includes(next.preview_mode))return respond({ok:false,error:"invalid_preview_mode"},400);
  if(!["draft","published"].includes(next.gift_state))return respond({ok:false,error:"invalid_gift_state"},400);
@@ -110,9 +110,10 @@ export async function updateGift(env,body){
  const versionRow=await env.DB.prepare("SELECT COALESCE(MAX(version),0)+1 AS n FROM lp_gift_versions WHERE gift_id=?").bind(giftId).first();
  const version=versionRow.n,now=iso();
  await env.DB.prepare("INSERT INTO lp_gift_versions(gift_id,version,snapshot,created_at) VALUES(?,?,?,?)").bind(giftId,version,JSON.stringify(prior),now).run();
- if(old.content_key){await env.LITTLEPHONE_GIFTS.put(old.content_key,new TextEncoder().encode(next.html),{httpMetadata:{contentType:"text/html; charset=utf-8"}})}
- await env.DB.prepare("UPDATE lp_gifts SET title=?,message=?,creator_note=?,preview_mode=?,unlock_at=?,gift_state=?,updated_at=?,html_inline=? WHERE id=?")
-  .bind(next.title,next.message,next.creator_note,next.preview_mode,next.unlock_at||null,next.gift_state,now,old.content_key?null:next.html,giftId).run();
+ // Store revised HTML in D1 to avoid an R2 overwrite before the DB update commits.
+
+ await env.DB.prepare("UPDATE lp_gifts SET title=?,message=?,creator_note=?,preview_mode=?,unlock_at=?,gift_state=?,updated_at=?,html_inline=?,content_key=NULL WHERE id=?")
+  .bind(next.title,next.message,next.creator_note,next.preview_mode,next.unlock_at||null,next.gift_state,now,next.html,giftId).run();
  return respond({ok:true,id:giftId,version,updated_at:now});
 }
 export async function giftVersions(env,giftId){

@@ -1,0 +1,19 @@
+name: Gift backend tests
+on:
+  push:
+    branches: [feature/v0.8.5-memory-sea]
+    paths:
+      - 'server/little-phone-cloudflare/gifts.mjs'
+      - 'server/little-phone-cloudflare/gifts.test.mjs'
+      - '.github/workflows/gift-tests.yml'
+  workflow_dispatch:
+jobs:
+  gifts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test gift backend against isolated SQLite
+        run: node --test server/little-phone-cloudflare/gifts.test.mjs

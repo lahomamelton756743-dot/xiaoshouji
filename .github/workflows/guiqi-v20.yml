@@ -1,0 +1,33 @@
+name: Build Guiqi v20
+on:
+  push:
+    paths:
+      - 'android/restore-v17-ui.py'
+      - '.github/workflows/guiqi-v20.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+      - name: Restore original interface
+        run: |
+          python3 android/restore-v17-ui.py
+          sed -i 's/80519/80520/g; s/0.8.5-19/0.8.5-20/g' android/app/src/main/AndroidManifest.xml
+          sed -i 's/Guiqi-v0.8.5-18.apk/Guiqi-v0.8.5-20.apk/g' android/build.sh
+      - name: Build signed APK
+        run: bash android/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Guiqi-v0.8.5-20
+          path: android/Guiqi-v0.8.5-20.apk
+          if-no-files-found: error

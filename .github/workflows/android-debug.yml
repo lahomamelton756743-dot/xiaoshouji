@@ -30,6 +30,18 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
+      - name: Diagnose Android build prerequisites
+        run: |
+          echo "Commit: $GITHUB_SHA"
+          echo "Android SDK: $ANDROID_HOME"
+          java -version
+          test -f "$ANDROID_HOME/platforms/android-34/android.jar"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/aapt2"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/d8"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          test -f android/signing/zhangxinchuang-public-release.p12
+          ls -lh android/signing/zhangxinchuang-public-release.p12
+
       - name: Build APK
         run: bash android/build.sh
 
@@ -43,3 +55,4 @@ jobs:
           name: zhangxinchuang-public-debug-apk
           path: android/*.apk
           if-no-files-found: error
+          retention-days: 14

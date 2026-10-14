@@ -54,3 +54,32 @@ test("isolated databases each initialize their own schema",async()=>{
  assert.equal((await unpack(await listGifts(a))).gifts.length,1);
  assert.equal((await unpack(await listGifts(b))).gifts.length,1);
 });
+
+test("R2-backed gift edits preserve historical HTML",async()=>{
+ const env=fixture(),objects=new Map();
+ env.LITTLEPHONE_GIFTS={
+  async put(key,data){objects.set(key,new TextDecoder().decode(data));},
+  async get(key){return objects.has(key)?{text:async()=>objects.get(key)}:null;},
+  async delete(key){objects.delete(key);}
+ };
+ const created=await unpack(await createGift(env,{title:"R2",html:"original",creator_note:"private"}));
+ assert.equal(created.status,201);
+ const id=created.gift.id;
+ assert.equal((await unpack(await openGift(env,id))).html,"original");
+ assert.equal((await unpack(await updateGift(env,{id,html:"revised"}))).ok,true);
+ assert.equal((await unpack(await openGift(env,id))).html,"revised");
+ assert.equal((await unpack(await restoreGiftVersion(env,id,1))).ok,true);
+ assert.equal((await unpack(await openGift(env,id))).html,"original");
+ assert.equal((await unpack(await creatorReadGift(env,id))).gift.creator_note,"private");
+});
+test("invalid publication and missing gifts fail closed",async()=>{
+ const env=fixture();
+ assert.equal((await unpack(await createGift(env,{title:"empty",gift_state:"published",html:""}))).status,400);
+ assert.equal((await unpack(await createGift(env,{title:"bad date",html:"x",unlock_at:"not-a-date"}))).status,400);
+ assert.equal((await unpack(await openGift(env,"missing"))).status,404);
+ const created=await unpack(await createGift(env,{title:"valid",html:"content"}));
+ const id=created.gift.id;
+ assert.equal((await unpack(await updateGift(env,{id,preview_mode:"invalid"}))).status,400);
+ assert.equal((await unpack(await updateGift(env,{id,unlock_at:"not-a-date"}))).status,400);
+ assert.equal((await unpack(await giftVersions(env,id))).versions.length,0);
+});

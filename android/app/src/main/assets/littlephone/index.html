@@ -2682,15 +2682,32 @@ body.diaryMode #page-diary{overflow:hidden!important;overscroll-behavior:none!im
 body.diaryMode .bookStage{overscroll-behavior:none!important}
 body.diaryMode #journalBook .journalScroll,body.diaryMode .journalLeaf .journalScroll{overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch}
 
-/* Guiqi: content-first scrolling for paper, mail and other long mini-apps. */
-html:has(body.miniAppMode:not(.diaryMode)){height:auto!important;overflow-y:auto!important}
-body.miniAppMode:not(.diaryMode){height:auto!important;min-height:100dvh!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior-y:none!important}
-body.miniAppMode:not(.diaryMode) .shell{height:auto!important;max-height:none!important;overflow-y:visible!important}
-body.miniAppMode:not(.diaryMode) .phoneAppPage.active{height:auto!important;max-height:none!important;overflow-y:visible!important;overflow-x:clip!important}
-body.miniAppMode:not(.diaryMode) #page-app-papers .appList,
+/* Guiqi scroll architecture v2: one actual scrolling container for long mini-apps.
+   Avoid relying on document scrolling, which WebView/layout rules may suppress. */
+html:has(body.miniAppMode:not(.diaryMode)){height:100%!important;overflow:hidden!important}
+body.miniAppMode:not(.diaryMode){height:100dvh!important;min-height:0!important;max-height:100dvh!important;overflow:hidden!important}
+body.miniAppMode:not(.diaryMode) .shell{
+ height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+ overflow-x:hidden!important;overflow-y:auto!important;
+ -webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;
+ overscroll-behavior-y:contain!important;scrollbar-width:none!important;
+}
+body.miniAppMode:not(.diaryMode) .shell::-webkit-scrollbar{display:none}
+body.miniAppMode:not(.diaryMode) .phoneAppPage.active{
+ height:auto!important;min-height:calc(100dvh - 70px)!important;
+ max-height:none!important;overflow:visible!important;touch-action:pan-y!important;
+}
+body.miniAppMode:not(.diaryMode) #paperAppList,
 body.miniAppMode:not(.diaryMode) #page-app-mail .appMailKindPanel,
-body.miniAppMode:not(.diaryMode) #page-app-mail .appMailKindPanel.active{height:auto!important;max-height:none!important;overflow:visible!important}
-#paperModal.show .modalCard,#detailModal.show .modalCard{max-height:calc(100dvh - 32px)!important;overflow-y:auto!important;overscroll-behavior-y:contain!important}
+body.miniAppMode:not(.diaryMode) #page-app-mail .appMailKindPanel.active{
+ height:auto!important;max-height:none!important;overflow:visible!important;
+ touch-action:pan-y!important;
+}
+#paperModal.show .modalCard,#detailModal.show .modalCard{
+ max-height:calc(100dvh - 32px)!important;overflow-y:auto!important;
+ -webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;
+ overscroll-behavior-y:contain!important;
+}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

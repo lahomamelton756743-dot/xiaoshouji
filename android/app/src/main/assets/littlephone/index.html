@@ -2682,6 +2682,32 @@ body.diaryMode #page-diary{overflow:hidden!important;overscroll-behavior:none!im
 body.diaryMode .bookStage{overscroll-behavior:none!important}
 body.diaryMode #journalBook .journalScroll,body.diaryMode .journalLeaf .journalScroll{overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch}
 
+
+/* v0.8.5-26: isolated list scrolling, based on the proven chat layout.
+   Intentionally scoped to active list apps; desktop and chat remain untouched. */
+:is(#page-app-papers,#page-app-memory,#page-app-mail).active{
+  position:fixed!important;inset:0!important;z-index:45!important;
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;max-width:760px!important;margin:0 auto!important;
+  height:100dvh!important;min-height:0!important;max-height:100dvh!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+  padding:0 12px calc(env(safe-area-inset-bottom) + 30px)!important;
+  overscroll-behavior:contain!important;
+}
+:is(#page-app-papers,#page-app-memory,#page-app-mail).active > .miniAppHead,
+:is(#page-app-papers,#page-app-memory,#page-app-mail).active > .appSearchBar,
+#page-app-mail.active > .appMailKindTabs{
+  flex:0 0 auto!important;
+}
+#page-app-papers.active > #paperAppList,
+#page-app-memory.active > #memoryAppList,
+#page-app-mail.active > .appMailKindPanel.active{
+  flex:1 1 auto!important;min-height:0!important;height:auto!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+#page-app-mail.active > .appMailKindPanel:not(.active){display:none!important}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

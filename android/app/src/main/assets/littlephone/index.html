@@ -2672,6 +2672,15 @@ body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
 .memoryTimeItem{text-align:left;color:#77618b;background:rgba(255,255,255,.68);border:1px solid rgba(181,152,201,.28);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:7px}
 .memoryTimeItem small{opacity:.72}.memoryTimeItem b{font-size:14px;font-weight:500}
 .memorySeaEmpty{margin:30px 14px;padding:50px 20px;border-radius:24px;text-align:center;color:#80688f;background:rgba(255,255,255,.5);cursor:pointer}
+
+/* Guiqi v0.8.5: lock only the diary viewport; scroll inside the paper. */
+html,body{overscroll-behavior-y:none!important}
+html:has(body.diaryMode){height:100%!important;overflow-y:hidden!important}
+body.diaryMode{height:100dvh!important;min-height:0!important;overflow-y:hidden!important;overscroll-behavior:none!important}
+body.diaryMode .shell{height:100dvh!important;max-height:100dvh!important;min-height:0!important;overflow-y:hidden!important;overscroll-behavior:none!important}
+body.diaryMode #page-diary{overflow:hidden!important;overscroll-behavior:none!important}
+body.diaryMode .bookStage{overscroll-behavior:none!important}
+body.diaryMode #journalBook .journalScroll,body.diaryMode .journalLeaf .journalScroll{overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

@@ -1456,12 +1456,12 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
-  tool("create_gift","为手机使用者创建 HTML 礼物，支持草稿与创作者私人提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},creator_note:{type:"string"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title"]),
+  tool("create_gift","为手机使用者创建 HTML 礼物，支持草稿与创作者私人提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},prompt:{type:"string",description:"创作者私人设计提示词，不向手机公开"},creator_note:{type:"string",description:"创作者私人备注"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title"]),
   tool("list_gifts","列出礼物及当前允许展示的公开信息。",{}),
   tool("delete_gift","将指定礼物从礼物馆隐藏。",{id:{type:"string"}},["id"]),
   tool("creator_list_gifts","创作者专用：列出所有礼物或回收站（含草稿与锁定礼物）。",{trash:{type:"boolean",default:false}}),
-  tool("creator_read_gift","创作者专用：读取完整礼物、HTML、私人提示卡片，不受解锁时间限制。",{id:{type:"string"}},["id"]),
-  tool("update_gift","创作者专用：修改礼物。可仅提供需要修改的字段；每次保存保留历史版本。",{id:{type:"string"},title:{type:"string"},html:{type:"string"},message:{type:"string"},creator_note:{type:"string",description:"仅创作者可读的提示词、创作手记"},unlock_at:{type:["string","null"]},preview_mode:{type:"string",enum:["none","title","message","full"]},gift_state:{type:"string",enum:["draft","published"]}},["id"]),
+  tool("creator_read_gift","创作者专用：读取完整礼物、HTML、私人提示词和备注，不受解锁时间限制。",{id:{type:"string"}},["id"]),
+  tool("update_gift","创作者专用：修改礼物。可仅提供需要修改的字段；每次保存保留历史版本。",{id:{type:"string"},title:{type:"string"},html:{type:"string"},message:{type:"string"},prompt:{type:"string",description:"创作者私人设计提示词"},creator_note:{type:"string",description:"创作者私人备注"},unlock_at:{type:["string","null"]},preview_mode:{type:"string",enum:["none","title","message","full"]},gift_state:{type:"string",enum:["draft","published"]}},["id"]),
   tool("add_gift_design_note","创作者专用：追加一条不可覆盖的礼物创作手记，记录灵感、设计寓意、修改原因与最终决定。请只记录实际创作时的想法，不要编造。",{gift_id:{type:"string"},stage:{type:"string",enum:["inspiration","draft","revision","final","reflection"]},version:{type:"integer"},design_idea:{type:"string"},symbolism:{type:"string"},revision_reason:{type:"string"},decision:{type:"string"}},["gift_id","stage"]),
   tool("list_gift_design_notes","创作者专用：按时间顺序读取某份礼物的全部私人设计手记。",{gift_id:{type:"string"}},["gift_id"]),
   tool("gift_versions","创作者专用：列出礼物历史版本。",{id:{type:"string"}},["id"]),

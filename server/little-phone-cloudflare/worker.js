@@ -1,4 +1,4 @@
-import { listGifts, openGift, createGift, deleteGift, creatorListGifts, creatorReadGift, updateGift, giftVersions, restoreGiftVersion, restoreGift } from "./gifts.mjs";
+import { listGifts, openGift, createGift, deleteGift, creatorListGifts, creatorReadGift, updateGift, giftVersions, restoreGiftVersion, restoreGift, addGiftDesignNote, listGiftDesignNotes } from "./gifts.mjs";
 import { searchLittlePhoneMemory } from "./memory-search.mjs";
 // @ts-nocheck
 const VERSION = "0.8.3-xinchao-engine-10.3-events-test1";
@@ -1462,6 +1462,8 @@ const MCP_TOOLS = [
   tool("creator_list_gifts","创作者专用：列出所有礼物或回收站（含草稿与锁定礼物）。",{trash:{type:"boolean",default:false}}),
   tool("creator_read_gift","创作者专用：读取完整礼物、HTML、私人提示卡片，不受解锁时间限制。",{id:{type:"string"}},["id"]),
   tool("update_gift","创作者专用：修改礼物。可仅提供需要修改的字段；每次保存保留历史版本。",{id:{type:"string"},title:{type:"string"},html:{type:"string"},message:{type:"string"},creator_note:{type:"string",description:"仅创作者可读的提示词、创作手记"},unlock_at:{type:["string","null"]},preview_mode:{type:"string",enum:["none","title","message","full"]},gift_state:{type:"string",enum:["draft","published"]}},["id"]),
+  tool("add_gift_design_note","创作者专用：追加一条不可覆盖的礼物创作手记，记录灵感、设计寓意、修改原因与最终决定。请只记录实际创作时的想法，不要编造。",{gift_id:{type:"string"},stage:{type:"string",enum:["inspiration","draft","revision","final","reflection"]},version:{type:"integer"},design_idea:{type:"string"},symbolism:{type:"string"},revision_reason:{type:"string"},decision:{type:"string"}},["gift_id","stage"]),
+  tool("list_gift_design_notes","创作者专用：按时间顺序读取某份礼物的全部私人设计手记。",{gift_id:{type:"string"}},["gift_id"]),
   tool("gift_versions","创作者专用：列出礼物历史版本。",{id:{type:"string"}},["id"]),
   tool("restore_gift_version","创作者专用：恢复礼物历史版本。",{id:{type:"string"},version:{type:"integer"}},["id","version"]),
   tool("restore_gift","创作者专用：从回收站恢复礼物。",{id:{type:"string"}},["id"]),
@@ -1644,7 +1646,7 @@ async function handleMcp(request,env,url){
     }
     const name=msg.params?.name||"";const args=msg.params?.arguments||{};
     // Gift authoring is private to OAuth sessions, never the phone's shared legacy token.
-    if(["create_gift","delete_gift","creator_list_gifts","creator_read_gift","update_gift","gift_versions","restore_gift_version","restore_gift"].includes(name)){
+    if(["create_gift","delete_gift","creator_list_gifts","creator_read_gift","add_gift_design_note","list_gift_design_notes","update_gift","gift_versions","restore_gift_version","restore_gift"].includes(name)){
       const bearer=(request.headers.get("Authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1]?.trim()||"";
       const row=bearer?await env.DB.prepare("SELECT access_expires_epoch,scope FROM lp_oauth_tokens WHERE access_hash=?").bind(await sha256Hex(bearer)).first():null;
       if(!row||Number(row.access_expires_epoch||0)<=epochSeconds()||!String(row.scope||"").split(/\s+/).includes(GIFT_CREATOR_SCOPE))return mcpJson(rpcResult(id,mcpText({ok:false,error:"creator_oauth_required"},true)),200,responseProtocol);
@@ -1668,6 +1670,8 @@ async function callTool(name,args,env){
     case "delete_gift": return mcpFromApiResponse(await deleteGift(env,String(args.id||"")));
     case "creator_list_gifts": return mcpFromApiResponse(await creatorListGifts(env,Boolean(args.trash)));
     case "creator_read_gift": return mcpFromApiResponse(await creatorReadGift(env,String(args.id||"")));
+    case "add_gift_design_note": return mcpFromApiResponse(await addGiftDesignNote(env,args));
+    case "list_gift_design_notes": return mcpFromApiResponse(await listGiftDesignNotes(env,String(args.gift_id||"")));
     case "update_gift": return mcpFromApiResponse(await updateGift(env,args));
     case "gift_versions": return mcpFromApiResponse(await giftVersions(env,String(args.id||"")));
     case "restore_gift_version": return mcpFromApiResponse(await restoreGiftVersion(env,String(args.id||""),Number(args.version)));

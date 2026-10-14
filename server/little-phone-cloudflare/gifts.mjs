@@ -31,7 +31,7 @@ function metadata(r){
 export async function listGifts(env){
  await ensureGifts(env);
  const {results=[]}=await env.DB.prepare("SELECT id,title,message,preview_mode,unlock_at,created_at FROM lp_gifts WHERE deleted=0 AND gift_state='published' ORDER BY created_at DESC LIMIT 500").all();
- return respond({ok:true,gifts:results.map(metadata)});
+ return respond({ok:true,gifts:results.filter(r=>isOpen(r)||r.preview_mode!=="none").map(metadata)});
 }
 export async function openGift(env,giftId){
  await ensureGifts(env);

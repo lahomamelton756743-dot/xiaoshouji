@@ -147,6 +147,7 @@ export async function addGiftDesignNote(env,body){
  if(!designStages.has(stage))return respond({ok:false,error:"invalid_stage"},400);
  const version=body.version==null?null:Number(body.version);
  if(version!==null&&(!Number.isSafeInteger(version)||version<1))return respond({ok:false,error:"invalid_version"},400);
+ if(version!==null){const row=await env.DB.prepare("SELECT version FROM lp_gift_versions WHERE gift_id=? AND version=?").bind(giftId,version).first();if(!row)return respond({ok:false,error:"version_not_found"},404)}
  const idea=safeText(body.design_idea,30000),symbolism=safeText(body.symbolism,30000),reason=safeText(body.revision_reason,30000),decision=safeText(body.decision,30000);
  if(![idea,symbolism,reason,decision].some(x=>x.trim()))return respond({ok:false,error:"empty_design_note"},400);
  const note={id:id(),gift_id:giftId,stage,version,design_idea:idea,symbolism,revision_reason:reason,decision,created_at:iso()};

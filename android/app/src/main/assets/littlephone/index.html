@@ -3706,6 +3706,13 @@ function renderDesktopShell(){renderDesktopSystemBar();applyAvatars();applyIdent
 
 /* Gift app: metadata is read from the server, never unlocked on the client. */
 const giftStore={items:[],selected:null,query:'',loading:false,loaded:false,view:'gallery'};
+/* Gift HTML is stored in persistent WebView IndexedDB, not transient HTTP cache.
+   Only server-unlocked HTML is cached; drafts and future-locked content never enter it. */
+const giftLocalDb=(()=>{let pending;return ()=>{if(!('indexedDB' in window))return Promise.reject(Error('本机不支持离线存储'));if(!pending)pending=new Promise((resolve,reject)=>{const req=indexedDB.open('guiqi-gift-library',1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('gifts'))db.createObjectStore('gifts',{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);}).catch(err=>{pending=null;throw err});return pending}})();
+async function giftLocalRead(id){try{const db=await giftLocalDb();return await new Promise((resolve,reject)=>{const req=db.transaction('gifts','readonly').objectStore('gifts').get(String(id));req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});}catch(e){console.warn('gift offline read unavailable',e);return null}}
+async function giftLocalSave(id,html){try{const db=await giftLocalDb();await new Promise((resolve,reject)=>{const tx=db.transaction('gifts','readwrite');tx.objectStore('gifts').put({id:String(id),html,saved_at:new Date().toISOString()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});return true}catch(e){console.warn('gift offline save unavailable',e);return false}}
+async function giftLocalDelete(id){try{const db=await giftLocalDb();await new Promise((resolve,reject)=>{const tx=db.transaction('gifts','readwrite');tx.objectStore('gifts').delete(String(id));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('gift offline removal unavailable',e)}}
+
 function giftSafeDate(v){if(!v)return '';const d=new Date(v);return Number.isNaN(d.getTime())?String(v).slice(0,24):d.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'});}
 function giftPublic(g){return g&&g.unlocked!==false&&g.status!=='locked'&&g.locked!==true;}
 function giftAllowedText(g){return [g.title,g.name,g.message,g.preview_message,g.created_at,g.unlock_at].filter(Boolean).join(' ');}
@@ -3728,7 +3735,7 @@ document.addEventListener('click',async function(e){
  const cancel=e.target.closest('[data-search-close="gift"]');if(cancel){e.preventDefault();giftStore.query='';$('[data-search-input="gift"]').value='';$('[data-search-bar="gift"]').hidden=true;renderGiftApp();return;}
  const card=e.target.closest('[data-gift-id]');if(card){giftStore.selected=giftStore.items.find(g=>String(g.id)===card.dataset.giftId)||null;giftStore.view='detail';renderGiftApp();return;}
  const back=e.target.closest('[data-gift-back]');if(back){if(giftStore.view==='viewer')giftCloseViewer();else{giftStore.view='gallery';renderGiftApp();}return;}
- const open=e.target.closest('[data-gift-open]');if(open&&giftStore.selected&&giftPublic(giftStore.selected)){const g=giftStore.selected;try{const d=await nativeRequest('GET','/api/littlephone/gifts/'+encodeURIComponent(g.id)+'/open');if(!d||typeof d.html!=='string')throw Error('礼物内容暂不可用');const frame=$('#giftFrame');frame.srcdoc=d.html;giftStore.view='viewer';renderGiftApp();}catch(err){toast(err.message||'礼物打开失败');}}
+ const open=e.target.closest('[data-gift-open]');if(open&&giftStore.selected&&giftPublic(giftStore.selected)){const g=giftStore.selected;try{const cached=await giftLocalRead(g.id);if(cached&&typeof cached.html==='string'){const frame=$('#giftFrame');frame.srcdoc=cached.html;giftStore.view='viewer';renderGiftApp();return;}const d=await nativeRequest('GET','/api/littlephone/gifts/'+encodeURIComponent(g.id)+'/open');if(!d||typeof d.html!=='string')throw Error('礼物内容暂不可用');await giftLocalSave(g.id,d.html);const frame=$('#giftFrame');frame.srcdoc=d.html;giftStore.view='viewer';renderGiftApp();}catch(err){toast(err.message||'礼物打开失败');}}
 });
 document.addEventListener('input',function(e){if(e.target.matches('[data-search-input="gift"]')){giftStore.query=e.target.value;renderGiftApp();}});
 

@@ -2683,31 +2683,30 @@ body.diaryMode .bookStage{overscroll-behavior:none!important}
 body.diaryMode #journalBook .journalScroll,body.diaryMode .journalLeaf .journalScroll{overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch}
 
 
-/* v0.8.5-21 — scroll only content, never the desktop viewport. */
-body.desktopMode{height:100dvh!important;overflow-y:hidden!important}
-body.desktopMode #page-desktop{height:100dvh!important;overflow:hidden!important}
-body.miniAppMode #page-app-papers,
-body.miniAppMode #page-app-mail,
-body.miniAppMode #page-app-memory{
- height:100dvh!important;max-height:100dvh!important;min-height:0!important;
- overflow:hidden!important;display:none;flex-direction:column;
- padding-bottom:calc(26px + env(safe-area-inset-bottom))!important;
+/* v0.8.5-22: rebuild app scrolling with the working chat viewport pattern.
+   App frame and controls stay fixed; only the designated content pane scrolls. */
+body.desktopMode,body.desktopMode #page-desktop{height:100dvh!important;overflow:hidden!important}
+#page-app-papers.active,#page-app-memory.active,#page-app-mail.active{
+ display:flex!important;flex-direction:column!important;position:fixed!important;
+ inset:0!important;z-index:45!important;width:100%!important;max-width:760px!important;
+ margin:0 auto!important;box-sizing:border-box!important;height:100dvh!important;
+ min-height:0!important;max-height:100dvh!important;overflow:hidden!important;
+ padding:calc(env(safe-area-inset-top) + 0px) 12px calc(env(safe-area-inset-bottom) + 30px)!important;
+ overscroll-behavior:contain!important;
 }
-body.miniAppMode #page-app-papers.active,
-body.miniAppMode #page-app-mail.active,
-body.miniAppMode #page-app-memory.active{display:flex!important}
-#page-app-papers>.miniAppHead,#page-app-mail>.miniAppHead,#page-app-memory>.miniAppHead,
-#page-app-papers>.appSearchBar,#page-app-mail>.appSearchBar,#page-app-memory>.appSearchBar,
-#page-app-mail>.appMailKindTabs{flex:0 0 auto}
-#page-app-papers>#paperAppList,#page-app-memory>#memoryAppList,
-#page-app-mail>.appMailKindPanel.active{
- flex:1 1 auto;min-height:0;overflow-y:auto!important;overflow-x:hidden!important;
- overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+#page-app-papers.active>.miniAppHead,#page-app-memory.active>.miniAppHead,#page-app-mail.active>.miniAppHead,
+#page-app-papers.active>.appSearchBar,#page-app-memory.active>.appSearchBar,#page-app-mail.active>.appSearchBar,
+#page-app-mail.active>.appMailKindTabs{flex:0 0 auto!important}
+#page-app-papers.active>#paperAppList,#page-app-memory.active>#memoryAppList,
+#page-app-mail.active>.appMailKindPanel.active{
+ flex:1 1 auto!important;min-height:0!important;height:auto!important;
+ overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;
+ -webkit-overflow-scrolling:touch;touch-action:pan-y;
 }
-#page-app-mail>.appMailKindPanel:not(.active){display:none!important}
+#page-app-mail.active>.appMailKindPanel:not(.active){display:none!important}
 .modal.show .modalCard,.backdrop.show .sheet{
  max-height:calc(100dvh - 36px);overflow-y:auto!important;
- overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;
+ overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
 }
 </style></head>
 <body>

@@ -18,6 +18,8 @@ export async function ensureGifts(env){
   for(const [col,ddl] of [["creator_note","TEXT NOT NULL DEFAULT ''"],["updated_at","TEXT"],["gift_state","TEXT NOT NULL DEFAULT 'published'"]]){try{await env.DB.prepare("ALTER TABLE lp_gifts ADD COLUMN "+col+" "+ddl).run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_gift_versions (gift_id TEXT NOT NULL,version INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(gift_id,version))").run();
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lp_gifts_created ON lp_gifts(created_at DESC)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_gift_design_notes (id TEXT PRIMARY KEY,gift_id TEXT NOT NULL,stage TEXT NOT NULL,version INTEGER,design_idea TEXT NOT NULL DEFAULT '',symbolism TEXT NOT NULL DEFAULT '',revision_reason TEXT NOT NULL DEFAULT '',decision TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lp_gift_design_notes ON lp_gift_design_notes(gift_id,created_at)").run();
  })().catch(e=>{readyByDb.delete(env.DB);throw e});readyByDb.set(env.DB,ready)}return ready;
 }
 const isOpen=(r)=>!r.unlock_at||epoch(r.unlock_at)<=Date.now();
@@ -133,4 +135,28 @@ export async function restoreGift(env,giftId){
  await ensureGifts(env);
  const result=await env.DB.prepare("UPDATE lp_gifts SET deleted=0 WHERE id=? AND deleted=1").bind(giftId).run();
  return respond({ok:true,restored:Number(result.meta?.changes||0)>0});
+}
+
+const designStages=new Set(["inspiration","draft","revision","final","reflection"]);
+export async function addGiftDesignNote(env,body){
+ await ensureGifts(env);
+ const giftId=safeText(body.gift_id,100);
+ const gift=await env.DB.prepare("SELECT id FROM lp_gifts WHERE id=?").bind(giftId).first();
+ if(!gift)return respond({ok:false,error:"not_found"},404);
+ const stage=String(body.stage||"");
+ if(!designStages.has(stage))return respond({ok:false,error:"invalid_stage"},400);
+ const version=body.version==null?null:Number(body.version);
+ if(version!==null&&(!Number.isSafeInteger(version)||version<1))return respond({ok:false,error:"invalid_version"},400);
+ const idea=safeText(body.design_idea,30000),symbolism=safeText(body.symbolism,30000),reason=safeText(body.revision_reason,30000),decision=safeText(body.decision,30000);
+ if(![idea,symbolism,reason,decision].some(x=>x.trim()))return respond({ok:false,error:"empty_design_note"},400);
+ const note={id:id(),gift_id:giftId,stage,version,design_idea:idea,symbolism,revision_reason:reason,decision,created_at:iso()};
+ await env.DB.prepare("INSERT INTO lp_gift_design_notes(id,gift_id,stage,version,design_idea,symbolism,revision_reason,decision,created_at) VALUES(?,?,?,?,?,?,?,?,?)").bind(note.id,note.gift_id,note.stage,note.version,note.design_idea,note.symbolism,note.revision_reason,note.decision,note.created_at).run();
+ return respond({ok:true,note},201);
+}
+export async function listGiftDesignNotes(env,giftId){
+ await ensureGifts(env);
+ const gift=await env.DB.prepare("SELECT id FROM lp_gifts WHERE id=?").bind(giftId).first();
+ if(!gift)return respond({ok:false,error:"not_found"},404);
+ const {results=[]}=await env.DB.prepare("SELECT * FROM lp_gift_design_notes WHERE gift_id=? ORDER BY created_at ASC,id ASC LIMIT 500").bind(giftId).all();
+ return respond({ok:true,notes:results});
 }

@@ -1456,7 +1456,7 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
-  tool("create_gift","为手机使用者创建 HTML 礼物，支持草稿与知归私人创作提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},creator_note:{type:"string"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title","html"]),
+  tool("create_gift","为手机使用者创建 HTML 礼物，支持草稿与创作者私人提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},creator_note:{type:"string"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title"]),
   tool("list_gifts","列出礼物及当前允许展示的公开信息。",{}),
   tool("delete_gift","将指定礼物从礼物馆隐藏。",{id:{type:"string"}},["id"]),
   tool("creator_list_gifts","创作者专用：列出所有礼物或回收站（含草稿与锁定礼物）。",{trash:{type:"boolean",default:false}}),

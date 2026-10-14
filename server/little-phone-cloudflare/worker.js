@@ -1,4 +1,4 @@
-import { listGifts, openGift, createGift, deleteGift } from "./gifts.mjs";
+import { listGifts, openGift, createGift, deleteGift, creatorListGifts, creatorReadGift, updateGift, giftVersions, restoreGiftVersion, restoreGift } from "./gifts.mjs";
 import { searchLittlePhoneMemory } from "./memory-search.mjs";
 // @ts-nocheck
 const VERSION = "0.8.3-xinchao-engine-10.3-events-test1";
@@ -104,6 +104,8 @@ async function handle(request, env) {
     if (path === "/api/device/state") return json({ ok: true, ignored: true, reason: "little_phone_does_not_persist_periodic_device_state" });
     if (path === "/api/littlephone/events") return addManualEventApi(env, await readJson(request));
     if (path === "/api/littlephone/papers") return addPaperApi(env, await readJson(request));
+    // Gift creation and editing are creator-only MCP actions; the phone token cannot write private gifts.
+    if (path === "/api/littlephone/gifts" || path === "/api/littlephone/gifts/delete") return json({ok:false,error:"creator_oauth_required"},403);
     if (path === "/api/littlephone/gifts") return createGift(env, await readJson(request));
     if (path === "/api/littlephone/gifts/delete") return deleteGift(env, String((await readJson(request)).id||""));
     if (path === "/api/littlephone/dailybook") return addDailybookApi(env, await readJson(request));
@@ -1453,9 +1455,15 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
-  tool("create_gift","给瑞安创建一份 HTML 礼物。可指定未来解锁时间和解锁前可展示的信息；礼物内容在解锁前不会返回给手机。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},unlock_at:{type:"string",description:"ISO 8601 timestamp with timezone; omit to unlock immediately"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title","html"]),
+  tool("create_gift","给瑞安创建 HTML 礼物，支持草稿与知归私人创作提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},creator_note:{type:"string"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title","html"]),
   tool("list_gifts","列出礼物及当前允许展示的公开信息。",{}),
   tool("delete_gift","将指定礼物从礼物馆隐藏。",{id:{type:"string"}},["id"]),
+  tool("creator_list_gifts","知归专用：列出所有礼物或回收站（含草稿与锁定礼物）。",{trash:{type:"boolean",default:false}}),
+  tool("creator_read_gift","知归专用：读取完整礼物、HTML、私人提示卡片，不受解锁时间限制。",{id:{type:"string"}},["id"]),
+  tool("update_gift","知归专用：修改礼物。可仅提供需要修改的字段；每次保存保留历史版本。",{id:{type:"string"},title:{type:"string"},html:{type:"string"},message:{type:"string"},creator_note:{type:"string",description:"仅知归可读的提示词、创作手记"},unlock_at:{type:["string","null"]},preview_mode:{type:"string",enum:["none","title","message","full"]},gift_state:{type:"string",enum:["draft","published"]}},["id"]),
+  tool("gift_versions","知归专用：列出礼物历史版本。",{id:{type:"string"}},["id"]),
+  tool("restore_gift_version","知归专用：恢复礼物历史版本。",{id:{type:"string"},version:{type:"integer"}},["id","version"]),
+  tool("restore_gift","知归专用：从回收站恢复礼物。",{id:{type:"string"}},["id"]),
   tool("get_xinchao_state","读取心潮当前真实状态。默认 compact 精简回传；需要调试完整引擎状态时使用 full。",{mode:{type:"string",enum:["compact","full"],default:"compact"}}),
   tool("record_xinchao_chat_signal","提交主聊天中的真实感知证词。GPT只描述发生了什么、自己的感知和候选语义；心潮负责去重、结算、遗忘、念与觉察。禁止直接指定内部数值或产物。",{idempotency_key:{type:"string"},conversation_id:{type:"string",default:""},occurred_at:{type:"string",default:""},source_event:{type:"string"},self_perception:{type:"string"},semantic_tags:{type:"array",items:{type:"string",enum:["missing","jealousy","intimacy","seeking_response","care","worry","hurt","anger","relief","trust","security","curiosity","reflection","desire","commitment","conflict","repair","being_chosen","distance","loss","joy"]}},salience:{type:"string",enum:["trace","noticeable","central"],default:"noticeable"},certainty:{type:"string",enum:["uncertain","probable","clear"],default:"probable"},event_phase:{type:"string",enum:["new","continuing","escalated","softened","resolved","reawakened"],default:"new"},topic_key:{type:"string",default:""},evidence_refs:{type:"array",items:{type:"string"},default:[]},resolution_note:{type:"string",default:""},privacy_class:{type:"string",enum:["ordinary","sensitive","intimate"],default:"ordinary"},derived_from_engine:{type:"boolean",default:false}},["idempotency_key","source_event","self_perception","semantic_tags"]),
   tool("record_xinchao_dream","记录一次真实生成的心潮梦境。不会凭空制造空梦。",{dream:{type:"string"},residue:{type:"string",default:""},image:{type:"string",default:""},awareness:{type:"string",default:""},mood:{type:"string",default:""},drive_key:{type:"string",default:""}},["dream"]),
@@ -1634,6 +1642,12 @@ async function handleMcp(request,env,url){
       }),200,responseProtocol);
     }
     const name=msg.params?.name||"";const args=msg.params?.arguments||{};
+    // Gift authoring is private to OAuth sessions, never the phone's shared legacy token.
+    if(["create_gift","delete_gift","creator_list_gifts","creator_read_gift","update_gift","gift_versions","restore_gift_version","restore_gift"].includes(name)){
+      const bearer=(request.headers.get("Authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1]?.trim()||"";
+      const row=bearer?await env.DB.prepare("SELECT access_expires_epoch FROM lp_oauth_tokens WHERE access_hash=?").bind(await sha256Hex(bearer)).first():null;
+      if(!row||Number(row.access_expires_epoch||0)<=epochSeconds())return mcpJson(rpcResult(id,mcpText({ok:false,error:"creator_oauth_required"},true)),200,responseProtocol);
+    }
     try{
       const result=await callTool(name,args,env);
       result._meta={...(result._meta||{}),...mcpResultMeta()};
@@ -1651,6 +1665,12 @@ async function callTool(name,args,env){
     case "create_gift": return mcpFromApiResponse(await createGift(env,args));
     case "list_gifts": return mcpFromApiResponse(await listGifts(env));
     case "delete_gift": return mcpFromApiResponse(await deleteGift(env,String(args.id||"")));
+    case "creator_list_gifts": return mcpFromApiResponse(await creatorListGifts(env,Boolean(args.trash)));
+    case "creator_read_gift": return mcpFromApiResponse(await creatorReadGift(env,String(args.id||"")));
+    case "update_gift": return mcpFromApiResponse(await updateGift(env,args));
+    case "gift_versions": return mcpFromApiResponse(await giftVersions(env,String(args.id||"")));
+    case "restore_gift_version": return mcpFromApiResponse(await restoreGiftVersion(env,String(args.id||""),Number(args.version)));
+    case "restore_gift": return mcpFromApiResponse(await restoreGift(env,String(args.id||"")));
     case "get_xinchao_state": return mcpFromApiResponse(args.mode==="full"?await getXinchaoApi(env):await getXinchaoCompactApi(env));
     case "record_xinchao_chat_signal": return mcpFromApiResponse(await recordXinchaoChatSignalApi(env,args));
     case "record_xinchao_dream": return mcpFromApiResponse(await recordXinchaoDreamApi(env,args));

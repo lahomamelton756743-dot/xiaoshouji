@@ -1,1 +1,2 @@
 Rebuild request for Guiqi 0.8.5-17, same source and app configuration.
+Rebuild v0.8.5-22 after successful backend deployment run 38601635925; preserve existing Android source and configuration.

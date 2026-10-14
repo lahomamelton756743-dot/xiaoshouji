@@ -1,0 +1,12 @@
+{
+  "name": "little-phone-backend",
+  "main": "server/little-phone-cloudflare/worker.js",
+  "compatibility_date": "2025-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "little-phone-v051",
+      "database_id": "e4bc4871-c72f-491e-b519-6739d584c856"
+    }
+  ]
+}

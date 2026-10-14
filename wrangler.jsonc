@@ -1,5 +1,6 @@
 {
   "name": "little-phone-backend",
+  // Production deployment: preserve the existing Worker and D1 database.
   "main": "server/little-phone-cloudflare/worker.js",
   "compatibility_date": "2025-09-01",
   "d1_databases": [

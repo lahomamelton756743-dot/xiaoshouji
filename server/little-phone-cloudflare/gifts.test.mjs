@@ -90,8 +90,9 @@ test("private design journal preserves meaning and chronology through edits",asy
  const id=created.gift.id;
  const a=await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"inspiration",design_idea:"想送一片星空",symbolism:"每颗星代表陪伴"}));
  assert.equal(a.status,201);
- const b=await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"revision",version:1,revision_reason:"音乐太吵",decision:"保留安静"}));
+ const b=await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"revision",revision_reason:"音乐太吵",decision:"保留安静"}));
  assert.equal(b.status,201);
+ assert.equal((await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"revision",version:999,design_idea:"wrong"}))).status,404);
  assert.equal((await unpack(await listGifts(env))).gifts.length,0);
  assert.equal((await unpack(await openGift(env,id))).status,423);
  assert.equal((await unpack(await updateGift(env,{id,html:"<h1>星空</h1>",gift_state:"published"}))).ok,true);

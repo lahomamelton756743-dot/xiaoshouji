@@ -382,7 +382,7 @@ async function oauthAuthorize(request,env,url) {
   if (valid.error) return oauthError(valid.error,valid.description,400);
   const expected=String(env.LINJIAN_TOKEN||"").trim(); const supplied=String(form.get("access_key")||"").trim();
   const creatorKey=String(env.GIFT_CREATOR_KEY||"").trim();
-  const creatorAuthorized=Boolean(creatorKey && supplied===creatorKey);
+  const creatorAuthorized=Boolean(creatorKey && creatorKey!==expected && supplied===creatorKey);
   if (!creatorAuthorized && (!expected || supplied !== expected)) { const nonce=randomToken(12); return new Response(authorizeHtml(url,p,valid.client.client_name,"连接口令不正确",nonce),{status:401,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`}}); }
   const code=randomToken(32), codeHash=await sha256Hex(code), exp=epochSeconds()+OAUTH_CODE_TTL_SECONDS;
   await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE expires_at_epoch<=?").bind(epochSeconds()).run();

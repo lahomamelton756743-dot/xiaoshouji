@@ -2682,6 +2682,33 @@ body.diaryMode #page-diary{overflow:hidden!important;overscroll-behavior:none!im
 body.diaryMode .bookStage{overscroll-behavior:none!important}
 body.diaryMode #journalBook .journalScroll,body.diaryMode .journalLeaf .journalScroll{overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch}
 
+
+/* v0.8.5-21 — scroll only content, never the desktop viewport. */
+body.desktopMode{height:100dvh!important;overflow-y:hidden!important}
+body.desktopMode #page-desktop{height:100dvh!important;overflow:hidden!important}
+body.miniAppMode #page-app-papers,
+body.miniAppMode #page-app-mail,
+body.miniAppMode #page-app-memory{
+ height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+ overflow:hidden!important;display:none;flex-direction:column;
+ padding-bottom:calc(26px + env(safe-area-inset-bottom))!important;
+}
+body.miniAppMode #page-app-papers.active,
+body.miniAppMode #page-app-mail.active,
+body.miniAppMode #page-app-memory.active{display:flex!important}
+#page-app-papers>.miniAppHead,#page-app-mail>.miniAppHead,#page-app-memory>.miniAppHead,
+#page-app-papers>.appSearchBar,#page-app-mail>.appSearchBar,#page-app-memory>.appSearchBar,
+#page-app-mail>.appMailKindTabs{flex:0 0 auto}
+#page-app-papers>#paperAppList,#page-app-memory>#memoryAppList,
+#page-app-mail>.appMailKindPanel.active{
+ flex:1 1 auto;min-height:0;overflow-y:auto!important;overflow-x:hidden!important;
+ overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+}
+#page-app-mail>.appMailKindPanel:not(.active){display:none!important}
+.modal.show .modalCard,.backdrop.show .sheet{
+ max-height:calc(100dvh - 36px);overflow-y:auto!important;
+ overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;
+}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

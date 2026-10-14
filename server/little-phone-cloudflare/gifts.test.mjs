@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { webcrypto } from "node:crypto";
-import { createGift, listGifts, openGift, creatorReadGift, creatorListGifts, updateGift, giftVersions, restoreGiftVersion, deleteGift, restoreGift } from "./gifts.mjs";
+import { createGift, listGifts, openGift, creatorReadGift, creatorListGifts, updateGift, giftVersions, restoreGiftVersion, deleteGift, restoreGift, addGiftDesignNote, listGiftDesignNotes } from "./gifts.mjs";
 
 globalThis.crypto ??= webcrypto;
 function fixture() {
@@ -82,4 +82,28 @@ test("invalid publication and missing gifts fail closed",async()=>{
  assert.equal((await unpack(await updateGift(env,{id,preview_mode:"invalid"}))).status,400);
  assert.equal((await unpack(await updateGift(env,{id,unlock_at:"not-a-date"}))).status,400);
  assert.equal((await unpack(await giftVersions(env,id))).versions.length,0);
+});
+
+test("private design journal preserves meaning and chronology through edits",async()=>{
+ const env=fixture();
+ const created=await unpack(await createGift(env,{title:"星空",gift_state:"draft"}));
+ const id=created.gift.id;
+ const a=await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"inspiration",design_idea:"想送一片星空",symbolism:"每颗星代表陪伴"}));
+ assert.equal(a.status,201);
+ const b=await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"revision",version:1,revision_reason:"音乐太吵",decision:"保留安静"}));
+ assert.equal(b.status,201);
+ assert.equal((await unpack(await listGifts(env))).gifts.length,0);
+ assert.equal((await unpack(await openGift(env,id))).status,423);
+ assert.equal((await unpack(await updateGift(env,{id,html:"<h1>星空</h1>",gift_state:"published"}))).ok,true);
+ const notes=(await unpack(await listGiftDesignNotes(env,id))).notes;
+ assert.equal(notes.length,2);
+ assert.equal(notes[0].symbolism,"每颗星代表陪伴");
+ assert.equal(notes[1].decision,"保留安静");
+ assert.equal((await unpack(await openGift(env,id))).html,"<h1>星空</h1>");
+ assert.equal((await unpack(await listGifts(env))).gifts[0].symbolism,undefined);
+ assert.equal((await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"final",decision:""}))).status,400);
+ assert.equal((await unpack(await addGiftDesignNote(env,{gift_id:id,stage:"wrong",design_idea:"x"}))).status,400);
+ assert.equal((await unpack(await listGiftDesignNotes(env,"missing"))).status,404);
+ assert.equal((await unpack(await deleteGift(env,id))).deleted,true);
+ assert.equal((await unpack(await listGiftDesignNotes(env,id))).notes.length,2);
 });

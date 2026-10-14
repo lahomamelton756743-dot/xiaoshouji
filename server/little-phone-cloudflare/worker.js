@@ -106,8 +106,6 @@ async function handle(request, env) {
     if (path === "/api/littlephone/papers") return addPaperApi(env, await readJson(request));
     // Gift creation and editing are creator-only MCP actions; the phone token cannot write private gifts.
     if (path === "/api/littlephone/gifts" || path === "/api/littlephone/gifts/delete") return json({ok:false,error:"creator_oauth_required"},403);
-    if (path === "/api/littlephone/gifts") return createGift(env, await readJson(request));
-    if (path === "/api/littlephone/gifts/delete") return deleteGift(env, String((await readJson(request)).id||""));
     if (path === "/api/littlephone/dailybook") return addDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/dailybook/update") return updateDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries") return addDiaryApi(env, await readJson(request));
@@ -1458,15 +1456,15 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
-  tool("create_gift","给瑞安创建 HTML 礼物，支持草稿与知归私人创作提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},creator_note:{type:"string"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title","html"]),
+  tool("create_gift","为手机使用者创建 HTML 礼物，支持草稿与知归私人创作提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},creator_note:{type:"string"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title","html"]),
   tool("list_gifts","列出礼物及当前允许展示的公开信息。",{}),
   tool("delete_gift","将指定礼物从礼物馆隐藏。",{id:{type:"string"}},["id"]),
-  tool("creator_list_gifts","知归专用：列出所有礼物或回收站（含草稿与锁定礼物）。",{trash:{type:"boolean",default:false}}),
-  tool("creator_read_gift","知归专用：读取完整礼物、HTML、私人提示卡片，不受解锁时间限制。",{id:{type:"string"}},["id"]),
-  tool("update_gift","知归专用：修改礼物。可仅提供需要修改的字段；每次保存保留历史版本。",{id:{type:"string"},title:{type:"string"},html:{type:"string"},message:{type:"string"},creator_note:{type:"string",description:"仅知归可读的提示词、创作手记"},unlock_at:{type:["string","null"]},preview_mode:{type:"string",enum:["none","title","message","full"]},gift_state:{type:"string",enum:["draft","published"]}},["id"]),
-  tool("gift_versions","知归专用：列出礼物历史版本。",{id:{type:"string"}},["id"]),
-  tool("restore_gift_version","知归专用：恢复礼物历史版本。",{id:{type:"string"},version:{type:"integer"}},["id","version"]),
-  tool("restore_gift","知归专用：从回收站恢复礼物。",{id:{type:"string"}},["id"]),
+  tool("creator_list_gifts","创作者专用：列出所有礼物或回收站（含草稿与锁定礼物）。",{trash:{type:"boolean",default:false}}),
+  tool("creator_read_gift","创作者专用：读取完整礼物、HTML、私人提示卡片，不受解锁时间限制。",{id:{type:"string"}},["id"]),
+  tool("update_gift","创作者专用：修改礼物。可仅提供需要修改的字段；每次保存保留历史版本。",{id:{type:"string"},title:{type:"string"},html:{type:"string"},message:{type:"string"},creator_note:{type:"string",description:"仅创作者可读的提示词、创作手记"},unlock_at:{type:["string","null"]},preview_mode:{type:"string",enum:["none","title","message","full"]},gift_state:{type:"string",enum:["draft","published"]}},["id"]),
+  tool("gift_versions","创作者专用：列出礼物历史版本。",{id:{type:"string"}},["id"]),
+  tool("restore_gift_version","创作者专用：恢复礼物历史版本。",{id:{type:"string"},version:{type:"integer"}},["id","version"]),
+  tool("restore_gift","创作者专用：从回收站恢复礼物。",{id:{type:"string"}},["id"]),
   tool("get_xinchao_state","读取心潮当前真实状态。默认 compact 精简回传；需要调试完整引擎状态时使用 full。",{mode:{type:"string",enum:["compact","full"],default:"compact"}}),
   tool("record_xinchao_chat_signal","提交主聊天中的真实感知证词。GPT只描述发生了什么、自己的感知和候选语义；心潮负责去重、结算、遗忘、念与觉察。禁止直接指定内部数值或产物。",{idempotency_key:{type:"string"},conversation_id:{type:"string",default:""},occurred_at:{type:"string",default:""},source_event:{type:"string"},self_perception:{type:"string"},semantic_tags:{type:"array",items:{type:"string",enum:["missing","jealousy","intimacy","seeking_response","care","worry","hurt","anger","relief","trust","security","curiosity","reflection","desire","commitment","conflict","repair","being_chosen","distance","loss","joy"]}},salience:{type:"string",enum:["trace","noticeable","central"],default:"noticeable"},certainty:{type:"string",enum:["uncertain","probable","clear"],default:"probable"},event_phase:{type:"string",enum:["new","continuing","escalated","softened","resolved","reawakened"],default:"new"},topic_key:{type:"string",default:""},evidence_refs:{type:"array",items:{type:"string"},default:[]},resolution_note:{type:"string",default:""},privacy_class:{type:"string",enum:["ordinary","sensitive","intimate"],default:"ordinary"},derived_from_engine:{type:"boolean",default:false}},["idempotency_key","source_event","self_perception","semantic_tags"]),
   tool("record_xinchao_dream","记录一次真实生成的心潮梦境。不会凭空制造空梦。",{dream:{type:"string"},residue:{type:"string",default:""},image:{type:"string",default:""},awareness:{type:"string",default:""},mood:{type:"string",default:""},drive_key:{type:"string",default:""}},["dream"]),

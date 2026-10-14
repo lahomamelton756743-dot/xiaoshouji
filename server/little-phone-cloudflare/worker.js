@@ -194,6 +194,7 @@ function tokenOk(request, env, url) {
 
 
 const OAUTH_SCOPE = "little-phone";
+const GIFT_CREATOR_SCOPE = "gift:creator";
 const OAUTH_OFFLINE_SCOPE = "offline_access";
 const OAUTH_ACCESS_TTL_SECONDS = 60 * 60;
 const OAUTH_REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
@@ -203,7 +204,7 @@ const OAUTH_PUBLIC_ORIGIN = "https://little-phone-gateway.netlify.app";
 
 function originOf(url) { return `${url.protocol}//${url.host}`; }
 function resourceUri(url) { return `${originOf(url)}/mcp`; }
-function oauthScopes() { return [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE]; }
+function oauthScopes() { return [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE, GIFT_CREATOR_SCOPE]; }
 function normalizedScope(value) {
   const allowed = new Set(oauthScopes());
   const parts = String(value || "").split(/\s+/).filter(Boolean).filter(x => allowed.has(x));
@@ -382,11 +383,13 @@ async function oauthAuthorize(request,env,url) {
   const form=await request.formData(); const p=authorizeParams(form); const valid=await validateAuthorize(env,url,p);
   if (valid.error) return oauthError(valid.error,valid.description,400);
   const expected=String(env.LINJIAN_TOKEN||"").trim(); const supplied=String(form.get("access_key")||"").trim();
-  if (!expected || supplied !== expected) { const nonce=randomToken(12); return new Response(authorizeHtml(url,p,valid.client.client_name,"连接口令不正确",nonce),{status:401,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`}}); }
+  const creatorKey=String(env.GIFT_CREATOR_KEY||"").trim();
+  const creatorAuthorized=Boolean(creatorKey && supplied===creatorKey);
+  if (!creatorAuthorized && (!expected || supplied !== expected)) { const nonce=randomToken(12); return new Response(authorizeHtml(url,p,valid.client.client_name,"连接口令不正确",nonce),{status:401,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Content-Security-Policy":`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`}}); }
   const code=randomToken(32), codeHash=await sha256Hex(code), exp=epochSeconds()+OAUTH_CODE_TTL_SECONDS;
   await env.DB.prepare("DELETE FROM lp_oauth_codes WHERE expires_at_epoch<=?").bind(epochSeconds()).run();
   await env.DB.prepare("INSERT INTO lp_oauth_codes(code_hash,client_id,redirect_uri,code_challenge,scope,resource,expires_at_epoch) VALUES(?,?,?,?,?,?,?)")
-    .bind(codeHash,p.client_id,p.redirect_uri,p.code_challenge,normalizedScope(p.scope),p.resource||resourceUri(url),exp).run();
+    .bind(codeHash,p.client_id,p.redirect_uri,p.code_challenge,creatorAuthorized?normalizedScope(p.scope+" "+GIFT_CREATOR_SCOPE):normalizedScope(p.scope).split(" ").filter(x=>x!==GIFT_CREATOR_SCOPE).join(" "),p.resource||resourceUri(url),exp).run();
   const redirect=new URL(p.redirect_uri); redirect.searchParams.set("code",code); redirect.searchParams.set("iss",OAUTH_PUBLIC_ORIGIN); if(p.state)redirect.searchParams.set("state",p.state);
   if (isNetlifyOauthProxy(request)) {
     const nonce=randomToken(12);
@@ -1645,8 +1648,8 @@ async function handleMcp(request,env,url){
     // Gift authoring is private to OAuth sessions, never the phone's shared legacy token.
     if(["create_gift","delete_gift","creator_list_gifts","creator_read_gift","update_gift","gift_versions","restore_gift_version","restore_gift"].includes(name)){
       const bearer=(request.headers.get("Authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1]?.trim()||"";
-      const row=bearer?await env.DB.prepare("SELECT access_expires_epoch FROM lp_oauth_tokens WHERE access_hash=?").bind(await sha256Hex(bearer)).first():null;
-      if(!row||Number(row.access_expires_epoch||0)<=epochSeconds())return mcpJson(rpcResult(id,mcpText({ok:false,error:"creator_oauth_required"},true)),200,responseProtocol);
+      const row=bearer?await env.DB.prepare("SELECT access_expires_epoch,scope FROM lp_oauth_tokens WHERE access_hash=?").bind(await sha256Hex(bearer)).first():null;
+      if(!row||Number(row.access_expires_epoch||0)<=epochSeconds()||!String(row.scope||"").split(/\s+/).includes(GIFT_CREATOR_SCOPE))return mcpJson(rpcResult(id,mcpText({ok:false,error:"creator_oauth_required"},true)),200,responseProtocol);
     }
     try{
       const result=await callTool(name,args,env);

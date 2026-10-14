@@ -29,11 +29,11 @@ function metadata(r){
   title:mode==="full"||mode==="title"||mode==="message"?r.title:undefined,
   message:mode==="full"||mode==="message"?r.message:undefined,
   created_at:mode==="none"&&!open?undefined:r.created_at,
-  unlock_at:mode==="none"&&!open?undefined:r.unlock_at};
+  unlock_at:mode==="none"&&!open?undefined:r.unlock_at,updated_at:open?(r.updated_at||r.created_at):undefined};
 }
 export async function listGifts(env){
  await ensureGifts(env);
- const {results=[]}=await env.DB.prepare("SELECT id,title,message,preview_mode,unlock_at,created_at FROM lp_gifts WHERE deleted=0 AND gift_state='published' ORDER BY created_at DESC LIMIT 500").all();
+ const {results=[]}=await env.DB.prepare("SELECT id,title,message,preview_mode,unlock_at,created_at,updated_at FROM lp_gifts WHERE deleted=0 AND gift_state='published' ORDER BY created_at DESC LIMIT 500").all();
  return respond({ok:true,gifts:results.filter(r=>isOpen(r)||r.preview_mode!=="none").map(metadata)});
 }
 export async function openGift(env,giftId){

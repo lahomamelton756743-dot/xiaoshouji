@@ -2567,6 +2567,53 @@ body.miniAppMode:not(.desktopMode){overflow-y:auto!important;overflow-x:hidden!i
 body.miniAppMode:not(.desktopMode)::-webkit-scrollbar{display:none!important}
 body.miniAppMode:not(.desktopMode) .shell{min-height:100dvh!important}
 body.miniAppMode:not(.desktopMode) .page.active{min-height:0!important}
+
+/* v0.8 viewport scroll containment: prevent empty-page rubber-banding.
+   Content-heavy ordinary pages retain natural document scrolling. */
+html,body{
+  overscroll-behavior-y:none!important;
+}
+body{
+  overscroll-behavior-y:none!important;
+}
+.page{
+  overscroll-behavior-y:contain;
+}
+/* The diary is a viewport-bound book. Only its writing area may scroll;
+   its header, cover, pages, and bottom navigation stay in place. */
+html:has(body.diaryMode){
+  height:100%!important;
+  overflow-y:hidden!important;
+}
+body.diaryMode{
+  height:100dvh!important;
+  min-height:0!important;
+  overflow-y:hidden!important;
+  overscroll-behavior:none!important;
+}
+body.diaryMode .shell{
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow-y:hidden!important;
+  overscroll-behavior:none!important;
+}
+body.diaryMode #page-diary{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+body.diaryMode .bookStage,
+body.diaryMode .journalCover076,
+body.diaryMode .bookPage,
+body.diaryMode .journalLeaf{
+  overscroll-behavior:none!important;
+}
+body.diaryMode .journalLeaf .journalScroll{
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch;
+}
+
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

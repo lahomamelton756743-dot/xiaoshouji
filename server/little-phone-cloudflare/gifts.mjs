@@ -1,12 +1,13 @@
 // Gift backend. Only public metadata leaves the server before unlock.
 const MAX_HTML_BYTES = 1024 * 1024;
-let ready;
+const readyByDb=new WeakMap();
 const respond=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const iso=()=>new Date().toISOString();
 const id=()=>crypto.randomUUID();
 const safeText=(v,n=200)=>String(v??"").slice(0,n);
 const epoch=(v)=>{const n=Date.parse(v);return Number.isFinite(n)?n:NaN};
 export async function ensureGifts(env){
+ let ready=readyByDb.get(env.DB);
  if(!ready){ready=(async()=>{
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS lp_gifts (
    id TEXT PRIMARY KEY, title TEXT NOT NULL, message TEXT NOT NULL DEFAULT '',
@@ -17,7 +18,7 @@ export async function ensureGifts(env){
   for(const [col,ddl] of [["creator_note","TEXT NOT NULL DEFAULT ''"],["updated_at","TEXT"],["gift_state","TEXT NOT NULL DEFAULT 'published'"]]){try{await env.DB.prepare("ALTER TABLE lp_gifts ADD COLUMN "+col+" "+ddl).run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_gift_versions (gift_id TEXT NOT NULL,version INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(gift_id,version))").run();
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lp_gifts_created ON lp_gifts(created_at DESC)").run();
- })().catch(e=>{ready=null;throw e})}return ready;
+ })().catch(e=>{readyByDb.delete(env.DB);throw e});readyByDb.set(env.DB,ready)}return ready;
 }
 const isOpen=(r)=>!r.unlock_at||epoch(r.unlock_at)<=Date.now();
 function metadata(r){
@@ -109,6 +110,7 @@ export async function updateGift(env,body){
  if(next.unlock_at&&!Number.isFinite(epoch(next.unlock_at)))return respond({ok:false,error:"invalid_unlock_at"},400);
  const versionRow=await env.DB.prepare("SELECT COALESCE(MAX(version),0)+1 AS n FROM lp_gift_versions WHERE gift_id=?").bind(giftId).first();
  const version=versionRow.n,now=iso();
+ if(typeof prior.html!=="string")return respond({ok:false,error:"gift_content_missing"},409);
  await env.DB.prepare("INSERT INTO lp_gift_versions(gift_id,version,snapshot,created_at) VALUES(?,?,?,?)").bind(giftId,version,JSON.stringify(prior),now).run();
  // Store revised HTML in D1 to avoid an R2 overwrite before the DB update commits.
 

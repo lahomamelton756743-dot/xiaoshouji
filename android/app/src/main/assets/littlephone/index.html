@@ -2708,6 +2708,33 @@ body.diaryMode #journalBook .journalScroll,body.diaryMode .journalLeaf .journalS
   touch-action:pan-y;
 }
 #page-app-mail.active > .appMailKindPanel:not(.active){display:none!important}
+
+/* v0.8.5-27: fix stretched memory grid tracks; preserve working paper/mail. */
+#page-app-memory.active > #memoryAppList{
+  display:grid!important;grid-auto-rows:max-content!important;
+  align-content:start!important;align-items:start!important;
+}
+#page-app-memory.active > #memoryAppList > .memoryItem{
+  height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;align-self:start!important;
+}
+/* Calendar, phone and settings scroll within their own screen, never the desktop. */
+body.miniAppMode #page-app-calendar.active,
+body.miniAppMode #page-app-phone.active,
+body.settingsMode #page-settings.active,
+#page-settings.active{
+  height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;
+  touch-action:pan-y;padding-bottom:calc(36px + env(safe-area-inset-bottom))!important;
+}
+#page-app-calendar.active > .miniAppHead,
+#page-app-phone.active > .miniAppHead{
+  position:sticky!important;top:0!important;z-index:5!important;
+}
+#page-settings.active > .settingsPageHead{
+  position:sticky!important;top:0!important;z-index:5!important;
+}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>

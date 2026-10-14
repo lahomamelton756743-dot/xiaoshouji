@@ -14,6 +14,8 @@ export async function ensureGifts(env){
    created_at TEXT NOT NULL, content_key TEXT, html_inline TEXT,
    content_type TEXT NOT NULL DEFAULT 'text/html', deleted INTEGER NOT NULL DEFAULT 0
   )`).run();
+  for(const [col,ddl] of [["creator_note","TEXT NOT NULL DEFAULT ''"],["updated_at","TEXT"],["gift_state","TEXT NOT NULL DEFAULT 'published'"]]){try{await env.DB.prepare("ALTER TABLE lp_gifts ADD COLUMN "+col+" "+ddl).run()}catch(e){if(!/duplicate column/i.test(String(e)))throw e}}
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_gift_versions (gift_id TEXT NOT NULL,version INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(gift_id,version))").run();
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lp_gifts_created ON lp_gifts(created_at DESC)").run();
  })().catch(e=>{ready=null;throw e})}return ready;
 }
@@ -28,14 +30,14 @@ function metadata(r){
 }
 export async function listGifts(env){
  await ensureGifts(env);
- const {results=[]}=await env.DB.prepare("SELECT id,title,message,preview_mode,unlock_at,created_at FROM lp_gifts WHERE deleted=0 ORDER BY created_at DESC LIMIT 500").all();
+ const {results=[]}=await env.DB.prepare("SELECT id,title,message,preview_mode,unlock_at,created_at FROM lp_gifts WHERE deleted=0 AND gift_state='published' ORDER BY created_at DESC LIMIT 500").all();
  return respond({ok:true,gifts:results.map(metadata)});
 }
 export async function openGift(env,giftId){
  await ensureGifts(env);
  const r=await env.DB.prepare("SELECT * FROM lp_gifts WHERE id=? AND deleted=0").bind(giftId).first();
  if(!r)return respond({ok:false,error:"not_found"},404);
- if(!isOpen(r))return respond({ok:false,error:"gift_locked"},423);
+ if(r.gift_state!=="published"||!isOpen(r))return respond({ok:false,error:"gift_locked"},423);
  let html=r.html_inline;
  if(r.content_key){if(!env.LITTLEPHONE_GIFTS)return respond({ok:false,error:"gift_storage_unavailable"},503);
   const obj=await env.LITTLEPHONE_GIFTS.get(r.content_key);if(!obj)return respond({ok:false,error:"gift_content_missing"},404);
@@ -47,6 +49,7 @@ export async function openGift(env,giftId){
 export async function createGift(env,body){
  await ensureGifts(env);
  const title=safeText(body.title,120).trim(),message=safeText(body.message,3000);
+ const creatorNote=safeText(body.creator_note,30000),giftState=body.gift_state==="draft"?"draft":"published";
  const html=typeof body.html==="string"?body.html:"";
  if(!title||!html)return respond({ok:false,error:"title_and_html_required"},400);
  const bytes=new TextEncoder().encode(html);
@@ -61,8 +64,8 @@ export async function createGift(env,body){
   await env.LITTLEPHONE_GIFTS.put(key,bytes,{httpMetadata:{contentType:"text/html; charset=utf-8"}});
  }else inline=html;
  try{
-  await env.DB.prepare("INSERT INTO lp_gifts(id,title,message,preview_mode,unlock_at,created_at,content_key,html_inline) VALUES(?,?,?,?,?,?,?,?)")
-   .bind(giftId,title,message,mode,unlock,created,key,inline).run();
+  await env.DB.prepare("INSERT INTO lp_gifts(id,title,message,preview_mode,unlock_at,created_at,content_key,html_inline,creator_note,updated_at,gift_state) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
+   .bind(giftId,title,message,mode,unlock,created,key,inline,creatorNote,created,giftState).run();
  }catch(e){if(key)await env.LITTLEPHONE_GIFTS.delete(key);throw e}
  return respond({ok:true,gift:metadata({id:giftId,title,message,preview_mode:mode,unlock_at:unlock,created_at:created})},201);
 }
@@ -70,4 +73,61 @@ export async function deleteGift(env,giftId){
  await ensureGifts(env);
  const result=await env.DB.prepare("UPDATE lp_gifts SET deleted=1 WHERE id=? AND deleted=0").bind(giftId).run();
  return respond({ok:true,deleted:Number(result.meta?.changes||0)>0});
+}
+
+const ownFields="id,title,message,preview_mode,unlock_at,created_at,updated_at,creator_note,gift_state,deleted,content_key,html_inline";
+async function fullGift(env,r){
+ let html=r.html_inline;
+ if(r.content_key){const obj=await env.LITTLEPHONE_GIFTS?.get(r.content_key);html=obj?await obj.text():null}
+ return {...r,html,html_inline:undefined,content_key:undefined};
+}
+export async function creatorListGifts(env,trash=false){
+ await ensureGifts(env);
+ const {results=[]}=await env.DB.prepare("SELECT "+ownFields+" FROM lp_gifts WHERE deleted=? ORDER BY created_at DESC LIMIT 500").bind(trash?1:0).all();
+ return respond({ok:true,gifts:results.map(r=>({...r,html_inline:undefined,content_key:undefined}))});
+}
+export async function creatorReadGift(env,giftId){
+ await ensureGifts(env);
+ const r=await env.DB.prepare("SELECT "+ownFields+" FROM lp_gifts WHERE id=?").bind(giftId).first();
+ return r?respond({ok:true,gift:await fullGift(env,r)}):respond({ok:false,error:"not_found"},404);
+}
+export async function updateGift(env,body){
+ await ensureGifts(env);
+ const giftId=safeText(body.id,100);
+ const old=await env.DB.prepare("SELECT "+ownFields+" FROM lp_gifts WHERE id=? AND deleted=0").bind(giftId).first();
+ if(!old)return respond({ok:false,error:"not_found"},404);
+ const prior=await fullGift(env,old),next={...prior};
+ for(const k of ["title","message","creator_note","html","preview_mode","unlock_at","gift_state"]){
+  if(Object.prototype.hasOwnProperty.call(body,k))next[k]=body[k];
+ }
+ next.title=safeText(next.title,120).trim();next.message=safeText(next.message,3000);
+ next.creator_note=safeText(next.creator_note,30000);
+ if(!next.title||typeof next.html!=="string"||!next.html)return respond({ok:false,error:"title_and_html_required"},400);
+ if(new TextEncoder().encode(next.html).byteLength>MAX_HTML_BYTES)return respond({ok:false,error:"html_too_large"},413);
+ if(!["none","title","message","full"].includes(next.preview_mode))return respond({ok:false,error:"invalid_preview_mode"},400);
+ if(!["draft","published"].includes(next.gift_state))return respond({ok:false,error:"invalid_gift_state"},400);
+ if(next.unlock_at&&!Number.isFinite(epoch(next.unlock_at)))return respond({ok:false,error:"invalid_unlock_at"},400);
+ const versionRow=await env.DB.prepare("SELECT COALESCE(MAX(version),0)+1 AS n FROM lp_gift_versions WHERE gift_id=?").bind(giftId).first();
+ const version=versionRow.n,now=iso();
+ await env.DB.prepare("INSERT INTO lp_gift_versions(gift_id,version,snapshot,created_at) VALUES(?,?,?,?)").bind(giftId,version,JSON.stringify(prior),now).run();
+ if(old.content_key){await env.LITTLEPHONE_GIFTS.put(old.content_key,new TextEncoder().encode(next.html),{httpMetadata:{contentType:"text/html; charset=utf-8"}})}
+ await env.DB.prepare("UPDATE lp_gifts SET title=?,message=?,creator_note=?,preview_mode=?,unlock_at=?,gift_state=?,updated_at=?,html_inline=? WHERE id=?")
+  .bind(next.title,next.message,next.creator_note,next.preview_mode,next.unlock_at||null,next.gift_state,now,old.content_key?null:next.html,giftId).run();
+ return respond({ok:true,id:giftId,version,updated_at:now});
+}
+export async function giftVersions(env,giftId){
+ await ensureGifts(env);
+ const {results=[]}=await env.DB.prepare("SELECT version,created_at FROM lp_gift_versions WHERE gift_id=? ORDER BY version DESC LIMIT 100").bind(giftId).all();
+ return respond({ok:true,versions:results});
+}
+export async function restoreGiftVersion(env,giftId,version){
+ await ensureGifts(env);
+ const row=await env.DB.prepare("SELECT snapshot FROM lp_gift_versions WHERE gift_id=? AND version=?").bind(giftId,version).first();
+ if(!row)return respond({ok:false,error:"version_not_found"},404);
+ return updateGift(env,{...JSON.parse(row.snapshot),id:giftId});
+}
+export async function restoreGift(env,giftId){
+ await ensureGifts(env);
+ const result=await env.DB.prepare("UPDATE lp_gifts SET deleted=0 WHERE id=? AND deleted=1").bind(giftId).run();
+ return respond({ok:true,restored:Number(result.meta?.changes||0)>0});
 }

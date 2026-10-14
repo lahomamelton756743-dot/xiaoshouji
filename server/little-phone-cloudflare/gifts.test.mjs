@@ -108,3 +108,20 @@ test("private design journal preserves meaning and chronology through edits",asy
  assert.equal((await unpack(await deleteGift(env,id))).deleted,true);
  assert.equal((await unpack(await listGiftDesignNotes(env,id))).notes.length,2);
 });
+
+test("private prompt survives edits and restores without leaking to phone",async()=>{
+ const env=fixture();
+ const created=await unpack(await createGift(env,{title:"提示词礼物",html:"<p>first</p>",prompt:"蓝色星空，安静的音乐",creator_note:"给自己的备注"}));
+ assert.equal(created.status,201);
+ const id=created.gift.id;
+ assert.equal((await unpack(await creatorReadGift(env,id))).gift.prompt,"蓝色星空，安静的音乐");
+ assert.equal((await unpack(await listGifts(env))).gifts[0].prompt,undefined);
+ assert.equal((await unpack(await openGift(env,id))).prompt,undefined);
+ assert.equal((await unpack(await updateGift(env,{id,prompt:"改成暖色灯光",html:"<p>second</p>"}))).ok,true);
+ assert.equal((await unpack(await creatorReadGift(env,id))).gift.prompt,"改成暖色灯光");
+ assert.equal((await unpack(await restoreGiftVersion(env,id,1))).ok,true);
+ const restored=(await unpack(await creatorReadGift(env,id))).gift;
+ assert.equal(restored.prompt,"蓝色星空，安静的音乐");
+ assert.equal(restored.html,"<p>first</p>");
+ assert.equal(restored.creator_note,"给自己的备注");
+});

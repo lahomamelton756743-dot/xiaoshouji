@@ -976,7 +976,7 @@ async function addManualEventApi(env, body) {
 async function listEventsApi(env, url) { return json({ ok:true, events:await listEvents(env, asLimit(url,80,300)) }); }
 
 async function addPaper(env, body) {
-  const content = clip(body.content || "", 800).trim();
+  const content = clip(body.content || "", 6000).trim();
   if (!content) return { error:"content_required" };
   const id=clientId(body); const existing=await env.DB.prepare("SELECT * FROM lp_papers WHERE id=?").bind(id).first();
   if(existing)return existing;

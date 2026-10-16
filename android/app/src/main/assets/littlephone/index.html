@@ -2752,6 +2752,10 @@ body.settingsMode #page-settings-detail.active > .settingsPageHead{
 body.settingsMode #page-settings-detail.active > #settingsDetailBody{
   min-height:0!important;overflow:visible!important;
 }
+
+/* Paper reply field grows for longer notes; each reply remains a separate card. */
+#page-app-papers .paperReplyInput{height:auto!important;min-height:58px!important;max-height:160px!important;resize:vertical!important;line-height:1.6!important;padding:8px 5px!important;font-family:inherit!important}
+#page-app-papers .paperReplyNote{max-width:100%!important;min-width:0!important;overflow-wrap:anywhere!important;white-space:pre-wrap!important}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -3818,11 +3822,31 @@ async function sendPaperReplyFromApp(rootId){
   if(!content)return toast('回复还是空的');
   try{await apiWrite('/api/littlephone/papers',{author:'user',content,reply_to:rootId});if(input)input.value='';await loadRemote();toast('已经回在纸条下面')}catch(e){toast(e.message||'没有回复成功')}
 }
+/* Collect every descendant reply, including replies to replies, without losing nested notes. */
+function paperThreadReplies(rootId){
+  const children=new Map();
+  for(const note of state.papers||[]){
+    const parent=String(note.reply_to||'');
+    if(!parent)continue;
+    if(!children.has(parent))children.set(parent,[]);
+    children.get(parent).push(note);
+  }
+  const result=[],seen=new Set([String(rootId)]);
+  const visit=id=>{
+    const next=(children.get(String(id))||[]).slice().sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    for(const note of next){
+      const key=String(note.id);
+      if(seen.has(key))continue;
+      seen.add(key);result.push(note);visit(key);
+    }
+  };
+  visit(rootId);return result;
+}
 function renderPaperApp(){
   const root=$('#paperAppList');if(!root)return;
   if(!state.conn.connected&&!state.papers.length){root.innerHTML='<div class="glass appEmpty">连接后打开纸条。</div>';return}
   const ids=new Set(state.papers.map(p=>String(p.id))),roots=state.papers.filter(p=>!p.reply_to||!ids.has(String(p.reply_to)));
-  root.innerHTML=roots.length?roots.map(p=>{const replies=state.papers.filter(x=>String(x.reply_to||'')===String(p.id)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));return `<article class="paperThreadCard"><div class="paperAuthor ${authorSide(p.author)==='user'?'identityUser':'identityDaddy'}">${esc(actorName(p.author||''))} · ${fmt(p.created_at)}</div><div class="paperRoot authoredText ${authorSide(p.author)}">${esc(p.content||'')}</div>${replies.length?`<div class="paperReplies">${replies.map(paperReplyHtml).join('')}</div>`:''}<div class="paperReplyRow"><input class="paperReplyInput" data-paper-app-reply-text="${esc(p.id)}" placeholder="写一句回复……"><button class="paperTinyAction" data-paper-app-reply="${esc(p.id)}">回复</button></div><div class="paperSecondary"><button class="paperDeleteLink" data-paper-app-delete="${esc(p.id)}">删除纸条</button></div></article>`}).join(''):'<div class="glass appEmpty">纸条还是空的。</div>';
+  root.innerHTML=roots.length?roots.map(p=>{const replies=paperThreadReplies(p.id);return `<article class="paperThreadCard"><div class="paperAuthor ${authorSide(p.author)==='user'?'identityUser':'identityDaddy'}">${esc(actorName(p.author||''))} · ${fmt(p.created_at)}</div><div class="paperRoot authoredText ${authorSide(p.author)}">${esc(p.content||'')}</div>${replies.length?`<div class="paperReplies">${replies.map(paperReplyHtml).join('')}</div>`:''}<div class="paperReplyRow"><textarea class="paperReplyInput" rows="2" data-paper-app-reply-text="${esc(p.id)}" placeholder="写下回复……"></textarea><button class="paperTinyAction" data-paper-app-reply="${esc(p.id)}">回复</button></div><div class="paperSecondary"><button class="paperDeleteLink" data-paper-app-delete="${esc(p.id)}">删除纸条</button></div></article>`}).join(''):'<div class="glass appEmpty">纸条还是空的。</div>';
   root.querySelectorAll('[data-paper-app-reply]').forEach(b=>b.onclick=()=>sendPaperReplyFromApp(b.dataset.paperAppReply));
   root.querySelectorAll('[data-paper-app-reply-text]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendPaperReplyFromApp(i.dataset.paperAppReplyText)}});
   root.querySelectorAll('[data-paper-app-delete]').forEach(b=>b.onclick=()=>deleteItem('/api/littlephone/papers/delete',b.dataset.paperAppDelete,'这张纸条'));

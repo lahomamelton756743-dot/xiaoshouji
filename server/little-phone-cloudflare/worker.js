@@ -976,7 +976,7 @@ async function addManualEventApi(env, body) {
 async function listEventsApi(env, url) { return json({ ok:true, events:await listEvents(env, asLimit(url,80,300)) }); }
 
 async function addPaper(env, body) {
-  const content = clip(body.content || "", 6000).trim();
+  const content = clip(body.content || "", 800).trim();
   if (!content) return { error:"content_required" };
   const id=clientId(body); const existing=await env.DB.prepare("SELECT * FROM lp_papers WHERE id=?").bind(id).first();
   if(existing)return existing;
@@ -986,8 +986,8 @@ async function addPaper(env, body) {
   return (await env.DB.prepare("SELECT * FROM lp_papers WHERE id=?").bind(id).first())||item;
 }
 async function addPaperApi(env, body) { const item=await addPaper(env,body); return item.error?json({ok:false,error:item.error},400):json({ok:true,paper:item}); }
-async function listPapers(env, limit=500) { const rows=await env.DB.prepare("SELECT * FROM lp_papers ORDER BY created_at DESC LIMIT ?").bind(limit).all(); return rows.results||[]; }
-async function listPapersApi(env,url){ return json({ok:true,papers:await listPapers(env,asLimit(url,500,500))}); }
+async function listPapers(env, limit=200) { const rows=await env.DB.prepare("SELECT * FROM lp_papers ORDER BY created_at DESC LIMIT ?").bind(limit).all(); return rows.results||[]; }
+async function listPapersApi(env,url){ return json({ok:true,papers:await listPapers(env,asLimit(url,200,500))}); }
 
 async function addMail(env, body) {
   const content=clip(body.content||"",6000).trim();
@@ -1703,7 +1703,7 @@ async function callTool(name,args,env){
     case "send_chat_message": {const message=await addChatMessage(env,{...args,author:args.author||"daddy"});return mcpText(message.error?{ok:false,error:message.error}:{ok:true,message},Boolean(message.error));}
     case "list_chat_messages": return mcpText({ok:true,messages:await listChatMessages(env,Math.max(1,Math.min(1000,Number(args.limit||300))))});
     case "delete_chat_message": {const id=clip(args.id||"",100);const r=await env.DB.prepare("DELETE FROM lp_chat_messages WHERE id=?").bind(id).run();return mcpText({ok:Number(r.meta?.changes||0)>0,id},Number(r.meta?.changes||0)<1);}
-    case "list_little_phone_papers": return mcpText({ok:true,papers:await listPapers(env,Math.max(1,Math.min(500,Number(args.limit||500))))});
+    case "list_little_phone_papers": return mcpText({ok:true,papers:await listPapers(env,Math.max(1,Math.min(500,Number(args.limit||200))))});
     case "send_little_phone_letter": {const mail=await addMail(env,args);return mcpText(mail.error?{ok:false,error:mail.error}:{ok:true,mail},Boolean(mail.error));}
     case "list_little_phone_mail": return mcpText({ok:true,mail:await listMail(env,Math.max(1,Math.min(300,Number(args.limit||80))))});
     case "mark_little_phone_letter_read": return mcpText(await markMailSeen(env,{id:args.id,actor:"daddy"},"daddy"));

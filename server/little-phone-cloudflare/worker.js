@@ -501,7 +501,7 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_diaries_date ON lp_diaries(event_date DESC,created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS lp_diary_annotations (id TEXT PRIMARY KEY, diary_id TEXT NOT NULL, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
       `CREATE INDEX IF NOT EXISTS idx_lp_diary_annotations_diary ON lp_diary_annotations(diary_id,created_at ASC)`,
-      `CREATE TABLE IF NOT EXISTS lp_chat_messages (id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS lp_chat_messages (id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL, thinking TEXT NOT NULL DEFAULT '')`,
       `CREATE INDEX IF NOT EXISTS idx_lp_chat_messages_created ON lp_chat_messages(created_at ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_mcp_event_subscriptions (
         id TEXT PRIMARY KEY, event_name TEXT NOT NULL, arguments_json TEXT NOT NULL DEFAULT '{}',
@@ -596,6 +596,7 @@ async function ensureSchema(env) {
     schemaReady = Promise.all(ddl.map(sql => env.DB.prepare(sql).run())).then(async () => {
       const alters = [
         "ALTER TABLE lp_papers ADD COLUMN reply_to TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE lp_chat_messages ADD COLUMN thinking TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE lp_mail ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE lp_mail ADD COLUMN daddy_seen INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE lp_capsules ADD COLUMN user_seen INTEGER NOT NULL DEFAULT 0",
@@ -1133,8 +1134,8 @@ async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await
 async function addChatMessage(env,body){
   const content=clip(body.content||"",6000).trim();if(!content)return {error:"content_required"};
   const id=clientId(body),existing=await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first();if(existing)return existing;
-  const item={id,author:clip(body.author||"用户",40),content,created_at:nowIso()};
-  await env.DB.prepare("INSERT OR IGNORE INTO lp_chat_messages(id,author,content,created_at) VALUES(?,?,?,?)").bind(item.id,item.author,item.content,item.created_at).run();try{const who=String(item.author||"").toLowerCase(),type=who.includes("daddy")?"sharing":"companionship";await applyXinchaoEventApi(env,{type,event_id:item.id,source:"littlephone",source_type:"chat",source_actor:who.includes("daddy")?"daddy":"user",external_interaction:!who.includes("daddy"),material:item.content,material_kind:"message"})}catch{}return (await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first())||item;
+  const item={id,author:clip(body.author||"用户",40),content,thinking:actorFromAuthor(body.author||"用户")==="daddy"?clip(body.thinking||"",6000).trim():"",created_at:nowIso()};
+  await env.DB.prepare("INSERT OR IGNORE INTO lp_chat_messages(id,author,content,thinking,created_at) VALUES(?,?,?,?,?)").bind(item.id,item.author,item.content,item.thinking,item.created_at).run();try{const who=String(item.author||"").toLowerCase(),type=who.includes("daddy")?"sharing":"companionship";await applyXinchaoEventApi(env,{type,event_id:item.id,source:"littlephone",source_type:"chat",source_actor:who.includes("daddy")?"daddy":"user",external_interaction:!who.includes("daddy"),material:item.content,material_kind:"message"})}catch{}return (await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first())||item;
 }
 async function addChatMessageApi(env,body){const item=await addChatMessage(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,message:item});}
 async function listChatMessages(env,limit=300,afterCreatedAt="",afterId=""){
@@ -1481,7 +1482,7 @@ const MCP_TOOLS = [
   tool("record_xinchao_personality","写入心潮月度14维人格复盘；同月已有复盘时保持不重复覆盖。",{month:{type:"string",description:"YYYY-MM；留空使用当前月份",default:""},periodSummary:{type:"string",default:""},dimensions:{type:"array",items:{type:"object",properties:{key:{type:"string"},score:{type:"number",minimum:0,maximum:100},reason:{type:"string"}},required:["key","score"]}}},["dimensions"]),
   tool("update_xinchao_anchor","新增或移除心潮长期行为锚点，最多7个。",{op:{type:"string",enum:["add","remove"],default:"add"},key:{type:"string"},label:{type:"string",default:""},description:{type:"string",default:""}},["key"]),
   tool("resolve_xinchao_awareness","确认或忽略一条心潮自我觉察；确认后会进入长期反馈。",{id:{type:"string"},status:{type:"string",enum:["confirmed","dismissed"]},text:{type:"string",default:""}},["id","status"]),
-  tool("send_chat_message","在小手机“聊天”App里发送一条消息。",{content:{type:"string"},author:{type:"string",default:"daddy"}},["content"]),
+  tool("send_chat_message","在小手机“聊天”App里发送一条消息。知归可以附带 thinking 字段，写给对方看的感性心事摘要（非隐藏推理过程），将默认折叠显示在回复上方。",{content:{type:"string"},author:{type:"string",default:"daddy"},thinking:{type:"string",description:"知归愿意分享的感性心事，作为可展开的思考内容；不要提供模型内部隐藏推理"}},["content"]),
   tool("list_chat_messages","读取小手机“聊天”App的消息，按时间从早到晚排列。",{limit:{type:"integer",minimum:1,maximum:1000,default:300}}),
   tool("delete_chat_message","删除聊天中的一条消息。",{id:{type:"string"}},["id"]),
   tool("search_little_phone_memories","跨日记、信件、纸条、聊天、日常册和GPT记得检索真实记忆；只读，不删除或修改。返回来源、日期和片段。当前范围受每类记录读取上限限制。",{query:{type:"string"},sources:{type:"array",items:{type:"string"}},from:{type:"string"},to:{type:"string"},limit:{type:"integer",minimum:1,maximum:100,default:30}}),

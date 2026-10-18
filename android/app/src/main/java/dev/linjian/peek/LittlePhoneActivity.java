@@ -455,7 +455,7 @@ public class LittlePhoneActivity extends Activity {
                         intent.setType("application/json");
                         intent.putExtra(Intent.EXTRA_TITLE, "归栖-回忆快照-" + java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT, Locale.US).format(new java.util.Date()).replace("/", "-") + ".json");
                         startActivityForResult(intent, MEMORY_EXPORT_REQUEST);
-                    } catch (Exception e) { pendingMemoryExport = null; Toast.makeText(this, "无法打开保存位置", Toast.LENGTH_SHORT).show(); }
+                    } catch (Exception e) { pendingMemoryExport = null; Toast.makeText(LittlePhoneActivity.this, "无法打开保存位置", Toast.LENGTH_SHORT).show(); }
                 });
                 return true;
             } catch (Exception e) { return false; }

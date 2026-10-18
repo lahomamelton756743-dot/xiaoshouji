@@ -67,6 +67,8 @@ public class LittlePhoneActivity extends Activity {
     private static final int NOTIFICATION_PERMISSION_REQUEST = 9042;
     private static final int AVATAR_PICK_REQUEST = 9043;
     private static final int BACKGROUND_PICK_REQUEST = 9044;
+    private static final int MEMORY_EXPORT_REQUEST = 9045;
+    private String pendingMemoryExport = null;
     private String avatarPickWho = "";
     private String backgroundPickPage = "";
 
@@ -186,6 +188,25 @@ public class LittlePhoneActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == MEMORY_EXPORT_REQUEST) {
+            final String payload = pendingMemoryExport;
+            pendingMemoryExport = null;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && payload != null) {
+                final Uri destination = data.getData();
+                new Thread(() -> {
+                    boolean ok = false;
+                    try (OutputStream output = getContentResolver().openOutputStream(destination, "w")) {
+                        if (output != null) { output.write(payload.getBytes(StandardCharsets.UTF_8)); output.flush(); ok = true; }
+                    } catch (Exception e) { Log.e(HTTP_TAG, "Memory export failed", e); }
+                    final boolean saved = ok;
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, saved ? "回忆快照已保存" : "保存失败，请重试", Toast.LENGTH_LONG).show();
+                        if (webView != null) webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('memory-export-result',{detail:{ok:" + saved + "}}))", null);
+                    });
+                }, "memory-export").start();
+            }
+            return;
+        }
         if (requestCode == FILE_CHOOSER_REQUEST && filePathCallback != null) {
             Uri[] result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
             filePathCallback.onReceiveValue(result);
@@ -420,6 +441,25 @@ public class LittlePhoneActivity extends Activity {
     }
 
     public final class NativeBridge {
+        @JavascriptInterface
+        public boolean exportMemorySnapshot(String json) {
+            if (json == null || json.length() < 10 || json.length() > 20000000) return false;
+            try {
+                JSONObject data = new JSONObject(json);
+                if (!"guiqi-memory-snapshot".equals(data.optString("format"))) return false;
+                pendingMemoryExport = json;
+                runOnUiThread(() -> {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("application/json");
+                        intent.putExtra(Intent.EXTRA_TITLE, "归栖-回忆快照-" + java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT, Locale.US).format(new java.util.Date()).replace("/", "-") + ".json");
+                        startActivityForResult(intent, MEMORY_EXPORT_REQUEST);
+                    } catch (Exception e) { pendingMemoryExport = null; Toast.makeText(this, "无法打开保存位置", Toast.LENGTH_SHORT).show(); }
+                });
+                return true;
+            } catch (Exception e) { return false; }
+        }
         @JavascriptInterface
         public String getDeviceState() {
             try {

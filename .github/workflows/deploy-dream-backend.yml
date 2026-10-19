@@ -1,0 +1,57 @@
+name: Deploy Dream backend (existing D1 only)
+on:
+  push:
+    branches: [feature/dream-app]
+    paths:
+      - '.github/workflows/deploy-dream-backend.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify dream logic before deploy
+        run: |
+          node --check server/little-phone-cloudflare/worker.js
+          node --check server/little-phone-cloudflare/dream-service.mjs
+          node --test server/little-phone-cloudflare/tests/dream.test.mjs
+      - name: Require existing Cloudflare credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Install Wrangler
+        working-directory: server/little-phone-cloudflare
+        run: npm install
+      - name: Locate existing D1 without creating database
+        id: db
+        working-directory: server/little-phone-cloudflare
+        run: |
+          npx wrangler d1 list --json > d1-list.json
+          ID=$(node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("d1-list.json","utf8"));const d=a.find(x=>x.name==="little-phone-v051");if(!d)process.exit(2);process.stdout.write(d.uuid||d.id)' )
+          test -n "$ID"
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+      - name: Configure existing Worker and D1
+        working-directory: server/little-phone-cloudflare
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "little-phone-backend"
+          main = "worker.js"
+          compatibility_date = "2026-09-01"
+          keep_vars = true
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "little-phone-v051"
+          database_id = "${{ steps.db.outputs.id }}"
+          TOML
+      - name: Deploy Dream backend
+        working-directory: server/little-phone-cloudflare
+        run: npx wrangler deploy --config wrangler.toml

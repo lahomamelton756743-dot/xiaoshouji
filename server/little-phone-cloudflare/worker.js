@@ -75,6 +75,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/papers") return listPapersApi(env, url);
     if (path === "/api/littlephone/dailybook") return listDailybookApi(env, url);
     if (path === "/api/littlephone/diaries") return listDiariesApi(env, url);
+    if (path === "/api/littlephone/dreams") return json(await dreamAction(env,"list",{limit:url.searchParams.get("limit")}));
     if (path === "/api/littlephone/diary-annotations") return listDiaryAnnotationsApi(env, url);
     if (path === "/api/littlephone/chat") return listChatMessagesApi(env, url);
     if (path === "/api/littlephone/todos") return listTodosApi(env, url);

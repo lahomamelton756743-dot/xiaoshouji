@@ -2562,6 +2562,15 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 #page-app-dream .dreamTabs button.active{background:rgba(255,255,255,.34)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.46)!important}
 #page-app-dream .dreamPanel[hidden]{display:none!important}
 #page-app-dream .dreamPanel{overflow:visible}
+
+/* Dream vertical scroll: scroll the full page, never a nested panel or visible rail. */
+html:has(body.dreamMode),body.dreamMode{overflow-x:hidden!important;overflow-y:auto!important;scrollbar-width:none!important;-ms-overflow-style:none!important;overscroll-behavior-y:auto!important}
+html:has(body.dreamMode)::-webkit-scrollbar,body.dreamMode::-webkit-scrollbar,
+body.dreamMode #page-app-dream::-webkit-scrollbar,body.dreamMode #page-app-dream *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+body.dreamMode .shell{height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
+body.dreamMode #page-app-dream{height:auto!important;max-height:none!important;min-height:calc(100dvh - 100px)!important;overflow:visible!important;touch-action:pan-y!important;overscroll-behavior-y:auto!important}
+body.dreamMode #page-app-dream .dreamPanel,body.dreamMode #page-app-dream .dreamCard{max-height:none!important;overflow:visible!important}
+body.dreamMode #page-app-dream .dreamTabs{touch-action:pan-y!important}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
 /* Android already lays the WebView below the system status bar. Do not add that inset a second time. */
 body.miniAppMode .shell{padding-top:8px!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;min-height:100dvh!important;background:transparent!important}
@@ -3279,7 +3288,7 @@ function go(page,push=true){
   document.body.classList.toggle('settingsMode',page==='settings'||page==='settings-detail');
   document.body.classList.toggle('diaryMode',page==='diary');
   document.body.classList.toggle('desktopMode',page==='desktop');
-  document.body.classList.toggle('miniAppMode',page!=='desktop');document.body.classList.toggle('xinchaoMode',page==='app-xinchao');
+  document.body.classList.toggle('miniAppMode',page!=='desktop');document.body.classList.toggle('xinchaoMode',page==='app-xinchao');document.body.classList.toggle('dreamMode',page==='app-dream');
   document.body.dataset.page=page;
   if(!same)window.scrollTo({top:0,behavior:'auto'});
   applyPageBackground();

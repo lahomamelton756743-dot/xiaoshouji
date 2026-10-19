@@ -1,0 +1,21 @@
+name: Dream feature checks
+on:
+  push:
+    branches:
+      - feature/dream-app
+  workflow_dispatch:
+jobs:
+  dream-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax check
+        run: |
+          node --check server/little-phone-cloudflare/worker.js
+          node --check server/little-phone-cloudflare/dream-engine.mjs
+          node --check server/little-phone-cloudflare/dream-service.mjs
+      - name: Dream service tests
+        run: node --test server/little-phone-cloudflare/tests/dream.test.mjs

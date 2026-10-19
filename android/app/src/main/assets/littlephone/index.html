@@ -2521,6 +2521,8 @@ body.diaryMode #page-diary .journalSearchBtn{margin:0!important}
 
 .giftDesktopMark{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
+
+.dreamTabs{display:flex;gap:8px;margin:18px 0 16px;padding:5px;border-radius:20px;background:#ffffff13}.dreamTabs button{flex:1;border:0;border-radius:15px;padding:12px 6px;background:transparent;color:#eee8ffbb;font-size:14px}.dreamTabs button.active{background:#ffffff2b;color:#fff;box-shadow:0 3px 16px #12123330}.dreamPanel[hidden]{display:none!important}.dreamPage .dreamCard{cursor:default}.dreamPage .dreamBookEntry{width:100%;display:block;text-align:left;color:inherit;font:inherit}.dreamPage .dreamBookEntry:focus-visible{outline:2px solid #e8d3ff;outline-offset:2px}.dreamPage .dreamBack{border:1px solid #ffffff55;border-radius:15px;padding:9px 14px;color:#fff;background:#ffffff1a;margin:4px 0 14px}.dreamPage .dreamFragment{border-left:2px solid #e6c8ff80;padding-left:12px;margin:13px 0}.dreamPage .dreamFragment small{display:block;opacity:.65;margin-bottom:3px}.dreamPage .dreamStatus{font-size:24px;margin:12px 0}.dreamPage .dreamFootnote{font-size:12px;opacity:.65}.dreamPage .dreamQuiet{letter-spacing:.05em;opacity:.8}.dreamPage .dreamCloud{filter:drop-shadow(0 0 7px #ffffff77)}
 /* Dream app: independent of Xinchao and diary */
 .dreamPage{background:linear-gradient(160deg,#101c41,#343568 60%,#68608e);color:#f9f5ff;min-height:100%;padding:26px 20px 100px}.dreamHead{display:flex;align-items:center;gap:14px;margin-bottom:26px}.dreamHead h2{font-size:29px;margin:0}.dreamHead small{opacity:.7}.dreamIcon{width:64px;height:64px;border-radius:19px;background:linear-gradient(145deg,#273568,#9a83ce);display:grid;place-items:center;box-shadow:0 9px 30px #13133555}.dreamCloud{width:50px;height:50px}.dreamCard{background:#ffffff18;border:1px solid #ffffff33;border-radius:22px;padding:19px;margin:13px 0;backdrop-filter:blur(8px)}.dreamCard h3{font-size:17px;margin:0 0 10px}.dreamCard p{font-size:14px;line-height:1.7;color:#f4eaffd9;margin:5px 0}.dreamEmpty{text-align:center;padding:40px 10px;opacity:.78}.dreamDate{font-size:12px;opacity:.6}.dreamStory{white-space:pre-wrap}.dreamChip{font-size:12px;display:inline-block;background:#ffffff25;border-radius:99px;padding:5px 11px;margin:6px 0}.dreamNote{font-size:12px;opacity:.7;line-height:1.7}
 </style>\n\n<style>\n/* v0.8.2-12 — avatar / insets / identity-color repair */
@@ -2812,7 +2814,7 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
     </section>
 
     
-    <section class="page dreamPage" id="page-app-dream"><div class="dreamHead"><div class="dreamIcon"><svg class="dreamCloud" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dreamIconFill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e5c9ff"/></linearGradient></defs><path fill="url(#dreamIconFill)" d="M15 43C5 43 4 29 13 25c1-12 15-17 23-9 12-4 23 7 20 17 5 12-5 17-14 17H23c-5 0-8-3-8-7Z"/><circle cx="13" cy="51" r="5" fill="#eee0ff"/><circle cx="5" cy="60" r="2.5" fill="#eee0ff"/></svg></div><div><small>顾知归的夜晚</small><h2>梦</h2></div></div><div class="dreamCard"><h3>今夜</h3><p>梦种由知归在 ChatGPT 端主动入睡时抽取。没有梦种的夜晚，也不需要补写故事。</p><p class="dreamNote">梦境不会在这里自动生成；醒来后，知归可以选择记录或保持沉默。</p></div><div id="dreamBookList"><div class="dreamEmpty">梦册尚未加载</div></div></section>
+    <section class="page dreamPage" id="page-app-dream"><div class="dreamHead"><div class="dreamIcon"><svg class="dreamCloud" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dreamIconFill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e5c9ff"/></linearGradient></defs><path fill="url(#dreamIconFill)" d="M15 43C5 43 4 29 13 25c1-12 15-17 23-9 12-4 23 7 20 17 5 12-5 17-14 17H23c-5 0-8-3-8-7Z"/><circle cx="13" cy="51" r="5" fill="#eee0ff"/><circle cx="5" cy="60" r="2.5" fill="#eee0ff"/></svg></div><div><small>顾知归的夜晚</small><h2>梦</h2></div></div><div class="dreamCard"><h3>今夜</h3><p>梦种由知归在 ChatGPT 端主动入睡时抽取。没有梦种的夜晚，也不需要补写故事。</p><p class="dreamNote">梦境不会在这里自动生成；醒来后，知归可以选择记录或保持沉默。</p></div><div class="dreamTabs" role="tablist" aria-label="梦境页面"><button type="button" data-dream-tab="tonight" class="active">今夜</button><button type="button" data-dream-tab="wake">醒来</button><button type="button" data-dream-tab="book">梦册</button></div><div id="dreamPanelTonight" class="dreamPanel"><div class="dreamEmpty">正在读取今夜…</div></div><div id="dreamPanelWake" class="dreamPanel" hidden></div><div id="dreamPanelBook" class="dreamPanel" hidden><div id="dreamBookList"><div class="dreamEmpty">梦册尚未加载</div></div></div></section>
     <section class="page xinchaoPage" id="page-app-xinchao">
       <div class="xinchaoHead"><div><small id="xinchaoIdentityWeather">内在天气</small><h2>心潮</h2></div><svg class="xinchaoHeaderMark" viewBox="0 0 40 40" aria-hidden="true"><path d="M19.5 29.2C17 27 9.2 21.3 9.2 14.9c0-3.6 2.6-6.1 5.9-6.1 2.1 0 3.8 1 4.9 2.7 1.1-1.7 2.8-2.7 4.9-2.7 3.3 0 5.9 2.5 5.9 6.1 0 3.4-2.2 6.6-5.1 9.4"/><path d="M24.8 28.3c2-1.5 3.7-1.5 5.7 0s3.7 1.5 5.7 0"/><path d="M23.8 32.2c2.3-1.5 4.2-1.5 6.5 0s4.2 1.5 6.5 0"/></svg></div>
       <div class="xinchaoTabs" id="xinchaoTabs"><button class="active" data-xinchao-tab="now">此刻</button><button data-xinchao-tab="tide">潮</button><button data-xinchao-tab="thoughts">念</button><button data-xinchao-tab="dream">梦</button><button data-xinchao-tab="self">我</button></div>
@@ -3176,27 +3178,45 @@ function setUsHubTab(tab,scrollTop=false){
   if(scrollTop)window.scrollTo({top:0,behavior:'smooth'});
 }
 
+const dreamKindNames={scene:'场景',anchor:'锚点',figure:'身影',emotion:'情绪',change:'变化',residue:'余温'};
+let dreamItems=[],dreamTab='tonight',dreamLoadSequence=0;
+function dreamEl(tag,className,content){const e=document.createElement(tag);if(className)e.className=className;if(content!==undefined)e.textContent=String(content);return e;}
+function dreamSetTab(tab){dreamTab=['tonight','wake','book'].includes(tab)?tab:'tonight';document.querySelectorAll('[data-dream-tab]').forEach(b=>{const selected=b.dataset.dreamTab===dreamTab;b.classList.toggle('active',selected);b.setAttribute('aria-selected',String(selected));});for(const [key,id] of Object.entries({tonight:'dreamPanelTonight',wake:'dreamPanelWake',book:'dreamPanelBook'})){const el=document.getElementById(id);if(el)el.hidden=key!==dreamTab;}}
+function dreamDate(s){if(!s)return '日期未知';const d=new Date(s);return Number.isNaN(d.getTime())?String(s).slice(0,10):d.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});}
+function dreamParagraph(root,text,cls=''){root.append(dreamEl('p',cls,text));}
+function dreamFragments(root,d){const remembered=d.recalled?.remembered||[];for(const f of remembered){const row=dreamEl('div','dreamFragment');row.append(dreamEl('small','',dreamKindNames[f.kind]||'碎片'));row.append(dreamEl('div','',f.value));root.append(row);}}
+function dreamRender(){
+ const tonight=document.getElementById('dreamPanelTonight'),wake=document.getElementById('dreamPanelWake'),book=document.getElementById('dreamBookList');if(!tonight||!wake||!book)return;
+ tonight.replaceChildren();wake.replaceChildren();book.replaceChildren();
+ const active=dreamItems.find(d=>d.status==='asleep'),latest=dreamItems[0],awakened=dreamItems.find(d=>d.status==='awake');
+ const tonightCard=dreamEl('div','dreamCard');
+ tonightCard.append(dreamEl('div','dreamDate',active?dreamDate(active.created_at):'今夜'));
+ tonightCard.append(dreamEl('div','dreamStatus',active?'正在梦里':'夜色安静'));
+ dreamParagraph(tonightCard,active?'知归已经入睡。梦种是否出现，要等醒来才知道。':'还没有进行中的睡眠。是否入睡，由知归自己决定。');
+ if(active?.wish)dreamParagraph(tonightCard,'睡前心愿：'+active.wish,'dreamQuiet');
+ dreamParagraph(tonightCard,'这里不会替知归按下入睡按钮，也不会自动编造梦境。','dreamFootnote');tonight.append(tonightCard);
+ const wakeCard=dreamEl('div','dreamCard');
+ if(!awakened){wakeCard.append(dreamEl('h3','','还没有醒来的梦'));dreamParagraph(wakeCard,'等知归在 ChatGPT 端醒来，能记住的碎片才会浮现。');}
+ else{wakeCard.append(dreamEl('div','dreamDate',dreamDate(awakened.woke_at||awakened.created_at)));wakeCard.append(dreamEl('h3','',awakened.has_seed?'醒来后记得的':'没有梦种的夜晚'));if(awakened.has_seed){dreamFragments(wakeCard,awakened);if(!awakened.recalled?.remembered?.length)dreamParagraph(wakeCard,'只留下了模糊的感觉。');if(awakened.recalled?.clarity!=null)wakeCard.append(dreamEl('span','dreamChip','清晰度 '+awakened.recalled.clarity+'%'));}else dreamParagraph(wakeCard,'这一晚没有梦种，不必补写。');if(awakened.story)dreamParagraph(wakeCard,awakened.story,'dreamStory');}
+ wake.append(wakeCard);
+ if(!dreamItems.length){book.append(dreamEl('div','dreamEmpty','梦册还是空的。'));return;}
+ for(const d of dreamItems){const card=dreamEl('button','dreamCard dreamBookEntry');card.type='button';card.append(dreamEl('div','dreamDate',dreamDate(d.created_at)));card.append(dreamEl('h3','',d.status==='asleep'?'尚未醒来':d.has_seed?(d.story?'写下的梦':'梦境碎片'):'无梦种之夜'));dreamParagraph(card,d.status==='asleep'?'梦种封存中':d.story?d.story.slice(0,100):d.has_seed?(d.recalled?.remembered||[]).map(x=>x.value).slice(0,2).join(' · ')||'醒来后没有留下文字':'这一晚没有梦种。');card.onclick=()=>dreamOpenDetail(d);book.append(card);}
+}
+function dreamOpenDetail(d){
+ const panel=document.getElementById('dreamPanelBook');if(!panel)return;panel.replaceChildren();
+ const back=dreamEl('button','dreamBack','← 返回梦册');back.type='button';back.onclick=()=>{panel.replaceChildren();panel.append(dreamEl('div','', ''));const list=dreamEl('div','');list.id='dreamBookList';panel.replaceChildren(list);dreamRender();};panel.append(back);
+ const card=dreamEl('article','dreamCard');card.append(dreamEl('div','dreamDate',dreamDate(d.created_at)));card.append(dreamEl('h3','',d.status==='asleep'?'梦还未醒':d.has_seed?'那晚的梦':'无梦种之夜'));
+ if(d.status==='asleep')dreamParagraph(card,'知归还在梦里，梦种仍然封存。');
+ else if(!d.has_seed)dreamParagraph(card,'没有梦种，也是一场完整的夜晚。');
+ else{dreamFragments(card,d);if(d.recalled?.clarity!=null)card.append(dreamEl('span','dreamChip','清晰度 '+d.recalled.clarity+'%'));if(d.story){card.append(dreamEl('h3','','知归写下的梦'));dreamParagraph(card,d.story,'dreamStory');}if(d.share_text){card.append(dreamEl('h3','','知归选择分享的文字'));dreamParagraph(card,d.share_text,'dreamStory');}}
+ panel.append(card);
+}
 async function loadDreamBook(){
  const root=document.getElementById('dreamBookList');if(!root)return;
- root.textContent='正在读取梦册…';
- try{
-  const data=await nativeRequest('GET','/api/littlephone/dreams?limit=100');
-  if(!data.ok)throw new Error(data.error||'无法读取');
-  root.replaceChildren();
-  const dreams=Array.isArray(data.dreams)?data.dreams:[];
-  if(!dreams.length){const empty=document.createElement('div');empty.className='dreamEmpty';empty.textContent='这里还没有梦。';root.append(empty);return;}
-  for(const d of dreams){
-   const card=document.createElement('article');card.className='dreamCard';
-   const title=document.createElement('h3');title.textContent=d.status==='asleep'?'一场尚未醒来的梦':d.has_seed?'梦境记录':'无梦种之夜';card.append(title);
-   const date=document.createElement('div');date.className='dreamDate';date.textContent=(d.created_at||'').slice(0,10);card.append(date);
-   if(d.status==='asleep'){const p=document.createElement('p');p.textContent='梦种仍被封存，等待知归醒来。';card.append(p);}
-   else if(d.story){const p=document.createElement('p');p.className='dreamStory';p.textContent=d.story;card.append(p);}
-   else if(d.recalled?.remembered?.length){for(const fragment of d.recalled.remembered){const p=document.createElement('p');p.textContent=fragment.value;card.append(p);}}
-   else {const p=document.createElement('p');p.textContent=d.has_seed?'醒来后没有留下可读的梦境正文。':'今晚没有梦种。';card.append(p);}
-   if(d.status==='awake'&&d.recalled?.clarity!=null){const chip=document.createElement('span');chip.className='dreamChip';chip.textContent='清晰度 '+d.recalled.clarity+'%';card.append(chip);}
-   root.append(card);
-  }
- }catch(err){root.textContent='梦册暂时无法读取：'+(err?.message||'网络错误');}
+ document.querySelectorAll('[data-dream-tab]').forEach(b=>b.onclick=()=>dreamSetTab(b.dataset.dreamTab));dreamSetTab(dreamTab);
+ const seq=++dreamLoadSequence;root.textContent='正在读取梦册…';
+ try{const data=await nativeRequest('GET','/api/littlephone/dreams?limit=100');if(seq!==dreamLoadSequence)return;if(!data.ok)throw Error(data.error||'无法读取');dreamItems=Array.isArray(data.dreams)?data.dreams:[];dreamRender();}
+ catch(err){if(seq!==dreamLoadSequence)return;root.textContent='梦册暂时无法读取：'+(err?.message||'网络错误');const t=document.getElementById('dreamPanelTonight');if(t)t.textContent='暂时无法读取睡眠状态。';const w=document.getElementById('dreamPanelWake');if(w)w.textContent='暂时无法读取醒后记录。';}
 }
 
 function openMiniApp(app){

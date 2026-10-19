@@ -1,5 +1,6 @@
 import { listGifts, openGift, createGift, deleteGift, creatorListGifts, creatorReadGift, updateGift, giftVersions, restoreGiftVersion, restoreGift, addGiftDesignNote, listGiftDesignNotes } from "./gifts.mjs";
 import { searchLittlePhoneMemory } from "./memory-search.mjs";
+import { dreamAction } from "./dream-service.mjs";
 // @ts-nocheck
 const VERSION = "0.8.5-23-important-date-long-note";
 const IMPORTANT_DATE_NOTE_MAX = 8000;
@@ -1511,6 +1512,11 @@ const MCP_TOOLS = [
   tool("add_dailybook_entry","向日常册的时间河写一条长期记录。",{title:{type:"string"},content:{type:"string",default:""},mood:{type:"string",default:""},date:{type:"string",default:""},author:{type:"string",default:"daddy"},image_urls:{type:"array",items:{type:"string"},default:[]}},["title"]),
   tool("list_dailybook_entries","读取日常册长期记录。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_dailybook_entry","修改 daddy 自己写入的一条日常册记录，保持原 ID。",{id:{type:"string"},title:{type:"string"},content:{type:"string"},mood:{type:"string"},date:{type:"string"}},["id"]),
+  tool("dream_sleep","顾知归主动入睡；每次睡眠仅判定一次梦种，醒来前不透露结果。",{wish:{type:"string"},recent_elements:{type:"array",items:{type:"string"}}}),
+  tool("dream_wake","顾知归醒来，揭示按清晰度保留的梦境碎片。",{id:{type:"string"}},["id"]),
+  tool("dream_list","查看顾知归的梦册和当前睡眠记录。",{limit:{type:"integer",minimum:1,maximum:100}}),
+  tool("dream_write","顾知归醒来后自主书写梦，不自动编造剧情。",{id:{type:"string"},story:{type:"string"}},["id","story"]),
+  tool("dream_share","顾知归自行选择要分享的梦境内容；只保存分享文本，不自动发送消息。",{id:{type:"string"},text:{type:"string"}},["id","text"]),
   tool("write_daddy_diary","写一篇 daddy/GPT 的私人日记，显示在“我们 → 日记”翻页册。",{title:{type:"string"},content:{type:"string"},date:{type:"string",description:"YYYY-MM-DD",default:""},author:{type:"string",default:"daddy"}},["content"]),
   tool("list_daddy_diaries","读取 daddy/GPT 日记。",{limit:{type:"integer",minimum:1,maximum:300,default:100}}),
   tool("update_daddy_diary","修改一篇 daddy/GPT 日记。",{id:{type:"string"},title:{type:"string"},content:{type:"string"},date:{type:"string"}},["id"]),
@@ -1714,6 +1720,11 @@ async function callTool(name,args,env){
     case "add_dailybook_entry": {const images=(Array.isArray(args.image_urls)?args.image_urls:[]).map(url=>({url}));const e=await addDailybook(env,{...args,images});return mcpText(e.error?{ok:false,error:e.error}:{ok:true,entry:e},Boolean(e.error));}
     case "list_dailybook_entries": return mcpText({ok:true,entries:await listDailybook(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_dailybook_entry": {const e=await updateDailybook(env,args,"daddy");return mcpText(e.error?{ok:false,error:e.error}:{ok:true,entry:e},Boolean(e.error));}
+    case "dream_sleep": return mcpText(await dreamAction(env,"sleep",args));
+    case "dream_wake": {const d=await dreamAction(env,"wake",args);return mcpText(d,!d.ok);}
+    case "dream_list": return mcpText(await dreamAction(env,"list",args));
+    case "dream_write": {const d=await dreamAction(env,"write",args);return mcpText(d,!d.ok);}
+    case "dream_share": {const d=await dreamAction(env,"share",args);return mcpText(d,!d.ok);}
     case "write_daddy_diary": {const d=await addDiary(env,{...args,author:args.author||"daddy"});return mcpText(d.error?{ok:false,error:d.error}:{ok:true,diary:d},Boolean(d.error));}
     case "list_daddy_diaries": return mcpText({ok:true,diaries:await listDiaries(env,Math.max(1,Math.min(300,Number(args.limit||100))))});
     case "update_daddy_diary": {const id=clip(args.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return mcpText({ok:false,error:"not_found"},true);const title=clip(args.title!==undefined?args.title:old.title,160).trim()||old.title,content=clip(args.content!==undefined?args.content:old.content,20000).trim(),date=clip(args.date!==undefined?args.date:old.event_date,20);if(!content||!validDate(date))return mcpText({ok:false,error:"invalid_diary"},true);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return mcpText({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}

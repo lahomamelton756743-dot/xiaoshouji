@@ -8,6 +8,7 @@ async function setup(env) {
     woke_at TEXT, updated_at TEXT NOT NULL
   )`).run();
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lp_dream_created ON lp_dream_sessions(created_at DESC)").run();
+  await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_lp_dream_one_active ON lp_dream_sessions(actor) WHERE status='asleep'").run();
 }
 const parse = x => { try { return JSON.parse(x); } catch { return null; } };
 const publicRow = (row, includeSeed = false) => {
@@ -35,8 +36,14 @@ export async function dreamAction(env, action, args = {}) {
     const recentElements = Array.isArray(args.recent_elements) ? args.recent_elements.filter(x => typeof x === "string").map(x => x.slice(0, 100)).slice(0, 12) : [];
     const rolled = rollDreamSeed({ wish, recentElements, previousAnchors });
     const dreamId = crypto.randomUUID();
-    await env.DB.prepare("INSERT INTO lp_dream_sessions(id,actor,status,wish,seed_json,has_seed,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)")
-      .bind(dreamId, actor, "asleep", wish, rolled.seed ? JSON.stringify(rolled.seed) : null, rolled.has_seed ? 1 : 0, now, now).run();
+    try {
+      await env.DB.prepare("INSERT INTO lp_dream_sessions(id,actor,status,wish,seed_json,has_seed,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)")
+        .bind(dreamId, actor, "asleep", wish, rolled.seed ? JSON.stringify(rolled.seed) : null, rolled.has_seed ? 1 : 0, now, now).run();
+    } catch (error) {
+      const concurrent = await env.DB.prepare("SELECT * FROM lp_dream_sessions WHERE actor=? AND status='asleep' ORDER BY created_at DESC LIMIT 1").bind(actor).first();
+      if (concurrent) return { ok: true, already_asleep: true, dream: publicRow(concurrent) };
+      throw error;
+    }
     return { ok: true, dream: { id: dreamId, status: "asleep", created_at: now, message: "梦种已封存，醒来后才能揭示。" } };
   }
   if (action === "list") {
@@ -49,8 +56,12 @@ export async function dreamAction(env, action, args = {}) {
   if (action === "wake") {
     if (row.status !== "asleep") return { ok: true, already_awake: true, dream: publicRow(row) };
     const recalled = row.has_seed ? revealOnWake(parse(row.seed_json)) : null;
-    await env.DB.prepare("UPDATE lp_dream_sessions SET status='awake',wake_json=?,woke_at=?,updated_at=? WHERE id=?")
+    const changed = await env.DB.prepare("UPDATE lp_dream_sessions SET status='awake',wake_json=?,woke_at=?,updated_at=? WHERE id=? AND status='asleep'")
       .bind(recalled ? JSON.stringify(recalled) : null, now, now, id).run();
+    if (!changed.meta?.changes) {
+      const current = await env.DB.prepare("SELECT * FROM lp_dream_sessions WHERE id=? AND actor=?").bind(id, actor).first();
+      return { ok: true, already_awake: true, dream: publicRow(current) };
+    }
     return { ok: true, dream: { ...publicRow(row), has_seed: Boolean(row.has_seed), status: "awake", recalled, woke_at: now } };
   }
   if (row.status !== "awake") return { ok: false, error: "must_wake_first" };

@@ -14,7 +14,7 @@ const publicRow = (row, includeSeed = false) => {
   if (!row) return null;
   return {
     id: row.id, actor: row.actor, status: row.status, wish: row.wish,
-    has_seed: Boolean(row.has_seed), created_at: row.created_at,
+    has_seed: row.status === "asleep" ? null : Boolean(row.has_seed), created_at: row.created_at,
     woke_at: row.woke_at, updated_at: row.updated_at,
     recalled: parse(row.wake_json), story: row.story, share_text: row.share_text,
     ...(includeSeed ? { sealed_seed: parse(row.seed_json) } : {})
@@ -51,7 +51,7 @@ export async function dreamAction(env, action, args = {}) {
     const recalled = row.has_seed ? revealOnWake(parse(row.seed_json)) : null;
     await env.DB.prepare("UPDATE lp_dream_sessions SET status='awake',wake_json=?,woke_at=?,updated_at=? WHERE id=?")
       .bind(recalled ? JSON.stringify(recalled) : null, now, now, id).run();
-    return { ok: true, dream: { ...publicRow(row), status: "awake", recalled, woke_at: now } };
+    return { ok: true, dream: { ...publicRow(row), has_seed: Boolean(row.has_seed), status: "awake", recalled, woke_at: now } };
   }
   if (row.status !== "awake") return { ok: false, error: "must_wake_first" };
   if (action === "write") {

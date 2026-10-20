@@ -27,3 +27,5 @@ jobs:
           if-no-files-found: error
 
 # Re-trigger signed preview build
+
+# PR synchronization trigger

@@ -4394,6 +4394,20 @@ function loadDesktopLayout(){
   }
   desktopEnsureGiftIcon();
   desktopEnsureDreamIcon();
+  desktopEnsureHomeIcon();
+}
+/* Migrate the Home icon into a free cell without disturbing saved desktops. */
+function desktopEnsureHomeIcon(){
+ desktopEnsureState();
+ const items=state.desktopLayout.items||[];
+ const homes=items.filter(x=>x.kind==='app'&&x.app==='home');
+ const valid=homes.find(x=>x.area==='dock'||(x.area==='page'&&Number(x.col)>=1&&Number(x.col)<=4&&Number(x.row)>=1&&Number(x.row)<=6&&!items.some(y=>y!==x&&y.area==='page'&&Number(y.page||0)===Number(x.page||0)&&desktopOverlap(x,y))));
+ if(valid)return;
+ for(const item of homes){const i=items.indexOf(item);if(i>=0)items.splice(i,1);}
+ const spot=desktopFindFreeSpot(1,1,Math.max(1,desktopPagesCount()-1))||{page:desktopPagesCount(),col:1,row:1};
+ items.push({id:'app:home',kind:'app',app:'home',area:'page',page:spot.page,col:spot.col,row:spot.row,w:1,h:1});
+ state.desktopLayout.pages=Math.max(Number(state.desktopLayout.pages)||2,spot.page+1);
+ saveDesktopLayout();
 }
 /* Ensure Dream is visible on upgraded, personalized desktops.
    Never reset the user's layout or overlap an existing icon. */

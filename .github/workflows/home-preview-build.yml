@@ -25,3 +25,5 @@ jobs:
           name: Guiqi-Home-Preview-Signed
           path: android/Guiqi-v0.8.5-18.apk
           if-no-files-found: error
+
+# Re-trigger signed preview build

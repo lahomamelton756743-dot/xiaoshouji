@@ -1,0 +1,27 @@
+name: Home preview signed APK
+on:
+  push:
+    branches: [feature/home-app-v01]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build and verify signed APK
+        run: |
+          chmod +x android/build.sh
+          cd android
+          ./build.sh
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Guiqi-Home-Preview-Signed
+          path: android/Guiqi-v0.8.5-18.apk
+          if-no-files-found: error

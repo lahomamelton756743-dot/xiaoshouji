@@ -2867,7 +2867,8 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
  <div id="dreamPanelTonight" class="dreamPanel"><div class="dreamEmpty">正在读取今夜…</div></div><div id="dreamPanelWake" class="dreamPanel" hidden></div><div id="dreamPanelBook" class="dreamPanel" hidden><div id="dreamBookList"><div class="dreamEmpty">梦册尚未加载</div></div></div>
  <div class="dreamEtching" aria-hidden="true"><svg viewBox="0 0 300 65"><path d="M3 39 Q40 27 70 38 T139 37 M163 38 Q207 24 245 38 T297 37"/><path d="M159 13 A20 20 0 1 0 179 42 A16 16 0 0 1 159 13Z"/><path d="M207 11 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z M132 10 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z"/></svg></div>
  </section>
-    <section class="page xinchaoPage" id="page-app-xinchao">
+    <section class="page" id="page-app-home" style="padding:0;min-height:calc(100dvh - 95px)"><iframe title="家" src="home/index.html" style="display:block;border:0;width:100%;height:calc(100dvh - 95px);background:#f8eee2" loading="lazy"></iframe></section>
+<section class="page xinchaoPage" id="page-app-xinchao">
       <div class="xinchaoHead"><div><small id="xinchaoIdentityWeather">内在天气</small><h2>心潮</h2></div><svg class="xinchaoHeaderMark" viewBox="0 0 40 40" aria-hidden="true"><path d="M19.5 29.2C17 27 9.2 21.3 9.2 14.9c0-3.6 2.6-6.1 5.9-6.1 2.1 0 3.8 1 4.9 2.7 1.1-1.7 2.8-2.7 4.9-2.7 3.3 0 5.9 2.5 5.9 6.1 0 3.4-2.2 6.6-5.1 9.4"/><path d="M24.8 28.3c2-1.5 3.7-1.5 5.7 0s3.7 1.5 5.7 0"/><path d="M23.8 32.2c2.3-1.5 4.2-1.5 6.5 0s4.2 1.5 6.5 0"/></svg></div>
       <div class="xinchaoTabs" id="xinchaoTabs"><button class="active" data-xinchao-tab="now">此刻</button><button data-xinchao-tab="tide">潮</button><button data-xinchao-tab="thoughts">念</button><button data-xinchao-tab="dream">梦</button><button data-xinchao-tab="self">我</button></div>
       <div id="xinchaoBody"></div>
@@ -3174,7 +3175,7 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={page:'desktop',native:{},conn:{connected:false},visit:null,events:[],papers:[],mail:[],capsules:[],dailybook:[],todos:[],dates:[],cycle:{},diaries:[],chats:[],statuses:{user:{text:'',presence:'online',updated_at:''},daddy:{text:'',presence:'online',updated_at:''}},calls:[],memories:[],health:{connected:false,source:'not_connected'},footprints:{user:[],daddy:[]},policy:{},permissions:{},profile:{},reminders:{},guidian:{},gate:{},compose:'',images:[],editTodoId:'',paperCurrentId:'',paperChangedAt:0,hiddenAt:0,openLogged:false,remoteError:false,lastRemoteError:'',pendingEvents:[],pendingWrites:[],profileEditing:'ryan',profileAvatarDraft:'',editDateId:'',editCycleRecordId:'',dateMonthOffset:0,cycleMonthOffset:0,journalIndex:-1,statusEditing:'user',statusPresence:'online',navHistory:[],mailSearch:'',mailOpenId:'',mailCarouselIndex:0,capsuleCarouselIndex:0,dailybookEditId:'',editDiaryId:'',homeMonthOffset:0,settingsSection:'',backgrounds:{},dateQuickMode:false,healthRefreshing:false,healthRefreshError:'',healthRefreshAt:0,journalAnimating:false,journalCoverOpen:true,journalReadPosition:null,paperCarouselIndex:0,usHubTab:'traces',appCalendarOffset:0,phoneSettingsOpen:false,xinchaoTab:'now',xinchao:{connected:false}};
-const pageMeta={desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-gift':['礼物',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-dream':['梦',''],'app-xinchao':['心潮',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
+const pageMeta={'app-home':['家',''],desktop:['小手机 · 桌面',''],home:['小手机 · 首页',''],us:['小手机 · 我们',''],status:['小手机 · 状态',''],diary:['小手机 · 日记',''],'app-papers':['纸条',''],'app-memory':['记得',''],'app-mail':['信箱',''],'app-gift':['礼物',''],'app-river':['时间河',''],'app-chat':['聊天',''],'app-health':['小米健康',''],'app-dream':['梦',''],'app-xinchao':['心潮',''],'app-calendar':['日历',''],'app-todo':['待办',''],'app-phone':['电话',''],settings:['设置',''],"settings-detail":['设置','']};
 let reqSeq=0;const pending=new Map();
 function hasNative(){return !!(window.LittlePhoneNative&&window.LittlePhoneNative.request)}
 function parse(s,f={}){try{return JSON.parse(s)}catch{return f}}
@@ -3272,7 +3273,7 @@ async function loadDreamBook(){
 }
 
 function openMiniApp(app){
-  const map={diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',gift:'app-gift',river:'app-river',chat:'app-chat',health:'app-health',xinchao:'app-xinchao',dream:'app-dream',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
+  const map={home:'app-home',diary:'diary',papers:'app-papers',memory:'app-memory',mail:'app-mail',gift:'app-gift',river:'app-river',chat:'app-chat',health:'app-health',xinchao:'app-xinchao',dream:'app-dream',calendar:'app-calendar',todo:'app-todo',phone:'status',calls:'app-phone',settings:'settings'};
   const page=map[app]||'desktop';go(page);
 }
 function go(page,push=true){
@@ -4326,7 +4327,7 @@ function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings
 
 
 const DESKTOP_LAYOUT_KEY='lp_v081_desktop_layout_v3';
-const DESKTOP_APPS={diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},dream:{app:'dream',label:'梦',icon:'☁'}, xinchao:{app:'xinchao',label:'心潮',icon:'♥'},gift:{app:'gift',label:'礼物',icon:'♧'},settings:{app:'settings',label:'设置',icon:'⚙'}};
+const DESKTOP_APPS={home:{app:'home',label:'家',icon:'⌂'},diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},dream:{app:'dream',label:'梦',icon:'☁'}, xinchao:{app:'xinchao',label:'心潮',icon:'♥'},gift:{app:'gift',label:'礼物',icon:'♧'},settings:{app:'settings',label:'设置',icon:'⚙'}};
 const DESKTOP_WIDGETS={
   weather:{label:'时钟天气',w:4,h:2,open:'status',desc:'时间、城市和天气。',mode:'compact'},
   together:{label:'相伴天数',w:2,h:2,open:'desktop',desc:'在一起的天数。',mode:'compact'},
@@ -4351,6 +4352,7 @@ const DESKTOP_WIDGETS={
 const DESKTOP_WIDGET_COMMON=['weather','together','music','health','calendar','todo','phone','memory','paper','mail'];
 const DESKTOP_WIDGET_SYSTEM=['legacy_weather','legacy_music','legacy_calendar','legacy_todo','legacy_paper','legacy_memory','legacy_health','legacy_phone','legacy_mail'];
 function desktopDefaultLayout(){return{pages:2,items:[
+{id:'app:home',kind:'app',app:'home',area:'page',page:1,col:4,row:1,w:1,h:1},
 {id:'app:diary',kind:'app',app:'diary',area:'page',page:0,col:1,row:1,w:1,h:1},
 {id:'app:papers',kind:'app',app:'papers',area:'page',page:0,col:2,row:1,w:1,h:1},
 {id:'app:memory',kind:'app',app:'memory',area:'page',page:0,col:3,row:1,w:1,h:1},

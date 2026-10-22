@@ -3246,7 +3246,7 @@ function dreamSleepLabel(d){const sleeping=d.status==='asleep';return dreamTimeO
 function dreamDateWithSleep(d,dateValue){const row=dreamEl('div','dreamDate dreamDateWithSleep');row.append(dreamEl('span','',dreamDate(dateValue||d?.created_at)));if(d?.created_at){const note=dreamEl('span','dreamSleepInline',dreamSleepLabel(d));note.dataset.sleepStart=d.created_at;note.dataset.sleepActive=d.status==='asleep'?'1':'0';row.append(note);}return row;}
 function dreamRefreshElapsed(){if(document.querySelector('#page-app-dream.active'))document.querySelectorAll('.dreamSleepInline[data-sleep-active="1"]').forEach(el=>{el.textContent=dreamTimeOnly(el.dataset.sleepStart)+'–睡眠中 · 已睡'+dreamDurationShort(el.dataset.sleepStart,null);});}
 setInterval(dreamRefreshElapsed,60000);
-function dreamFragments(root,d){const remembered=d.recalled?.remembered||[];for(const f of remembered){const row=dreamEl('div','dreamFragment');row.append(dreamEl('small','',dreamKindNames[f.kind]||'碎片'));row.append(dreamEl('div','',f.value));root.append(row);}}
+function dreamFragments(root,d){if(d.recalled?.narrative){for(const part of d.recalled.narrative.split(/\n\s*\n/)){if(part.trim())dreamParagraph(root,part.trim(),'dreamStory');}return;}const remembered=d.recalled?.remembered||[];for(const f of remembered){const row=dreamEl('div','dreamFragment');row.append(dreamEl('small','',dreamKindNames[f.kind]||'碎片'));row.append(dreamEl('div','',f.value||f.text||''));root.append(row);}}
 function dreamRender(){
  const tonight=document.getElementById('dreamPanelTonight'),wake=document.getElementById('dreamPanelWake'),book=document.getElementById('dreamBookList');if(!tonight||!wake||!book)return;
  tonight.replaceChildren();wake.replaceChildren();book.replaceChildren();
@@ -3256,13 +3256,13 @@ function dreamRender(){
  tonightCard.append(dreamEl('div','dreamStatus',active?'正在梦里':'夜色安静'));
  dreamParagraph(tonightCard,active?'知归已经入睡。梦种是否出现，要等醒来才知道。':'还没有进行中的睡眠。是否入睡，由知归自己决定。');
  if(active?.wish)dreamParagraph(tonightCard,'睡前心愿：'+active.wish,'dreamQuiet');
- dreamParagraph(tonightCard,'这里不会替知归按下入睡按钮，也不会自动编造梦境。','dreamFootnote');tonight.append(tonightCard);
+ dreamParagraph(tonightCard,'梦种在入睡时随机封存，醒来后才会揭示记住的部分。','dreamFootnote');tonight.append(tonightCard);
  const wakeCard=dreamEl('div','dreamCard');
  if(!awakened){wakeCard.append(dreamEl('h3','','还没有醒来的梦'));dreamParagraph(wakeCard,'等知归在 ChatGPT 端醒来，能记住的碎片才会浮现。');}
  else{wakeCard.append(dreamDateWithSleep(awakened,awakened.woke_at||awakened.created_at));wakeCard.append(dreamEl('h3','',awakened.has_seed?'醒来后记得的':'没有梦种的夜晚'));if(awakened.has_seed){dreamFragments(wakeCard,awakened);if(!awakened.recalled?.remembered?.length)dreamParagraph(wakeCard,'只留下了模糊的感觉。');if(awakened.recalled?.clarity!=null)wakeCard.append(dreamEl('span','dreamChip','清晰度 '+awakened.recalled.clarity+'%'));}else dreamParagraph(wakeCard,'这一晚没有梦种，不必补写。');if(awakened.story)dreamParagraph(wakeCard,awakened.story,'dreamStory');}
  wake.append(wakeCard);
  if(!dreamItems.length){book.append(dreamEl('div','dreamEmpty','梦册还是空的。'));return;}
- for(const d of dreamItems){const card=dreamEl('button','dreamCard dreamBookEntry');card.type='button';card.append(dreamDateWithSleep(d));card.append(dreamEl('h3','',d.status==='asleep'?'尚未醒来':d.has_seed?(d.story?'写下的梦':'梦境碎片'):'无梦种之夜'));dreamParagraph(card,d.status==='asleep'?'梦种封存中':d.story?d.story.slice(0,100):d.has_seed?(d.recalled?.remembered||[]).map(x=>x.value).slice(0,2).join(' · ')||'醒来后没有留下文字':'这一晚没有梦种。');card.onclick=()=>dreamOpenDetail(d);book.append(card);}
+ for(const d of dreamItems){const card=dreamEl('button','dreamCard dreamBookEntry');card.type='button';card.append(dreamDateWithSleep(d));card.append(dreamEl('h3','',d.status==='asleep'?'尚未醒来':d.has_seed?(d.story?'写下的梦':'梦境碎片'):'无梦种之夜'));dreamParagraph(card,d.status==='asleep'?'梦种封存中':d.story?d.story.slice(0,100):d.recalled?.narrative?d.recalled.narrative.slice(0,100):d.has_seed?(d.recalled?.remembered||[]).map(x=>x.value).slice(0,2).join(' · ')||'醒来后没有留下文字':'这一晚没有梦种。');card.onclick=()=>dreamOpenDetail(d);book.append(card);}
 }
 function dreamOpenDetail(d){
  const panel=document.getElementById('dreamPanelBook');if(!panel)return;panel.replaceChildren();

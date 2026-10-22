@@ -2,7 +2,7 @@ name: 部署小手机后端 v0.7.2（保留现有 D1）
 
 on:
   push:
-    branches: [main, feature/v0.8.5-memory-sea]
+    branches: [main, feature/v0.8.5-memory-sea, feature/home-app-v01]
     paths:
       - "server/little-phone-cloudflare/**"
       - ".github/workflows/deploy-little-phone-backend-v072.yml"

@@ -61,3 +61,25 @@ test('two simultaneous sleep calls cannot create two active dreams', async () =>
   assert.equal(results[0].dream.id, results[1].dream.id);
   assert.equal((await dreamAction(env, 'list')).dreams.length, 1);
 });
+
+test('new dream seals a five-event narrative and recall depends on clarity', () => {
+  const values=[0.1,0.5,0.55,0.1,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5];
+  let i=0;const result=rollDreamSeed({random:()=>values[i++]??0.5});
+  assert.equal(result.has_seed,true);
+  assert.equal(result.seed.events.length,5);
+  assert.ok(result.seed.events.every(e=>e.text.length>10));
+  const low=revealOnWake({...result.seed,clarity:10});
+  const medium=revealOnWake({...result.seed,clarity:55});
+  const high=revealOnWake({...result.seed,clarity:90});
+  assert.equal(low.remembered.length,1);
+  assert.equal(medium.remembered.length,3);
+  assert.equal(high.remembered.length,5);
+  assert.equal(medium.narrative.split('\n\n').length,3);
+  assert.equal(result.seed.events.length,5);
+});
+test('legacy dream seeds still reveal original fragments',()=>{
+  const old={clarity:55,scene:'旧场景',anchor:'旧物件',figure:'旧人物',emotion:'旧情绪',change:'旧变化',residue:'旧余韵'};
+  const recalled=revealOnWake(old);
+  assert.equal(recalled.remembered.length,3);
+  assert.equal(recalled.narrative,undefined);
+});

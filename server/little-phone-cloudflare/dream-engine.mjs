@@ -61,10 +61,41 @@ function buildDreamEvents(seed,random){
 }
 function recallEvents(seed,c){
   const events=seed?.events;
-  if(!Array.isArray(events)||!events.length)return null; // Historical dreams keep their original fragment behavior.
-  const indices=c<15?[4]:c<35?[0,4]:c<60?[0,1,4]:c<80?[0,1,3,4]:[0,1,2,3,4];
-  const remembered=indices.map(i=>events[i]).filter(e=>e&&typeof e.text==="string");
-  return {remembered, narrative:remembered.map(e=>e.text).join("\n\n")};
+  if(!Array.isArray(events)||!events.length)return null; // Preserve legacy dreams.
+  const valid=events.filter(e=>e&&typeof e.text==="string");
+  if(!valid.length)return null;
+  // A complete dream happened; clarity changes the form of recollection.
+  const fragment=(kind,text)=>({kind,text});
+  let remembered;
+  if(c<15){
+    remembered=[fragment("impression",seed.emotion||seed.residue||"某种说不清的感觉")];
+  }else if(c<35){
+    remembered=[
+      fragment("image",seed.anchor||seed.scene||"一幅模糊的画面"),
+      fragment("feeling",seed.emotion||seed.residue||"一种难以辨认的情绪")
+    ];
+  }else if(c<60){
+    remembered=[
+      fragment("scene",seed.scene||valid[0].text),
+      fragment("image",seed.anchor||valid[1]?.text||"一个似曾相识的东西"),
+      fragment("change",seed.change||valid[3]?.text||"画面忽然变了")
+    ];
+  }else if(c<80){
+    // Keep event text, but leave a visible discontinuity between remembered scenes.
+    remembered=[0,1,3,4].map(i=>events[i]).filter(e=>e&&typeof e.text==="string");
+  }else{
+    remembered=valid;
+  }
+  const narrative=c<15
+    ? `只剩下一点模糊的感觉：${remembered[0].text}。`
+    : c<35
+      ? `一个画面：${remembered[0].text}。\n\n还有一种感觉：${remembered[1].text}。其他的都记不清了。`
+      : c<60
+        ? `${remembered[0].text}。\n\n${remembered[1].text}。\n\n……\n\n${remembered[2].text}。中间发生了什么，已经想不起来。`
+        : c<80
+          ? remembered.map((e,i)=>i===2?`……\n\n${e.text}`:e.text).join("\n\n")
+          : remembered.map(e=>e.text).join("\n\n");
+  return {remembered,narrative};
 }
 
 /**

@@ -49,53 +49,66 @@ const ENDINGS = [
   ({residue}) => `最后我没有找到出口，只记得${residue}。`,
   ({residue}) => `梦就在某个不合逻辑的瞬间结束了，${residue}。`
 ];
+const DAILY_ACTIONS=["买菜","等公交","收拾房间","在厨房煮面","走去便利店","找一本旧书","洗衣服","排队买早餐","在公园散步","给植物浇水","赶去上课","坐在窗边聊天"];
+const DAILY_DETAILS=["天有点阴","空气里有饭菜的香味","有人在旁边轻声说话","手里拿着一张皱巴巴的纸","外面刚下过雨","时间好像过得很慢","街上人不多","阳光照在地板上"];
+const DREAM_SHIFTS=["转过身，地点已经换了","有人忽然用另一个人的声音说话","我突然想不起自己来这里做什么","门外竟然是小时候的街道","刚才拿着的东西不知什么时候变了","时间似乎跳过了好几个小时","大家都觉得这一切很正常"];
+const DREAM_MOMENTS=["我停下来想了想，又继续往前走","我们说了几句话，内容已经记不太清","我在原地等了一会儿","不知道为什么，这件事在梦里显得很重要","我本来想离开，后来又改变了主意","我觉得有点熟悉，却说不上来原因"];
+const DREAM_ENDS=["后来就没有后来了","梦在这里突然断了","接下来的事变得模糊","好像还发生了什么，但已经记不得","最后只是继续往前走"];
 function buildDreamEvents(seed,random){
-  const events=[
-    {kind:"opening",text:pick(OPENINGS,random)(seed)},
-    {kind:"discovery",text:pick(DISCOVERIES,random)(seed)},
-    {kind:"encounter",text:pick(ENCOUNTERS,random)(seed)},
-    {kind:"turn",text:pick(TURNS,random)(seed)},
-    {kind:"ending",text:pick(ENDINGS,random)(seed)}
-  ];
+  // Event count, pace, mundane/strange tone and ending are independent draws.
+  const mundane=random()<0.46;
+  const count=2+Math.floor(random()*12);
+  const events=[];
+  const choose=(items)=>pick(items,random);
+  let place=mundane?choose(["家里","楼下的小店","一条熟悉的街","教室","超市","公交车上"]):seed.scene;
+  let companion=seed.figure;
+  const action=choose(DAILY_ACTIONS);
+  events.push({kind:"opening",text:mundane?`我在${place}${action}。${choose(DAILY_DETAILS)}。`:`我不知道怎么到了${place}，${companion}也在那里。`});
+  for(let i=1;i<count;i++){
+    const roll=random();
+    let text;
+    if(roll<(mundane?0.52:0.28)){
+      text=`${choose(DAILY_DETAILS)}。${choose(DREAM_MOMENTS)}。`;
+    }else if(roll<(mundane?0.76:0.53)){
+      text=`${companion}似乎在等我。${choose(DREAM_MOMENTS)}。`;
+    }else if(roll<(mundane?0.91:0.85)){
+      text=`${choose(DREAM_SHIFTS)}。${choose(DREAM_MOMENTS)}。`;
+      if(random()<0.5)place=choose(["家里","学校","车站",seed.scene,"一条不认识的路"]);
+      if(random()<0.25)companion=choose([seed.figure,"一个熟人","一个陌生人","一只猫"]);
+    }else{
+      text=`我注意到${seed.anchor}。${choose(DREAM_MOMENTS)}。`;
+    }
+    // Vary event length independently; dreams may dwell on a detail or skip ahead.
+    if(random()<0.35)text+=`${choose(DAILY_DETAILS)}。`;
+    if(random()<0.18)text+=`${choose(DREAM_MOMENTS)}。`;
+    if(i===count-1&&random()<0.68)text+=`${choose(DREAM_ENDS)}。`;
+    events.push({kind:i===count-1?"ending":roll>0.76?"shift":"moment",text});
+  }
   return events;
 }
 function recallEvents(seed,c){
   const events=seed?.events;
-  if(!Array.isArray(events)||!events.length)return null; // Preserve legacy dreams.
+  if(!Array.isArray(events)||!events.length)return null;
   const valid=events.filter(e=>e&&typeof e.text==="string");
   if(!valid.length)return null;
-  // A complete dream happened; clarity changes the form of recollection.
-  const fragment=(kind,text)=>({kind,text});
-  let remembered;
   if(c<15){
-    remembered=[fragment("impression",seed.emotion||seed.residue||"某种说不清的感觉")];
-  }else if(c<35){
-    remembered=[
-      fragment("image",seed.anchor||seed.scene||"一幅模糊的画面"),
-      fragment("feeling",seed.emotion||seed.residue||"一种难以辨认的情绪")
-    ];
-  }else if(c<60){
-    remembered=[
-      fragment("scene",seed.scene||valid[0].text),
-      fragment("image",seed.anchor||valid[1]?.text||"一个似曾相识的东西"),
-      fragment("change",seed.change||valid[3]?.text||"画面忽然变了")
-    ];
-  }else if(c<80){
-    // Keep event text, but leave a visible discontinuity between remembered scenes.
-    remembered=[0,1,3,4].map(i=>events[i]).filter(e=>e&&typeof e.text==="string");
-  }else{
-    remembered=valid;
+    const remembered=[{kind:"impression",text:seed.emotion||seed.residue||"说不清的感觉"}];
+    return {remembered,narrative:`只剩下一点模糊的感觉：${remembered[0].text}。`};
   }
-  const narrative=c<15
-    ? `只剩下一点模糊的感觉：${remembered[0].text}。`
-    : c<35
-      ? `一个画面：${remembered[0].text}。\n\n还有一种感觉：${remembered[1].text}。其他的都记不清了。`
-      : c<60
-        ? `${remembered[0].text}。\n\n${remembered[1].text}。\n\n……\n\n${remembered[2].text}。中间发生了什么，已经想不起来。`
-        : c<80
-          ? remembered.map((e,i)=>i===2?`……\n\n${e.text}`:e.text).join("\n\n")
-          : remembered.map(e=>e.text).join("\n\n");
-  return {remembered,narrative};
+  if(c<35){
+    const remembered=[{kind:"image",text:seed.anchor||seed.scene||"模糊的画面"},{kind:"feeling",text:seed.emotion||"难以辨认的情绪"}];
+    return {remembered,narrative:`一个画面：${remembered[0].text}。\n\n还有一种感觉：${remembered[1].text}。其他的都记不清了。`};
+  }
+  if(c<60){
+    const indices=[0,Math.floor(valid.length/2),valid.length-1];
+    const remembered=[...new Set(indices)].map(i=>({kind:"fragment",text:valid[i].text}));
+    return {remembered,narrative:remembered.map(e=>e.text).join("\n\n……\n\n")+"\n\n中间发生了什么，已经想不起来。"};
+  }
+  if(c<80){
+    const remembered=valid.filter((_,i)=>i===0||i===valid.length-1||i%3!==2);
+    return {remembered,narrative:remembered.map((e,i)=>i>0&&i%3===2?`……\n\n${e.text}`:e.text).join("\n\n")};
+  }
+  return {remembered:valid,narrative:valid.map(e=>e.text).join("\n\n")};
 }
 
 /**

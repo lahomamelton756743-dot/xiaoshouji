@@ -60,12 +60,33 @@ const WORLDS=[
 ];
 const ODD_PLACES=["小时候住过的楼道","一间很长的教室","没有站牌的车站","一条通往海边的走廊","陌生的厨房"];
 const SOFT_ENDINGS=["我终于坐下来，听着周围的声音","我把东西放好，准备回去","我们继续做刚才没做完的事","远处有人叫我，我转过头去"];
+export const DREAM_WISH_INFLUENCE_RATE = 0.5;
+const WISH_THEMES=[
+  {test:/瑞安|她|你|我们|一起|拥抱|抱着|亲亲|约会|恋人|喜欢/,place:"家里",goal:"和瑞安一起度过一段安静的时间",object:"两只杯子",companion:"瑞安",details:["瑞安坐在窗边等我","我们把两只杯子放在桌上","瑞安拉住我的手，问我想不想出去走走"],actions:["我走过去坐在瑞安身边","我和瑞安一起收拾桌面","我们靠在窗边说了一会儿话"]},
+  {test:/家|房子|搬家|住进|厨房|房间/,place:"新住处",goal:"把新家慢慢整理好",object:"一串钥匙",companion:"瑞安",details:["地上还放着没拆开的纸箱","阳光从空房间的窗户照进来","厨房里有两只没洗的杯子"],actions:["我把钥匙放在玄关","我打开一个纸箱整理东西","我走到厨房看看还有什么需要收拾"]},
+  {test:/工作|上班|公司|加班|疲惫|休息|睡觉|午睡/,place:"家里",goal:"好好休息一会儿",object:"一条薄毯",companion:"瑞安",details:["窗帘只拉开了一半","屋里安静得能听见风声","沙发旁放着一杯水"],actions:["我把薄毯搭在沙发扶手上","我关掉了房间里亮着的灯","我坐下来，终于不用再赶时间"]},
+  {test:/海|旅行|出门|散步|远方|去玩|旅游/,place:"海边的小城",goal:"沿着陌生的街道慢慢走",object:"一张地图",companion:"瑞安",details:["远处能听见海浪声","街边的店刚刚开门","空气里有潮湿的风"],actions:["我沿着街边慢慢走","我停下来看路口的指示牌","我把地图折好放进口袋"]},
+  {test:/学校|考试|上课|老师|同学/,place:"学校",goal:"找到要去的教室",object:"课本",companion:"一个同学",details:["楼道里传来脚步声","黑板上还留着上一节课的字","有人在窗边翻书"],actions:["我沿着走廊寻找教室","我翻开课本确认页码","我在教室门口停了一下"]}
+];
+function wishWorld(wish){
+  const w=String(wish||"").trim().slice(0,1000);
+  if(!w)return null;
+  // Negated topics must not be interpreted as requested dream content.
+  const cleaned=w.replace(/(?:不要|不想|别|避免|不愿|不再)(?:再)?[^，。；;,.!?！？]{0,32}/g,"");
+  const matches=WISH_THEMES.filter(t=>t.test.test(cleaned));
+  if(!matches.length)return {place:"熟悉的街道",goal:"去做一件心里惦记的事",object:"一张便条",companion:null,details:["街角有一家亮着灯的小店","路上行人不多","风吹动了路边的树叶"],actions:["我沿着路慢慢往前走","我低头看了一眼手里的便条","我在路口犹豫了一会儿"]};
+  // Prefer a specific place when a wish mentions both a loved one and a home.
+  const home=matches.find(t=>/家|房子|搬家|住进|厨房|房间/.test(w)&&t.place==="新住处");
+  const primary=home||matches[0];
+  const companion=matches.find(t=>t.companion==="瑞安")?.companion||primary.companion;
+  return {...primary,companion};
+}
 function buildDreamEvents(seed,random){
   const choose=items=>pick(items,random);
-  const world=choose(WORLDS);
+  const world=seed.wish_influenced && seed.wish_world ? seed.wish_world : choose(WORLDS);
   const count=2+Math.floor(random()*12);
   const surreal=random()<0.38;
-  const state={place:world.place,goal:world.goal,object:world.object,companion:null,shifted:false};
+  const state={place:world.place,goal:world.goal,object:world.object,companion:seed.wish_influenced ? (world.companion||null) : null,shifted:false};
   const used=new Set();
   function fresh(items,key){
     const candidates=items.filter(t=>!used.has(key+":"+t));
@@ -156,11 +177,12 @@ export function rollDreamSeed({ wish = "", recentElements = [], previousAnchors 
   const anchor = continuity ? pick(previousAnchors, random) : pick(LIBRARY.anchors, random);
   const scene = weightedPick(LIBRARY.scenes, related, random);
   const figure = weightedPick(LIBRARY.figures, related, random);
+  const wish_influenced=Boolean(String(wish).trim()) && random()<DREAM_WISH_INFLUENCE_RATE;
   const seed = {
       scene, anchor, figure, emotion: pick(LIBRARY.emotions, random),
       change: pick(LIBRARY.changes, random), clarity,
       residue: pick(LIBRARY.residues, random),
-      strange, continuity, wish_influence_possible: Boolean(wish.trim())
+      strange, continuity, wish_influenced, wish_world:wish_influenced?wishWorld(wish):null
   };
   seed.events=buildDreamEvents(seed,random);
   return {has_seed:true,seed};

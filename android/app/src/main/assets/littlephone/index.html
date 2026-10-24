@@ -2828,6 +2828,20 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
 .realLetterPaper{background:linear-gradient(105deg,#fffcf4,#f9f0e4)!important;color:#4c4037!important;border:1px solid #e2d3c1!important;box-shadow:0 14px 35px #5c473024!important;border-radius:3px 9px 6px 3px!important}
 .realLetterPaper .letterBody{color:#51453d!important;line-height:2!important}
 @media(prefers-reduced-motion:reduce){.guiqiLetterSlip{transition:none}}
+</style><style id="guiqi-mail-app-paper-fix">
+/* Standalone mailbox app has its own paper environment; desktop wallpaper stays outside. */
+#page-app-mail{background:linear-gradient(160deg,#eee3d6 0%,#f7f0e6 45%,#e9ddcd 100%)!important;color:#56463b!important;min-height:100%}
+#page-app-mail .miniAppTitle,#page-app-mail .miniAppTitle small{color:#604d40!important}
+#page-app-mail .mailKindTab{color:#917b6c!important}#page-app-mail .mailKindTab.active{color:#574333!important}
+#page-app-mail .miniAppActions .softBtn{background:#fff9ef!important;color:#6d584a!important;border:1px solid #e1d0be!important}
+#page-app-mail .appPaperStack{padding:24px 14px 10px;max-width:640px;margin:0 auto;overflow:visible}
+#page-app-mail .appPaperSlip{background:linear-gradient(115deg,#fffcf5,#f6eadb)!important;border:1px solid #d7c3af!important;box-shadow:0 9px 18px #65503a26!important;margin-top:-10px;min-height:144px;max-height:190px;border-radius:3px 9px 6px 3px;flex-shrink:0}
+#page-app-mail .appPaperSlip:first-child{margin-top:0}
+#page-app-mail .appPaperSlip:nth-child(3n+2){transform:rotate(.6deg) translateX(2px)}
+#page-app-mail .appPaperSlip:nth-child(3n){transform:rotate(-.5deg) translateX(-2px)}
+#page-app-mail .appPaperSlip:active{transform:scale(.99)}
+#page-app-mail .guiqiLetterCount{color:#947e6b}
+#page-app-mail .appPaperSlip .guiqiLetterExcerpt{font-family:"Songti SC","STSong",serif;color:#69574a!important}
 </style></head>
 <body>
 <div class="aurora"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -4066,7 +4080,7 @@ function miniRefreshSearch(){miniSearchKinds.forEach(kind=>{if(miniSearchValue(k
 function renderMailApp(){
   const normal=$('#mailAppNormal'),future=$('#mailAppFuture');if(!normal||!future)return;
   const roots=unifiedMailItems();
-  normal.innerHTML=roots.length?roots.map(m=>{const opened=mailCanPreview(m),side=authorSide(m.author),to=actorName(side==='daddy'?'user':'daddy');return `<article class="glass contentGlass mailAppCard" data-search-text="${esc([m.content,m.created_at,m.author,to].join(' '))}" data-app-mail="${esc(m.id)}"><div class="mailAppMeta"><span>${esc(actorName(m.author||''))} → ${esc(to)}</span><span>${esc(formalMailDate(m.created_at))}</span></div><div class="mailAppBody authoredText ${side}">${esc(opened?String(m.content||'').slice(0,92):'信封还没有拆开。')}</div></article>`}).join(''):'<div class="glass appEmpty">普通信箱还是空的。</div>';
+  normal.innerHTML=roots.length?'<div class="guiqiLetterStack appPaperStack">'+roots.map((m,i)=>{const opened=mailCanPreview(m),side=authorSide(m.author),to=actorName(side==='daddy'?'user':'daddy'),d=new Date(m.created_at||Date.now());return `<button type="button" class="guiqiLetterSlip appPaperSlip" data-app-mail="${esc(m.id)}" data-search-text="${esc([m.content,m.created_at,m.author,to].join(' '))}"><span class="guiqiLetterDate"><strong>${String(d.getDate()).padStart(2,'0')}</strong><small>${['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()]||''}</small></span><span class="guiqiLetterInfo"><em>from ${esc(actorName(m.author||''))}</em><small>TO ${esc(to)} · ${esc(formalMailDate(m.created_at))}</small><span class="guiqiLetterExcerpt">${esc(opened?String(m.content||'').replace(/\\s+/g,' ').slice(0,85):'尚未拆封 · 轻触阅读')}</span></span><span class="guiqiLetterStamp" aria-hidden="true">✧<small>POST</small></span></button>`}).join('')+'</div><p class="guiqiLetterCount">共 '+roots.length+' 封 · 上下滑动翻阅，轻触展开</p>':'<div class="appEmpty">普通信箱还是空的。</div>';
   normal.querySelectorAll('[data-app-mail]').forEach(c=>c.onclick=()=>openMailDetail(c.dataset.appMail));
   const futures=[...(state.capsules||[])].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   future.innerHTML=futures.length?futures.map(m=>{const side=authorSide(m.author),locked=!!m.locked,seen=seenState(m,'user');return `<article class="glass contentGlass mailAppCard ${locked?'mailAppLocked':''}" data-search-text="${esc([locked?'':m.content,m.unlock_at,m.created_at,m.author].join(' '))}" data-app-future="${esc(m.id)}"><div class="mailAppMeta"><span>${esc(actorName(m.author||''))}</span><span>开启 · ${esc(m.unlock_at||'')}</span></div><div class="mailAppBody authoredText ${side}">${esc(locked?'还没有到开启的日子。':seen?String(m.content||'').slice(0,92):'已经到日子了，点开拆信。')}</div><div class="mailAppFutureDate">${locked?'仍在封存':'已经抵达'}</div></article>`}).join(''):'<div class="glass appEmpty">还没有未来信。</div>';

@@ -49,40 +49,72 @@ const ENDINGS = [
   ({residue}) => `最后我没有找到出口，只记得${residue}。`,
   ({residue}) => `梦就在某个不合逻辑的瞬间结束了，${residue}。`
 ];
-const DAILY_ACTIONS=["买菜","等公交","收拾房间","在厨房煮面","走去便利店","找一本旧书","洗衣服","排队买早餐","在公园散步","给植物浇水","赶去上课","坐在窗边聊天"];
-const DAILY_DETAILS=["天有点阴","空气里有饭菜的香味","有人在旁边轻声说话","手里拿着一张皱巴巴的纸","外面刚下过雨","时间好像过得很慢","街上人不多","阳光照在地板上"];
-const DREAM_SHIFTS=["转过身，地点已经换了","有人忽然用另一个人的声音说话","我突然想不起自己来这里做什么","门外竟然是小时候的街道","刚才拿着的东西不知什么时候变了","时间似乎跳过了好几个小时","大家都觉得这一切很正常"];
-const DREAM_MOMENTS=["我停下来想了想，又继续往前走","我们说了几句话，内容已经记不太清","我在原地等了一会儿","不知道为什么，这件事在梦里显得很重要","我本来想离开，后来又改变了主意","我觉得有点熟悉，却说不上来原因"];
-const DREAM_ENDS=["后来就没有后来了","梦在这里突然断了","接下来的事变得模糊","好像还发生了什么，但已经记不得","最后只是继续往前走"];
+// Dream events are generated from a small evolving world, not independent sentences.
+const WORLDS=[
+  {place:"家里",goal:"找一把钥匙",object:"钥匙",detail:["厨房的水还烧着","窗边晾着刚洗好的衣服","桌上放着半杯温水"],action:["我把抽屉逐个拉开","我沿着沙发边摸索","我把外套翻过来检查口袋"]},
+  {place:"超市",goal:"买晚饭要用的东西",object:"购物袋",detail:["冰柜发出低低的嗡声","有人在比较两盒牛奶","收银台前排着几个人"],action:["我推着车走到蔬菜区","我拿起一盒鸡蛋又放回去","我排到队伍最后"]},
+  {place:"公交车上",goal:"赶到一个约好的地方",object:"车票",detail:["车窗上有没干的雨痕","车子经过一排梧桐树","前排有人轻轻咳嗽"],action:["我扶住椅背站稳","我低头确认手里的车票","我透过车窗寻找熟悉的路口"]},
+  {place:"学校",goal:"找到要上的教室",object:"课本",detail:["走廊里传来拖椅子的声音","教室门口贴着一张课程表","窗外有人在打球"],action:["我沿着楼梯走上去","我翻开课本找夹着的纸","我站在门口看了一眼"]},
+  {place:"街边的小店",goal:"取回寄放的东西",object:"纸袋",detail:["柜台边摆着一盆绿植","店里飘着热面包的味道","门上的铃铛轻轻响了一声"],action:["我向店员说明来意","我把纸袋放在柜台上","我走到门边等了一会儿"]},
+  {place:"公园",goal:"找一处安静的长椅",object:"雨伞",detail:["树叶上还挂着雨水","远处有人牵着狗","小路边开着不知名的花"],action:["我沿着小路慢慢走","我把雨伞收起来","我在岔路口停了一下"]}
+];
+const ODD_PLACES=["小时候住过的楼道","一间很长的教室","没有站牌的车站","一条通往海边的走廊","陌生的厨房"];
+const SOFT_ENDINGS=["我终于坐下来，听着周围的声音","我把东西放好，准备回去","我们继续做刚才没做完的事","远处有人叫我，我转过头去"];
 function buildDreamEvents(seed,random){
-  // Event count, pace, mundane/strange tone and ending are independent draws.
-  const mundane=random()<0.46;
+  const choose=items=>pick(items,random);
+  const world=choose(WORLDS);
   const count=2+Math.floor(random()*12);
-  const events=[];
-  const choose=(items)=>pick(items,random);
-  let place=mundane?choose(["家里","楼下的小店","一条熟悉的街","教室","超市","公交车上"]):seed.scene;
-  let companion=seed.figure;
-  const action=choose(DAILY_ACTIONS);
-  events.push({kind:"opening",text:mundane?`我在${place}${action}。${choose(DAILY_DETAILS)}。`:`我不知道怎么到了${place}，${companion}也在那里。`});
+  const surreal=random()<0.38;
+  const state={place:world.place,goal:world.goal,object:world.object,companion:null,shifted:false};
+  const used=new Set();
+  function fresh(items,key){
+    const candidates=items.filter(t=>!used.has(key+":"+t));
+    const selected=choose(candidates.length?candidates:items);
+    used.add(key+":"+selected);
+    return selected;
+  }
+  const events=[{kind:"opening",text:`我在${state.place}，想${state.goal}。${fresh(world.detail,"detail")}。`}];
   for(let i=1;i<count;i++){
-    const roll=random();
-    let text;
-    if(roll<(mundane?0.52:0.28)){
-      text=`${choose(DAILY_DETAILS)}。${choose(DREAM_MOMENTS)}。`;
-    }else if(roll<(mundane?0.76:0.53)){
-      text=`${companion}似乎在等我。${choose(DREAM_MOMENTS)}。`;
-    }else if(roll<(mundane?0.91:0.85)){
-      text=`${choose(DREAM_SHIFTS)}。${choose(DREAM_MOMENTS)}。`;
-      if(random()<0.5)place=choose(["家里","学校","车站",seed.scene,"一条不认识的路"]);
-      if(random()<0.25)companion=choose([seed.figure,"一个熟人","一个陌生人","一只猫"]);
+    const r=random();
+    let text,kind="moment";
+    if(surreal&&r<0.19){
+      kind="shift";
+      const next=fresh(ODD_PLACES,"place");
+      const transitions=[
+        `我推开旁边的门，外面却成了${next}。`,
+        `走过一个拐角，周围忽然变成了${next}。`,
+        `再抬头时，我已经站在${next}，手里的${state.object}还在。`
+      ];
+      text=choose(transitions);
+      state.place=next;state.shifted=true;
+    }else if(surreal&&r<0.31){
+      kind="shift";
+      const changed=choose([
+        `我发现${state.object}忽然变得很轻，里面像装着一阵风。`,
+        `身边的人都在等一辆不会来的车，我却觉得这很正常。`,
+        `我明明刚刚走过这里，墙上的门却换了位置。`,
+        `我听见有人叫我的名字，回头却只看见${state.object}放在地上。`
+      ]);
+      text=changed;
+    }else if(r<0.57){
+      text=fresh(world.action,"action")+"。";
+      if(random()<0.38)text+=`我还惦记着${state.goal}。`;
+    }else if(r<0.78){
+      const detail=fresh(world.detail,"detail");
+      text=`${detail}。`;
+      if(random()<0.52)text+=`我把${state.object}拿在手里，继续找要去的地方。`;
     }else{
-      text=`我注意到${seed.anchor}。${choose(DREAM_MOMENTS)}。`;
+      if(!state.companion)state.companion=choose(["一个穿浅色外套的人","一位年纪很大的阿姨","一个熟悉的朋友",seed.figure==="独自一人"?"一个路过的人":seed.figure]);
+      text=choose([
+        `${state.companion}走过来问我是不是在找${state.object}。我点了点头。`,
+        `我遇见${state.companion}，对方指了指前面的路，让我过去看看。`,
+        `${state.companion}递给我一杯水，我接过来，才发现自己一直拿着${state.object}。`
+      ]);
     }
-    // Vary event length independently; dreams may dwell on a detail or skip ahead.
-    if(random()<0.35)text+=`${choose(DAILY_DETAILS)}。`;
-    if(random()<0.18)text+=`${choose(DREAM_MOMENTS)}。`;
-    if(i===count-1&&random()<0.68)text+=`${choose(DREAM_ENDS)}。`;
-    events.push({kind:i===count-1?"ending":roll>0.76?"shift":"moment",text});
+    // Some moments linger, others end abruptly; no compulsory revelation.
+    if(random()<0.22&&i<count-1)text+=fresh(world.detail,"detail")+"。";
+    if(i===count-1&&random()<0.42)text+=choose(SOFT_ENDINGS)+"。";
+    events.push({kind:i===count-1?"ending":kind,text});
   }
   return events;
 }

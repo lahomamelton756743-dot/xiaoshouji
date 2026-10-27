@@ -1,5 +1,6 @@
 name: Build Android Debug APK
 # v0.8.5-7 move chat header upward
+# Trigger build for chat plus menu on feature/home-app-v01
 
 on:
   workflow_dispatch:

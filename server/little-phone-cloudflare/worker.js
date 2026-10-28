@@ -1139,13 +1139,13 @@ async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await
 // Authenticated D1-backed chat attachments. No public blob URLs or raw data in chat history.
 const CHAT_ATTACHMENT_MAX_BYTES=768*1024;
 async function addChatAttachmentApi(env,body){
-  const name=clip(String(body.name||"附件").replace(/[\\/\\x00-\\x1f]/g,"_"),180);
+  const name=clip(String(body.name||"附件").replace(/[\/\x00-\x1f]/g,"_"),180);
   const mime=clip(body.mime||"application/octet-stream",120);
   const base64=String(body.base64||"");
   if(!/^[A-Za-z0-9+/]+={0,2}$/.test(base64)||base64.length%4!==0)return json({ok:false,error:"invalid_base64"},400);
   const size=base64.length*3-(base64.endsWith("==")?2:base64.endsWith("=")?1:0);
   if(!size||size>CHAT_ATTACHMENT_MAX_BYTES)return json({ok:false,error:"attachment_too_large",max_bytes:CHAT_ATTACHMENT_MAX_BYTES},413);
-  if(!/^[\\w.+-]+\\/[\\w.+-]+$/.test(mime))return json({ok:false,error:"invalid_mime"},400);
+  if(!/^[\w.+-]+\/[\w.+-]+$/.test(mime))return json({ok:false,error:"invalid_mime"},400);
   const id=uuid();
   await env.DB.prepare("INSERT INTO lp_chat_attachments(id,name,mime,size,data_base64,created_at) VALUES(?,?,?,?,?,?)").bind(id,name,mime,size,base64,nowIso()).run();
   return json({ok:true,attachment:{id,name,mime,size}});

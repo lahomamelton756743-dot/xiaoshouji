@@ -4250,18 +4250,20 @@ async function refreshChatMessages(){
 }
 /* Chat composer extra actions: location sends through the existing authenticated chat API.
    Media and calls must not pretend to work until a persistent attachment/call transport exists. */
+async function sendChatLocation(latitude,longitude){
+  const lat=Number(latitude).toFixed(6),lng=Number(longitude).toFixed(6);
+  if(!Number.isFinite(Number(latitude))||!Number.isFinite(Number(longitude)))return toast('定位数据无效');
+  const content='[位置] https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng);
+  try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});
+    if(r.message){mergeChatMessages([r.message]);saveCache();renderChatApp();toast('位置已发送')}
+  }catch(e){toast('位置发送失败，请检查连接')}
+}
 async function handleChatExtra(kind){
   if(kind==='位置'){
     if(!state.conn.connected)return toast('先连接小手机');
-    if(!navigator.geolocation)return toast('当前设备不支持定位');
+    const nativeFix=hasNative()&&window.LittlePhoneNative.getChatLocation?parse(window.LittlePhoneNative.getChatLocation(),{}):null;\n    if(nativeFix?.latitude!=null&&nativeFix?.longitude!=null){await sendChatLocation(nativeFix.latitude,nativeFix.longitude);return}\n    if(hasNative())return toast(nativeFix?.error==='permission_required'?'请先在系统设置中开启定位权限':'暂无近期定位，请先打开定位服务');\n    if(!navigator.geolocation)return toast('当前设备不支持定位');
     toast('正在获取位置…');
-    navigator.geolocation.getCurrentPosition(async p=>{
-      const lat=Number(p.coords.latitude).toFixed(6),lng=Number(p.coords.longitude).toFixed(6);
-      const content='[位置] https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng);
-      try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});
-        if(r.message){mergeChatMessages([r.message]);saveCache();renderChatApp();toast('位置已发送')}
-      }catch(e){toast('位置发送失败，请检查连接')}
-    },e=>toast(e.code===1?'定位权限未开启':'无法获取当前位置，请检查定位服务'),{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+    navigator.geolocation.getCurrentPosition(p=>sendChatLocation(p.coords.latitude,p.coords.longitude),e=>toast(e.code===1?'定位权限未开启':'无法获取当前位置，请检查定位服务'),{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
     return;
   }
   if(kind==='语音通话'||kind==='视频通话')return toast('通话服务尚未接通，不能发起真实通话');

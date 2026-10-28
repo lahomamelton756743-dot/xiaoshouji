@@ -892,8 +892,9 @@ public class LittlePhoneActivity extends Activity {
                     // give health requests enough time for that cold start instead of
                     // incorrectly surfacing it as "not connected" after 10 seconds.
                     boolean longHealthRequest = safePath.startsWith("/api/littlephone/health/");
-                    c.setConnectTimeout(longHealthRequest ? 12000 : 7000);
-                    c.setReadTimeout(longHealthRequest ? 75000 : 10000);
+                    boolean attachmentRequest = safePath.startsWith("/api/littlephone/chat/attachment");
+                    c.setConnectTimeout(longHealthRequest || attachmentRequest ? 12000 : 7000);
+                    c.setReadTimeout(longHealthRequest ? 75000 : attachmentRequest ? 60000 : 10000);
                     c.setUseCaches(false);
                     c.setRequestProperty("Authorization", "Bearer " + token);
                     c.setRequestProperty("Accept", "application/json");

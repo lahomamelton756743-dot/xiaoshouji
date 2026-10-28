@@ -443,19 +443,20 @@ public class LittlePhoneActivity extends Activity {
     // Location sharing reads only an already-permitted, cached fix; never silently requests access.
     private String locationForChat() {
         try {
-            if (!hasLocationPermission()) return "{\\\"error\\\":\\\"permission_required\\\"}";
+            if (!hasLocationPermission()) return "{\"error\":\"permission_required\"}";
             LocationManager lm=(LocationManager)getSystemService(LOCATION_SERVICE);
-            if(lm==null)return "{\\\"error\\\":\\\"location_unavailable\\\"}";
+            if(lm==null)return "{\"error\":\"location_unavailable\"}";
             Location a=null,b=null;
             try{a=lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);}catch(Exception ignored){}
             try{b=lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);}catch(Exception ignored){}
             Location best=a==null?b:(b!=null&&b.getTime()>a.getTime()?b:a);
-            if(best==null||System.currentTimeMillis()-best.getTime()>10*60*1000)return "{\\\"error\\\":\\\"location_stale\\\"}";
+            if(best==null||System.currentTimeMillis()-best.getTime()>10*60*1000)return "{\"error\":\"location_stale\"}";
             JSONObject out=new JSONObject();out.put("latitude",best.getLatitude());out.put("longitude",best.getLongitude());return out.toString();
-        }catch(Exception e){return "{\\\"error\\\":\\\"location_unavailable\\\"}";}
+        }catch(Exception e){return "{\"error\":\"location_unavailable\"}";}
     }
 
-    public final class NativeBridge {\n        @JavascriptInterface public String getChatLocation() { return locationForChat(); }
+    public final class NativeBridge {
+        @JavascriptInterface public String getChatLocation() { return locationForChat(); }
         @JavascriptInterface
         public boolean exportMemorySnapshot(String json) {
             if (json == null || json.length() < 10 || json.length() > 20000000) return false;

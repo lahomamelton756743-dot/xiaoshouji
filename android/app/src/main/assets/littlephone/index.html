@@ -3169,7 +3169,7 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
     <section class="page phoneAppPage chatAppPage" id="page-app-chat">
       <div class="chatAppHead glass"><div class="chatHeadAvatar" data-avatar-view="daddy"></div><div class="chatHeadText"><b id="chatPartnerName">daddy</b><small>我们的聊天</small></div><button type="button" class="appSearchIcon chatSearchIcon" data-search-toggle="chat" aria-label="搜索聊天">⌕</button><button class="chatSettingsBtn" id="chatSettingsBtn" type="button" aria-label="聊天设置">⚙</button></div><div class="chatSettingsLayer" id="chatSettingsLayer" hidden><div class="glass chatSettingsCard"><div class="chatSettingsTop"><b>聊天设置</b><button type="button" data-chat-settings-close>×</button></div><button class="chatSettingsEntry" id="chatBubbleSettingsEntry" type="button"><span>气泡设置</span><small>玻璃、模糊、高光和双方淡色</small><i>›</i></button></div></div><div class="chatSettingsLayer" id="chatBubbleSettingsLayer" hidden><div class="glass chatSettingsCard chatBubbleSettingsCard"><div class="chatSettingsTop"><button type="button" data-chat-bubble-back>‹</button><b>气泡设置</b><button type="button" data-chat-settings-close>×</button></div><div id="chatBubbleControls"></div></div></div>
       <div class="appSearchBar chatSearchBar" data-search-bar="chat" hidden><input type="search" data-search-input="chat" placeholder="搜索聊天内容…" autocomplete="off"><button type="button" data-search-close="chat">取消</button></div><div class="chatMessages" id="chatMessages"></div>
-      <div class="chatBottomDock" id="chatBottomDock"><form class="chatComposer glass" id="chatComposer"><button type="button" class="chatMoreToggle" id="chatMoreToggle" aria-label="更多功能" aria-expanded="false">＋</button><textarea id="chatInput" rows="1" maxlength="6000" placeholder="发一条消息…"></textarea><button type="submit">发送</button></form><div class="chatMorePanel glass" id="chatMorePanel" hidden><button type="button" data-chat-extra="图片"><span>▧</span><small>图片</small></button><button type="button" data-chat-extra="拍照"><span>◎</span><small>拍照</small></button><button type="button" data-chat-extra="语音通话"><span>♧</span><small>语音通话</small></button><button type="button" data-chat-extra="视频通话"><span>▣</span><small>视频通话</small></button><button type="button" data-chat-extra="文件"><span>▤</span><small>文件</small></button><button type="button" data-chat-extra="位置"><span>⌖</span><small>位置</small></button></div></div>
+      <div class="chatBottomDock" id="chatBottomDock"><form class="chatComposer glass" id="chatComposer"><button type="button" class="chatMoreToggle" id="chatMoreToggle" aria-label="更多功能" aria-expanded="false">＋</button><textarea id="chatInput" rows="1" maxlength="6000" placeholder="发一条消息…"></textarea><button type="submit">发送</button></form><input type="file" id="chatAttachmentPicker" hidden multiple><div class="chatMorePanel glass" id="chatMorePanel" hidden><button type="button" data-chat-extra="图片"><span>▧</span><small>图片</small></button><button type="button" data-chat-extra="拍照"><span>◎</span><small>拍照</small></button><button type="button" data-chat-extra="语音通话"><span>♧</span><small>语音通话</small></button><button type="button" data-chat-extra="视频通话"><span>▣</span><small>视频通话</small></button><button type="button" data-chat-extra="文件"><span>▤</span><small>文件</small></button><button type="button" data-chat-extra="位置"><span>⌖</span><small>位置</small></button></div></div>
     </section>
 
     <section class="page phoneAppPage" id="page-app-river">
@@ -3429,7 +3429,7 @@ $$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
 $$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
 $$('[data-open-app]').forEach(b=>b.onclick=()=>openMiniApp(b.dataset.openApp));
 if($('#systemHomePill'))$('#systemHomePill').onclick=()=>go('desktop');
-if($('#chatComposer'))$('#chatComposer').onsubmit=e=>{e.preventDefault();sendChatMessage()};const chatMoreToggle=$('#chatMoreToggle'),chatMorePanel=$('#chatMorePanel');if(chatMoreToggle&&chatMorePanel){chatMoreToggle.onclick=()=>{const show=chatMorePanel.hidden;chatMorePanel.hidden=!show;chatMoreToggle.textContent=show?'×':'＋';chatMoreToggle.setAttribute('aria-expanded',String(show));if(show)$('#chatInput')?.blur()};chatMorePanel.querySelectorAll('[data-chat-extra]').forEach(b=>b.onclick=()=>handleChatExtra(b.dataset.chatExtra));}bindChatSettings();
+if($('#chatComposer'))$('#chatComposer').onsubmit=e=>{e.preventDefault();sendChatMessage()};const chatMoreToggle=$('#chatMoreToggle'),chatMorePanel=$('#chatMorePanel');if(chatMoreToggle&&chatMorePanel){chatMoreToggle.onclick=()=>{const show=chatMorePanel.hidden;chatMorePanel.hidden=!show;chatMoreToggle.textContent=show?'×':'＋';chatMoreToggle.setAttribute('aria-expanded',String(show));if(show)$('#chatInput')?.blur()};chatMorePanel.querySelectorAll('[data-chat-extra]').forEach(b=>b.onclick=()=>handleChatExtra(b.dataset.chatExtra));const attachmentPicker=$('#chatAttachmentPicker');if(attachmentPicker)attachmentPicker.onchange=()=>sendChatAttachments(attachmentPicker.files);}bindChatSettings();
 const desktopViewport=$('#desktopViewport');
 if(desktopViewport){desktopViewport.addEventListener('scroll',()=>{const w=Math.max(1,desktopViewport.clientWidth),idx=Math.max(0,Math.min(1,Math.round(desktopViewport.scrollLeft/w)));$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx))},{passive:true})}
 function serverUrl(path){const base=(state.conn.server||'').replace(/\/$/,'');return /^(https?:|data:|blob:)/i.test(path)?path:`${base}${path.startsWith('/')?'':'/'}${path}`}
@@ -4230,7 +4230,7 @@ function chatThinkingHtml(m){
   const bulb='<svg class="chatThinkingBulb" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 15.5C7 14.3 6 12.7 6 10.5a6 6 0 1 1 12 0c0 2.2-1 3.8-2.5 5L15 18H9l-.5-2.5Z"/></svg>';
   return '<details class="chatThinking" data-chat-thinking="'+esc(id)+'"'+open+'><summary>'+bulb+'<span>思考</span><span class="chatThinkingChevron"></span></summary><div class="chatThinkingBody">'+esc(m.thinking).replace(/\n/g,'<br>')+'</div></details>';
 }
-function renderChatApp(){const box=$('#chatMessages');if(!box)return;const nearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<110,firstRender=!box.dataset.chatRendered;const items=[...(state.chats||[])].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));let previousTime=NaN,previousDay='';box.innerHTML=items.length?items.map((m,i)=>{const currentTime=new Date(m.created_at).getTime(),day=Number.isFinite(currentTime)?new Date(currentTime).toDateString():'';const dividerNeeded=Number.isFinite(currentTime)&&(i===0||day!==previousDay||!Number.isFinite(previousTime)||currentTime-previousTime>=30*60*1000);previousTime=currentTime;previousDay=day;const divider=dividerNeeded?'<div class="chatDateDivider">'+chatDividerTime(m.created_at)+'</div>':'';const side=authorSide(m.author),who=side==='daddy'?'daddy':'ryan',parts=splitChatDisplay(m.content,side);const thinking=chatThinkingHtml(m);if(side==='daddy'&&parts.length>1)return divider+`<div class="chatGroup daddy" data-chat-id="${esc(m.id)}">${parts.map((part,i)=>`<div class="chatRow daddy chatPartRow" style="--chat-part-delay:${i*55}ms"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload">${i===0?thinking:""}<div class="chatBubble chatBubblePart">${esc(part).replace(/\\n/g,'<br>')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`).join('')}</div>`;return divider+`<div class="chatRow chatGroup ${side}" data-chat-id="${esc(m.id)}"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload">${thinking}<div class="chatBubble">${esc(m.content).replace(/\\n/g,'<br>')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`}).join(''):'<div class="empty chatEmpty">这里还没有消息。</div>';box.querySelectorAll('details.chatThinking').forEach(d=>d.addEventListener('toggle',()=>{const id=d.dataset.chatThinking;if(d.open)chatThinkingOpen.add(id);else chatThinkingOpen.delete(id)}));applyAvatars();if($('#chatPartnerName'))$('#chatPartnerName').textContent=actorName('daddy');box.dataset.chatRendered='1';if(firstRender||nearBottom)requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
+function renderChatApp(){const box=$('#chatMessages');if(!box)return;const nearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<110,firstRender=!box.dataset.chatRendered;const items=[...(state.chats||[])].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));let previousTime=NaN,previousDay='';box.innerHTML=items.length?items.map((m,i)=>{const currentTime=new Date(m.created_at).getTime(),day=Number.isFinite(currentTime)?new Date(currentTime).toDateString():'';const dividerNeeded=Number.isFinite(currentTime)&&(i===0||day!==previousDay||!Number.isFinite(previousTime)||currentTime-previousTime>=30*60*1000);previousTime=currentTime;previousDay=day;const divider=dividerNeeded?'<div class="chatDateDivider">'+chatDividerTime(m.created_at)+'</div>':'';const side=authorSide(m.author),who=side==='daddy'?'daddy':'ryan',parts=splitChatDisplay(m.content,side);const thinking=chatThinkingHtml(m),attachmentId=parseChatAttachment(m.content),bubbleContent=attachmentId?attachmentHtml(attachmentId):esc(m.content).replace(/\\n/g,'<br>');if(side==='daddy'&&parts.length>1)return divider+`<div class="chatGroup daddy" data-chat-id="${esc(m.id)}">${parts.map((part,i)=>`<div class="chatRow daddy chatPartRow" style="--chat-part-delay:${i*55}ms"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload">${i===0?thinking:""}<div class="chatBubble chatBubblePart">${esc(part).replace(/\\n/g,'<br>')}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`).join('')}</div>`;return divider+`<div class="chatRow chatGroup ${side}" data-chat-id="${esc(m.id)}"><div class="chatAvatar" data-avatar-view="${who}"></div><div class="chatPayload">${thinking}<div class="chatBubble">${bubbleContent}</div><div class="chatTimestamp">${chatTime(m.created_at)}</div></div></div>`}).join(''):'<div class="empty chatEmpty">这里还没有消息。</div>';box.querySelectorAll('details.chatThinking').forEach(d=>d.addEventListener('toggle',()=>{const id=d.dataset.chatThinking;if(d.open)chatThinkingOpen.add(id);else chatThinkingOpen.delete(id)}));applyAvatars();hydrateChatAttachments();if($('#chatPartnerName'))$('#chatPartnerName').textContent=actorName('daddy');box.dataset.chatRendered='1';if(firstRender||nearBottom)requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
 const CHAT_CACHE_KEY='lp_v083_chat_history_r1';
 function chatSorted(items){return [...(items||[])].filter(x=>x&&x.id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.id).localeCompare(String(b.id)))}
 function loadChatCache(){const cached=parse(localDataGet(CHAT_CACHE_KEY),[]);if(Array.isArray(cached)&&cached.length){const map=new Map(chatSorted([...(state.chats||[]),...cached]).map(x=>[String(x.id),x]));state.chats=chatSorted([...map.values()])}}
@@ -4269,8 +4269,60 @@ async function handleChatExtra(kind){
     navigator.geolocation.getCurrentPosition(p=>sendChatLocation(p.coords.latitude,p.coords.longitude),e=>toast(e.code===1?'定位权限未开启':'无法获取当前位置，请检查定位服务'),{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
     return;
   }
+  if(kind==='图片'||kind==='文件'){
+    const picker=$('#chatAttachmentPicker');if(!picker)return toast('文件选择器不可用');
+    picker.accept=kind==='图片'?'image/*':'*/*';picker.multiple=true;picker.value='';picker.click();return;
+  }
   if(kind==='语音通话'||kind==='视频通话')return toast('通话服务尚未接通，不能发起真实通话');
   toast('附件上传服务尚未接通，暂不能发送'+kind);
+}
+const chatAttachmentCache=new Map();
+function parseChatAttachment(content){
+  const m=/^\\[附件:([0-9a-f-]{36})\\]$/.exec(String(content||''));return m?m[1]:null;
+}
+function attachmentHtml(id){return '<div class="chatAttachment" data-chat-attachment="'+esc(id)+'"><span>附件加载中…</span></div>'}
+async function hydrateChatAttachments(){
+  for(const el of $('[data-chat-attachment]')){
+    if(el.dataset.loaded==='1')continue;el.dataset.loaded='1';const id=el.dataset.chatAttachment;
+    try{
+      let item=chatAttachmentCache.get(id);
+      if(!item){const r=await nativeRequestLong('GET','/api/littlephone/chat/attachment?id='+encodeURIComponent(id),null,70000);item=r.attachment;if(!item)throw Error('not_found');chatAttachmentCache.set(id,item)}
+      if(!el.isConnected)return;
+      const dataUrl='data:'+item.mime+';base64,'+item.data_base64;
+      el.textContent='';
+      if(item.mime.startsWith('image/')){
+        const img=document.createElement('img');img.src=dataUrl;img.alt=item.name;img.style.cssText='display:block;max-width:100%;max-height:260px;border-radius:12px;object-fit:contain';el.appendChild(img);
+      }
+      const link=document.createElement('a');link.href=dataUrl;link.download=item.name;link.textContent=item.name+' · '+Math.ceil(item.size/1024)+' KB';link.style.cssText='display:block;margin-top:6px;overflow-wrap:anywhere';el.appendChild(link);
+    }catch(e){if(el.isConnected){el.textContent='附件读取失败 · 点击重试';el.dataset.loaded='0';el.onclick=()=>hydrateChatAttachments()}}
+  }
+}
+function fileAsBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file)})}
+async function prepareChatAttachment(file){
+  if(file.type.startsWith('image/')&&file.type!=='image/svg+xml'){
+    const bitmap=await createImageBitmap(file);try{
+      const scale=Math.min(1,1280/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+      let blob=null;for(const quality of [.82,.68,.5,.35]){blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));if(blob&&blob.size<=768*1024)break}
+      if(!blob||blob.size>768*1024)throw Error('too_large');
+      return {file:blob,name:file.name.replace(/\\.[^.]+$/, '')+'.jpg',mime:'image/jpeg'};
+    }finally{bitmap.close()}
+  }
+  return {file,name:file.name,mime:file.type||'application/octet-stream'};
+}
+async function sendChatAttachments(files){
+  if(!state.conn.connected)return toast('先连接小手机');
+  for(const file of Array.from(files).slice(0,6)){
+    try{
+      const item=await prepareChatAttachment(file);
+      if(item.file.size>768*1024)throw Error('too_large');
+      toast('正在上传 '+file.name);
+      const base64=await fileAsBase64(item.file);
+      const uploaded=await nativeRequestLong('POST','/api/littlephone/chat/attachment',{name:item.name,mime:item.mime,base64},70000);
+      const id=uploaded.attachment?.id;if(!id)throw Error('upload_failed');
+      const r=await nativeRequest('POST','/api/littlephone/chat',{content:'[附件:'+id+']',author:'user',client_id:mutationId('chat')});
+      if(r.message){mergeChatMessages([r.message]);saveCache();renderChatApp()}
+    }catch(e){toast(file.name+(String(e.message).includes('too_large')?'超过 768KB 限制':' 发送失败'))}
+  }
 }
 async function sendChatMessage(){const input=$('#chatInput'),content=String(input?.value||'').trim();if(!content)return;if(!state.conn.connected)return toast('先连接小手机');const btn=$('#chatComposer button');if(btn)btn.disabled=true;try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});if(r.message){mergeChatMessages([r.message]);saveCache()}input.value='';renderChatApp()}catch(e){toast('发送失败')}finally{if(btn)btn.disabled=false}}
 

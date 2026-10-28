@@ -4278,7 +4278,7 @@ async function handleChatExtra(kind){
 }
 const chatAttachmentCache=new Map();
 function parseChatAttachment(content){
-  const m=/^\\[附件:([0-9a-f-]{36})\\]$/.exec(String(content||''));return m?m[1]:null;
+  const m=/^\[附件:([0-9a-f-]{36})\]$/.exec(String(content||''));return m?m[1]:null;
 }
 function attachmentHtml(id){return '<div class="chatAttachment" data-chat-attachment="'+esc(id)+'"><span>附件加载中…</span></div>'}
 async function hydrateChatAttachments(){
@@ -4304,7 +4304,7 @@ async function prepareChatAttachment(file){
       const scale=Math.min(1,1280/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
       let blob=null;for(const quality of [.82,.68,.5,.35]){blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));if(blob&&blob.size<=768*1024)break}
       if(!blob||blob.size>768*1024)throw Error('too_large');
-      return {file:blob,name:file.name.replace(/\\.[^.]+$/, '')+'.jpg',mime:'image/jpeg'};
+      return {file:blob,name:file.name.replace(/\.[^.]+$/, '')+'.jpg',mime:'image/jpeg'};
     }finally{bitmap.close()}
   }
   return {file,name:file.name,mime:file.type||'application/octet-stream'};

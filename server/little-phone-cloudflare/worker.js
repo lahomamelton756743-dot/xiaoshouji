@@ -78,6 +78,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/dreams") return json(await dreamAction(env,"list",{limit:url.searchParams.get("limit")}));
     if (path === "/api/littlephone/diary-annotations") return listDiaryAnnotationsApi(env, url);
     if (path === "/api/littlephone/chat") return listChatMessagesApi(env, url);
+    if (path === "/api/littlephone/chat/attachment") return getChatAttachmentApi(env, url);
     if (path === "/api/littlephone/todos") return listTodosApi(env, url);
     if (path === "/api/littlephone/dates") return listDatesApi(env, url);
     if (path === "/api/littlephone/dates/search") return searchDatesApi(env,url);
@@ -117,6 +118,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/diaries/update") return updateDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diary-annotations") return addDiaryAnnotationApi(env, await readJson(request));
     if (path === "/api/littlephone/chat") return addChatMessageApi(env, await readJson(request));
+    if (path === "/api/littlephone/chat/attachment") return addChatAttachmentApi(env, await readJson(request));
     if (path === "/api/littlephone/mcp-events/test") return emitLittlePhoneTestEventApi(env, await readJson(request));
     if (path === "/api/littlephone/chat/delete") return deleteRowApi(env, "lp_chat_messages", await readJson(request));
     if (path === "/api/littlephone/diary-annotations/delete") return deleteRowApi(env, "lp_diary_annotations", await readJson(request));
@@ -505,6 +507,7 @@ async function ensureSchema(env) {
       `CREATE INDEX IF NOT EXISTS idx_lp_diary_annotations_diary ON lp_diary_annotations(diary_id,created_at ASC)`,
       `CREATE TABLE IF NOT EXISTS lp_chat_messages (id TEXT PRIMARY KEY, author TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL, thinking TEXT NOT NULL DEFAULT '')`,
       `CREATE INDEX IF NOT EXISTS idx_lp_chat_messages_created ON lp_chat_messages(created_at ASC)`,
+      `CREATE TABLE IF NOT EXISTS lp_chat_attachments (id TEXT PRIMARY KEY, name TEXT NOT NULL, mime TEXT NOT NULL, size INTEGER NOT NULL, data_base64 TEXT NOT NULL, created_at TEXT NOT NULL)`,
       `CREATE TABLE IF NOT EXISTS lp_mcp_event_subscriptions (
         id TEXT PRIMARY KEY, event_name TEXT NOT NULL, arguments_json TEXT NOT NULL DEFAULT '{}',
         callback_url TEXT NOT NULL, signing_secret TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
@@ -1133,6 +1136,26 @@ async function addDiary(env,body){const title=clip(body.title||"今天",160).tri
 async function addDiaryApi(env,body){const item=await addDiary(env,body);return item.error?json({ok:false,error:item.error},400):json({ok:true,diary:item});}
 async function updateDiaryApi(env,body){const id=clip(body.id||"",100),old=await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first();if(!old)return json({ok:false,error:"not_found"},404);const title=clip(body.title!==undefined?body.title:old.title,160).trim()||old.title,content=clip(body.content!==undefined?body.content:old.content,20000).trim(),date=clip(body.date!==undefined?body.date:old.event_date,20);if(!content)return json({ok:false,error:"content_required"},400);if(!validDate(date))return json({ok:false,error:"invalid_date"},400);const now=nowIso();await env.DB.prepare("UPDATE lp_diaries SET title=?,content=?,event_date=?,updated_at=? WHERE id=?").bind(title,content,date,now,id).run();return json({ok:true,diary:rowDiary(await env.DB.prepare("SELECT * FROM lp_diaries WHERE id=?").bind(id).first())});}
 
+// Authenticated D1-backed chat attachments. No public blob URLs or raw data in chat history.
+const CHAT_ATTACHMENT_MAX_BYTES=768*1024;
+async function addChatAttachmentApi(env,body){
+  const name=clip(String(body.name||"附件").replace(/[\\/\\x00-\\x1f]/g,"_"),180);
+  const mime=clip(body.mime||"application/octet-stream",120);
+  const base64=String(body.base64||"");
+  if(!/^[A-Za-z0-9+/]+={0,2}$/.test(base64)||base64.length%4!==0)return json({ok:false,error:"invalid_base64"},400);
+  const size=base64.length*3-(base64.endsWith("==")?2:base64.endsWith("=")?1:0);
+  if(!size||size>CHAT_ATTACHMENT_MAX_BYTES)return json({ok:false,error:"attachment_too_large",max_bytes:CHAT_ATTACHMENT_MAX_BYTES},413);
+  if(!/^[\\w.+-]+\\/[\\w.+-]+$/.test(mime))return json({ok:false,error:"invalid_mime"},400);
+  const id=uuid();
+  await env.DB.prepare("INSERT INTO lp_chat_attachments(id,name,mime,size,data_base64,created_at) VALUES(?,?,?,?,?,?)").bind(id,name,mime,size,base64,nowIso()).run();
+  return json({ok:true,attachment:{id,name,mime,size}});
+}
+async function getChatAttachmentApi(env,url){
+  const id=clip(url.searchParams.get("id")||"",100);
+  if(!/^[0-9a-f-]{36}$/i.test(id))return json({ok:false,error:"invalid_id"},400);
+  const item=await env.DB.prepare("SELECT id,name,mime,size,data_base64 FROM lp_chat_attachments WHERE id=?").bind(id).first();
+  return item?json({ok:true,attachment:item}):json({ok:false,error:"not_found"},404);
+}
 async function addChatMessage(env,body){
   const content=clip(body.content||"",6000).trim();if(!content)return {error:"content_required"};
   const id=clientId(body),existing=await env.DB.prepare("SELECT * FROM lp_chat_messages WHERE id=?").bind(id).first();if(existing)return existing;

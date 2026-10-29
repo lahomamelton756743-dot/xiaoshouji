@@ -149,7 +149,8 @@ public class LittlePhoneActivity extends Activity {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 try {
                     startActivityForResult(intent, FILE_CHOOSER_REQUEST);
-                } catch (ActivityNotFoundException e) {
+                } catch (Exception e) {
+                    LittlePhoneActivity.this.filePathCallback.onReceiveValue(null);
                     LittlePhoneActivity.this.filePathCallback = null;
                     Toast.makeText(LittlePhoneActivity.this, "没有可用的文件选择器", Toast.LENGTH_SHORT).show();
                     return false;
@@ -208,7 +209,19 @@ public class LittlePhoneActivity extends Activity {
             return;
         }
         if (requestCode == FILE_CHOOSER_REQUEST && filePathCallback != null) {
-            Uri[] result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            Uri[] result = null;
+            try {
+                if (resultCode == RESULT_OK && data != null && data.getClipData() != null) {
+                    android.content.ClipData clips = data.getClipData();
+                    result = new Uri[clips.getItemCount()];
+                    for (int i = 0; i < clips.getItemCount(); i++) result[i] = clips.getItemAt(i).getUri();
+                } else {
+                    result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                }
+            } catch (Exception e) {
+                Log.e(HTTP_TAG, "Chat file chooser result failed", e);
+                Toast.makeText(this, "读取文件选择结果失败", Toast.LENGTH_LONG).show();
+            }
             filePathCallback.onReceiveValue(result);
             filePathCallback = null;
             return;

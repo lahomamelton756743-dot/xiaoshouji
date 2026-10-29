@@ -3,7 +3,7 @@
  * Pure functions; caller must persist sleep session and enforce one roll per session.
  * No AI-generated conclusions or forced story arcs.
  */
-export const DREAM_SEED_RATE = 0.35;
+export const DREAM_SEED_RATE = 0.5;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const pick = (items, random) => items[Math.floor(random() * items.length)];
 const LIBRARY = {

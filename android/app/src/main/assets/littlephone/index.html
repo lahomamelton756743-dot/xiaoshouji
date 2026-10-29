@@ -3429,7 +3429,7 @@ $$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
 $$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
 $$('[data-open-app]').forEach(b=>b.onclick=()=>openMiniApp(b.dataset.openApp));
 if($('#systemHomePill'))$('#systemHomePill').onclick=()=>go('desktop');
-if($('#chatComposer'))$('#chatComposer').onsubmit=e=>{e.preventDefault();sendChatMessage()};const chatMoreToggle=$('#chatMoreToggle'),chatMorePanel=$('#chatMorePanel');if(chatMoreToggle&&chatMorePanel){chatMoreToggle.onclick=()=>{const show=chatMorePanel.hidden;chatMorePanel.hidden=!show;chatMoreToggle.textContent=show?'×':'＋';chatMoreToggle.setAttribute('aria-expanded',String(show));if(show)$('#chatInput')?.blur()};chatMorePanel.querySelectorAll('[data-chat-extra]').forEach(b=>b.onclick=()=>handleChatExtra(b.dataset.chatExtra));const attachmentPicker=$('#chatAttachmentPicker');if(attachmentPicker)attachmentPicker.onchange=()=>{const chosen=Array.from(attachmentPicker.files||[]);if(!chosen.length){toast('未选择图片或文件');return}toast('已选择 '+chosen.length+' 个文件，准备发送');sendChatAttachments(chosen)};}bindChatSettings();
+if($('#chatComposer'))$('#chatComposer').onsubmit=e=>{e.preventDefault();sendChatMessage()};const chatMoreToggle=$('#chatMoreToggle'),chatMorePanel=$('#chatMorePanel');if(chatMoreToggle&&chatMorePanel){chatMoreToggle.onclick=()=>{const show=chatMorePanel.hidden;chatMorePanel.hidden=!show;chatMoreToggle.textContent=show?'×':'＋';chatMoreToggle.setAttribute('aria-expanded',String(show));if(show)$('#chatInput')?.blur()};chatMorePanel.querySelectorAll('[data-chat-extra]').forEach(b=>b.onclick=()=>handleChatExtra(b.dataset.chatExtra));const attachmentPicker=$('#chatAttachmentPicker');if(attachmentPicker)attachmentPicker.onchange=()=>{const chosen=Array.from(attachmentPicker.files||[]);if(!chosen.length){toast('已取消选择或系统未返回文件');return}toast('已选择 '+chosen.length+' 个文件，准备发送');sendChatAttachments(chosen).catch(e=>toast('附件发送异常：'+String(e?.message||e)))};}bindChatSettings();
 const desktopViewport=$('#desktopViewport');
 if(desktopViewport){desktopViewport.addEventListener('scroll',()=>{const w=Math.max(1,desktopViewport.clientWidth),idx=Math.max(0,Math.min(1,Math.round(desktopViewport.scrollLeft/w)));$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx))},{passive:true})}
 function serverUrl(path){const base=(state.conn.server||'').replace(/\/$/,'');return /^(https?:|data:|blob:)/i.test(path)?path:`${base}${path.startsWith('/')?'':'/'}${path}`}
@@ -4271,6 +4271,7 @@ async function handleChatExtra(kind){
   }
   if(kind==='图片'||kind==='文件'){
     const picker=$('#chatAttachmentPicker');if(!picker)return toast('文件选择器不可用');
+    toast('正在选择'+kind+'…');
     picker.accept=kind==='图片'?'image/*':'*/*';picker.multiple=true;picker.value='';picker.click();return;
   }
   if(kind==='语音通话'||kind==='视频通话')return toast('通话服务尚未接通，不能发起真实通话');

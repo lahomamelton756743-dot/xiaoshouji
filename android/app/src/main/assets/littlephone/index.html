@@ -4251,11 +4251,12 @@ async function refreshChatMessages(){
 /* Chat composer extra actions: location sends through the existing authenticated chat API.
    Media and calls must not pretend to work until a persistent attachment/call transport exists. */
 async function sendChatLocation(latitude,longitude){
+  if(!Number.isFinite(Number(latitude))||!Number.isFinite(Number(longitude))||Math.abs(Number(latitude))>90||Math.abs(Number(longitude))>180)return toast('定位数据无效');
   const lat=Number(latitude).toFixed(6),lng=Number(longitude).toFixed(6);
   if(!Number.isFinite(Number(latitude))||!Number.isFinite(Number(longitude)))return toast('定位数据无效');
   const content='[位置] https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng);
   try{const r=await nativeRequest('POST','/api/littlephone/chat',{content,author:'user',client_id:mutationId('chat')});
-    if(r.message){mergeChatMessages([r.message]);saveCache();renderChatApp();toast('位置已发送')}
+    if(r.message){mergeChatMessages([r.message]);saveCache();renderChatApp();toast('位置已发送')}else throw Error('message_not_saved');
   }catch(e){toast('位置发送失败，请检查连接')}
 }
 async function handleChatExtra(kind){
@@ -4270,7 +4271,7 @@ async function handleChatExtra(kind){
     return;
   }
   if(kind==='图片'||kind==='文件'){
-    const picker=$('#chatAttachmentPicker');if(!picker)return toast('文件选择器不可用');
+    const picker=$('#chatAttachmentPicker');if(!picker)return toast('文件选择器不可用');toast('正在选择'+kind+'…');
     toast('正在选择'+kind+'…');
     picker.accept=kind==='图片'?'image/*':'*/*';picker.multiple=true;picker.value='';picker.click();return;
   }

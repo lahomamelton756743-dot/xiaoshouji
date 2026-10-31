@@ -21,7 +21,8 @@ export default {
       await ensureSchema(env);
       return await handle(request, env);
     } catch (err) {
-      return json({ ok: false, error: "worker_exception", detail: String(err?.stack || err) }, 500);
+      console.error("little-phone worker_exception", err);
+      return json({ ok: false, error: "worker_exception", message: "服务器暂时无法处理请求，请稍后重试。" }, 500);
     }
   }
 };

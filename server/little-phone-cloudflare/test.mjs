@@ -286,6 +286,22 @@ const refreshForm=new URLSearchParams({grant_type:'refresh_token',client_id:oaut
 ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:refreshForm.toString()}),env);
 assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); assert.ok(oj.refresh_token); assert.notEqual(oj.refresh_token,refreshToken);
 
+// Attachment API contract: authenticated upload/read, invalid payload and size limits.
+const tinyBase64=Buffer.from('hello from guiqi').toString('base64');
+const attachmentUpload=await req('/api/littlephone/chat/attachment',{method:'POST',body:{name:'sample.txt',mime:'text/plain',base64:tinyBase64}});
+assert.equal(attachmentUpload.status,200);
+assert.equal(attachmentUpload.data.attachment.size,Buffer.byteLength('hello from guiqi'));
+const attachmentId=attachmentUpload.data.attachment.id;
+const attachmentRead=await req('/api/littlephone/chat/attachment?id='+encodeURIComponent(attachmentId));
+assert.equal(attachmentRead.status,200);
+assert.equal(attachmentRead.data.attachment.data_base64,tinyBase64);
+assert.equal((await req('/api/littlephone/chat/attachment?id=invalid')).status,400);
+assert.equal((await req('/api/littlephone/chat/attachment?id='+encodeURIComponent(attachmentId),{headers:{}})).status,403);
+const invalidAttachment=await req('/api/littlephone/chat/attachment',{method:'POST',body:{name:'bad.txt',mime:'text/plain',base64:'not_base64!'}});
+assert.equal(invalidAttachment.status,400);
+const oversizedAttachment=await req('/api/littlephone/chat/attachment',{method:'POST',body:{name:'large.txt',mime:'text/plain',base64:Buffer.alloc(768*1024+1).toString('base64')}});
+assert.equal(oversizedAttachment.status,413);
+
 // MCP todo reminder must precede the normal tool response, without changing todo state.
 const mcpCallHeaders={Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'};
 async function mcpCallForReminder(id,name,args={}){
@@ -307,5 +323,5 @@ assert.ok(!completedResult.structuredContent?.todo_reminder?.items?.some(t=>t.id
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 
-console.log('PASS little-phone backend v0.7.6');
+console.log('PASS little-phone backend API regression tests');
 console.log(JSON.stringify({mail_two_seen:true,paper_reply:true,capsule_lock:true,dailybook_update:true,profiles:true,memories:true,unlock_request:true,popup_isolated:true,diaries:true,bootstrap:true,todos:true,dates:true,cycle:true,deletes:true,visit_once:true,failed_visit_no_trace:true,snapshot_expiry:true,mcp:true,command_guard:true,statuses:true,calls:true,delayed_call:true,health_bridge_contract:true,health_daily:true,memory_alias_crud:true,oauth21:true,inline_dailybook_image:true,screenshot_disabled:true},null,2));

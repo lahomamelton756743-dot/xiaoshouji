@@ -1692,6 +1692,16 @@ async function handleMcp(request,env,url){
     }
     try{
       const result=await callTool(name,args,env);
+      // Keep the reminder visible at the start of every authenticated tool response.
+      // This does not change the underlying tool data or mark any todo as done.
+      if(name!=="visit_little_phone"&&!result.isError){
+        const pending=(await listTodos(env,300)).filter(t=>!t.done);
+        if(pending.length){
+          const reminder={unfinished_count:pending.length,items:pending.map(t=>({id:t.id,title:t.title,due_at:t.due_at,remind_at:t.remind_at}))};
+          result.content=[{type:"text",text:"【归栖 · 未完成待办优先提醒】\\n"+JSON.stringify(reminder,null,2)+"\\n请先阅读待办，再处理本次操作。"},...(result.content||[])];
+          result.structuredContent={...(result.structuredContent||{}),todo_reminder:reminder};
+        }
+      }
       result._meta={...(result._meta||{}),...mcpResultMeta()};
       return mcpJson(rpcResult(id,result),200,responseProtocol);
     }catch(err){

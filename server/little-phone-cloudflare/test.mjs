@@ -29,7 +29,7 @@ async function req(path, { method='GET', body, headers=auth }={}) {
 }
 
 let r = await req('/health', { headers:{} });
-assert.equal(r.status, 200); assert.equal(r.data.version, '0.7.6-little-phone'); assert.equal(r.data.screenshot, false);
+assert.equal(r.status, 200); assert.match(r.data.version, /^0\.8\.5-/); assert.equal(r.data.screenshot, false);
 
 r = await req('/api/mail', { method:'POST', headers:{'Content-Type':'application/json'}, body:{content:'x'} });
 assert.equal(r.status, 403);
@@ -285,6 +285,25 @@ assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.result.tools.some(
 const refreshForm=new URLSearchParams({grant_type:'refresh_token',client_id:oauthClient,refresh_token:refreshToken});
 ox = await worker.fetch(new Request(base+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:refreshForm.toString()}),env);
 assert.equal(ox.status,200); oj=await ox.json(); assert.ok(oj.access_token); assert.ok(oj.refresh_token); assert.notEqual(oj.refresh_token,refreshToken);
+
+// MCP todo reminder must precede the normal tool response, without changing todo state.
+const mcpCallHeaders={Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'};
+async function mcpCallForReminder(id,name,args={}){
+  const response=await worker.fetch(new Request(base+'/mcp',{method:'POST',headers:mcpCallHeaders,body:JSON.stringify({jsonrpc:'2.0',id,method:'tools/call',params:{name,arguments:args}})}),env);
+  assert.equal(response.status,200);
+  const data=await response.json();
+  assert.ok(data.result && !data.result.isError,JSON.stringify(data));
+  return data.result;
+}
+const reminderTodo=await req('/api/littlephone/todos',{method:'POST',body:{title:'MCP提醒回归测试：未完成事项'}});
+assert.equal(reminderTodo.status,200);
+const reminderResult=await mcpCallForReminder(930,'little_phone_status');
+assert.match(reminderResult.content[0].text,/未完成待办优先提醒/);
+assert.ok(reminderResult.structuredContent.todo_reminder.items.some(t=>t.id===reminderTodo.data.todo.id));
+assert.equal((await req('/api/littlephone/todos')).data.todos.find(t=>t.id===reminderTodo.data.todo.id).done,false);
+await req('/api/littlephone/todos/toggle',{method:'POST',body:{id:reminderTodo.data.todo.id,done:true}});
+const completedResult=await mcpCallForReminder(931,'little_phone_status');
+assert.ok(!completedResult.structuredContent?.todo_reminder?.items?.some(t=>t.id===reminderTodo.data.todo.id));
 
 r = await req('/api/peek',{method:'POST',body:{}}); assert.equal(r.status,410); assert.equal(r.data.error,'screenshot_disabled');
 

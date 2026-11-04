@@ -60,7 +60,7 @@ const WORLDS=[
 ];
 const ODD_PLACES=["小时候住过的楼道","一间很长的教室","没有站牌的车站","一条通往海边的走廊","陌生的厨房"];
 const SOFT_ENDINGS=["我终于坐下来，听着周围的声音","我把东西放好，准备回去","我们继续做刚才没做完的事","远处有人叫我，我转过头去"];
-export const DREAM_WISH_INFLUENCE_RATE = 0.8;
+export const DREAM_WISH_INFLUENCE_RATE = 0.9;
 const WISH_THEMES=[
   {test:/瑞安|她|你|我们|一起|拥抱|抱着|亲亲|约会|恋人|喜欢/,place:"家里",goal:"和瑞安一起度过一段安静的时间",object:"两只杯子",companion:"瑞安",details:["瑞安坐在窗边等我","我们把两只杯子放在桌上","瑞安拉住我的手，问我想不想出去走走"],actions:["我走过去坐在瑞安身边","我和瑞安一起收拾桌面","我们靠在窗边说了一会儿话"]},
   {test:/家|房子|搬家|住进|厨房|房间/,place:"新住处",goal:"把新家慢慢整理好",object:"一串钥匙",companion:"瑞安",details:["地上还放着没拆开的纸箱","阳光从空房间的窗户照进来","厨房里有两只没洗的杯子"],actions:["我把钥匙放在玄关","我打开一个纸箱整理东西","我走到厨房看看还有什么需要收拾"]},
@@ -84,6 +84,9 @@ function wishWorld(wish){
 function buildDreamEvents(seed,random){
   const choose=items=>pick(items,random);
   const world=seed.wish_influenced && seed.wish_world ? seed.wish_world : choose(WORLDS);
+  // Wish templates use plural keys; ordinary worlds use singular keys.
+  const details=world.details||world.detail;
+  const actions=world.actions||world.action;
   const count=2+Math.floor(random()*12);
   const surreal=random()<0.38;
   const state={place:world.place,goal:world.goal,object:world.object,companion:seed.wish_influenced ? (world.companion||null) : null,shifted:false};
@@ -94,7 +97,7 @@ function buildDreamEvents(seed,random){
     used.add(key+":"+selected);
     return selected;
   }
-  const events=[{kind:"opening",text:`我在${state.place}，想${state.goal}。${fresh(world.detail,"detail")}。`}];
+  const events=[{kind:"opening",text:`我在${state.place}，想${state.goal}。${fresh(details,"detail")}。`}];
   for(let i=1;i<count;i++){
     const r=random();
     let text,kind="moment";
@@ -118,10 +121,10 @@ function buildDreamEvents(seed,random){
       ]);
       text=changed;
     }else if(r<0.57){
-      text=fresh(world.action,"action")+"。";
+      text=fresh(actions,"action")+"。";
       if(random()<0.38)text+=`我还惦记着${state.goal}。`;
     }else if(r<0.78){
-      const detail=fresh(world.detail,"detail");
+      const detail=fresh(details,"detail");
       text=`${detail}。`;
       if(random()<0.52)text+=`我把${state.object}拿在手里，继续找要去的地方。`;
     }else{
@@ -133,7 +136,7 @@ function buildDreamEvents(seed,random){
       ]);
     }
     // Some moments linger, others end abruptly; no compulsory revelation.
-    if(random()<0.22&&i<count-1)text+=fresh(world.detail,"detail")+"。";
+    if(random()<0.22&&i<count-1)text+=fresh(details,"detail")+"。";
     if(i===count-1&&random()<0.42)text+=choose(SOFT_ENDINGS)+"。";
     events.push({kind:i===count-1?"ending":kind,text});
   }
@@ -166,7 +169,7 @@ function recallEvents(seed,c){
 
 /**
  * wish/recentElements are candidate fragments only, not instructions.
- * dreamSeedRate remains 35% regardless of wish or conversation history.
+ * Dream seed occurrence is independent of wishes; a wish influences 90% of generated seeds.
  */
 export function rollDreamSeed({ wish = "", recentElements = [], previousAnchors = [], random = Math.random } = {}) {
   if (random() >= DREAM_SEED_RATE) return { has_seed: false, seed: null };

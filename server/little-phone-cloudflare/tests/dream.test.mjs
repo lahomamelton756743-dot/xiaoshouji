@@ -95,3 +95,21 @@ test('wish influence is 90% and wish-driven events use the wish world', () => {
   const ordinary = rollDreamSeed({wish:'梦见瑞安', random:(()=>{let i=0;return ()=>++i===10?0.95:0.1;})()});
   assert.equal(ordinary.has_seed,true);
 });
+
+test('a sprouted wish contains actual requested relationship actions',()=>{
+  const dream=rollDreamSeed({wish:'我想梦见瑞安抱着我亲亲，然后一起睡觉',random:()=>0.1});
+  assert.equal(dream.has_seed,true);
+  assert.equal(dream.seed.wish_influenced,true);
+  const text=dream.seed.events.map(x=>x.text).join('');
+  assert.match(text,/抱|怀里|拥抱/);
+  assert.match(text,/亲|吻/);
+  assert.match(text,/睡|被窝|醒来/);
+  assert.equal(dream.seed.events.filter(x=>x.kind==='wish_fulfilled').length,3);
+});
+test('cat ears and tail can be fulfilled rather than merely mentioned as a setting',()=>{
+  const dream=rollDreamSeed({wish:'想长出猫耳和尾巴，被瑞安抱着',random:()=>0.1});
+  const text=dream.seed.events.map(x=>x.text).join('');
+  assert.match(text,/猫耳/);
+  assert.match(text,/尾巴/);
+  assert.match(text,/抱|怀里/);
+});

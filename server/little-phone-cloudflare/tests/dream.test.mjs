@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { rollDreamSeed, revealOnWake } from '../dream-engine.mjs';
+import { rollDreamSeed, revealOnWake, DREAM_WISH_INFLUENCE_RATE } from '../dream-engine.mjs';
 import { dreamAction } from '../dream-service.mjs';
 
 function makeEnv() {
@@ -82,4 +82,16 @@ test('legacy dream seeds still reveal original fragments',()=>{
   const recalled=revealOnWake(old);
   assert.equal(recalled.remembered.length,3);
   assert.equal(recalled.narrative,undefined);
+});
+
+test('wish influence is 90% and wish-driven events use the wish world', () => {
+  assert.equal(DREAM_WISH_INFLUENCE_RATE, 0.9);
+  const dream = rollDreamSeed({wish:'梦见和瑞安一起住进新家', random:()=>0.1});
+  assert.equal(dream.has_seed,true);
+  assert.equal(dream.seed.wish_influenced,true);
+  assert.equal(dream.seed.wish_world.place,'新住处');
+  assert.match(dream.seed.events[0].text,/新住处/);
+  assert.ok(dream.seed.events.every(e=>typeof e.text==='string'&&e.text.length>0));
+  const ordinary = rollDreamSeed({wish:'梦见瑞安', random:(()=>{let i=0;return ()=>++i===10?0.95:0.1;})()});
+  assert.equal(ordinary.has_seed,true);
 });

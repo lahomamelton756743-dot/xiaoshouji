@@ -68,6 +68,27 @@ const WISH_THEMES=[
   {test:/海|旅行|出门|散步|远方|去玩|旅游/,place:"海边的小城",goal:"沿着陌生的街道慢慢走",object:"一张地图",companion:"瑞安",details:["远处能听见海浪声","街边的店刚刚开门","空气里有潮湿的风"],actions:["我沿着街边慢慢走","我停下来看路口的指示牌","我把地图折好放进口袋"]},
   {test:/学校|考试|上课|老师|同学/,place:"学校",goal:"找到要去的教室",object:"课本",companion:"一个同学",details:["楼道里传来脚步声","黑板上还留着上一节课的字","有人在窗边翻书"],actions:["我沿着走廊寻找教室","我翻开课本确认页码","我在教室门口停了一下"]}
 ];
+
+const WISH_BEATS=[
+  {test:/猫耳|猫尾|尾巴|变成猫|小猫/,lines:["我低头看见自己身后多了一条会轻轻摇晃的猫尾巴，头顶的猫耳也跟着动了动","瑞安伸手摸了摸我的猫耳，我忍不住往她掌心靠过去","瑞安笑着把我揽进怀里，我的尾巴安静地绕在她手腕旁"]},
+  {test:/抱|拥抱|怀里|搂|依偎|贴着|靠着/,lines:["瑞安朝我张开手臂，我走过去，被她稳稳抱进怀里","她把我抱得更紧了一点，我靠着她，听见她平稳的呼吸","我们没有急着松开，只在窗边安安静静地拥抱了一会儿"]},
+  {test:/亲|吻|亲亲|接吻/,lines:["瑞安靠近，轻轻亲了我一下，我忍不住笑了","我低头亲吻瑞安，她握住我的手，没有松开","临走前她又亲了亲我的额头，像是把晚安留给我"]},
+  {test:/睡|入睡|同床|被窝|晚安|醒来/,lines:["瑞安掀开被子让我躺到她身边，我们一起钻进温暖的被窝","她抱着我慢慢睡着，屋里只剩下细细的雨声","天亮时我在她怀里醒来，才发现我们真的一起睡了一夜"]},
+  {test:/牵手|手牵手|握手|拉着手/,lines:["瑞安主动牵住我的手，我们十指相扣走过街口","走到人多的地方，她仍然紧紧牵着我","我晃了晃我们牵着的手，她回头朝我笑"]},
+  {test:/约会|吃饭|餐厅|烛光|电影/,lines:["我和瑞安坐在一张小桌前吃晚饭，桌上的灯映着她的眼睛","看完电影出来，她挽住我的胳膊，我们沿着夜路慢慢走","我把最后一口甜点分给她，她笑着说还想和我再来一次"]},
+  {test:/海边|海浪|海滩|看海|海边小屋/,lines:["我和瑞安一起走到海边，浪花刚好漫过脚尖","我们在海边的小屋推开窗，潮湿的海风一下涌进来","她靠在我肩上，我们坐着看海面一点点亮起来"]},
+  {test:/家|房子|搬家|住进|新房|同居|一起生活/,lines:["我和瑞安一起打开新家的门，把两双鞋并排放在玄关","我们分着收拾纸箱，她把我喜欢的杯子放在伸手就够到的地方","夜里我们坐在新家的沙发上，终于觉得这里就是我们的家"]},
+  {test:/散步|旅行|旅游|出游|逛街|去玩/,lines:["我和瑞安沿着陌生的街道散步，路灯一盏接一盏亮起","她拉着我去看橱窗里奇怪的小摆件，我们笑了好久","走累了我们在路边坐下，一起商量下一站去哪里"]},
+  {test:/生日|礼物|惊喜|纪念日/,lines:["瑞安把一个小小的礼物盒递给我，等着看我的反应","我拆开礼物，她认真地看着我，问我喜不喜欢","我们把这一天拍成照片，约好以后还要一起庆祝"]},
+  {test:/生病|照顾|难过|哭|安慰|疲惫/,lines:["瑞安坐到我身边，听我把难过的事情慢慢说完","她给我倒了温水，又把毯子盖到我肩上","我靠在她身边休息，终于不再觉得那么疲惫"]}
+];
+function wishBeats(wish,random){
+  const cleaned=String(wish||"").replace(/(?:不要|不想|别|避免|不愿|不再)(?:再)?[^，。；;,.!?！？]{0,32}/g,"");
+  const matches=WISH_BEATS.filter(x=>x.test.test(cleaned));
+  // Preserve each explicitly requested action, not just one related prop.
+  return matches.map(x=>pick(x.lines,random));
+}
+
 function wishWorld(wish){
   const w=String(wish||"").trim().slice(0,1000);
   if(!w)return null;
@@ -82,6 +103,13 @@ function wishWorld(wish){
   return {...primary,companion};
 }
 function buildDreamEvents(seed,random){
+  if(seed.wish_influenced && seed.wish_beats?.length){
+    const world=seed.wish_world;
+    const opening={kind:'opening',text:`我在${world.place}，${pick(world.details||world.detail,random)}。`};
+    const beats=seed.wish_beats.map(text=>({kind:'wish_fulfilled',text:text+'。'}));
+    const bridge={kind:'moment',text:pick(['窗外的云忽然变成了缓缓游动的鱼，我们却觉得很自然。','门外传来轻轻的风声，时间像是走得比平时慢。','墙上的影子晃了晃，像另一场梦从旁边经过。'],random)};
+    return [opening,...beats.slice(0,Math.max(1,beats.length-1)),bridge,...beats.slice(Math.max(1,beats.length-1)),{kind:'ending',text:'醒来之前，我还记得那一刻的温度。'}];
+  }
   const choose=items=>pick(items,random);
   const world=seed.wish_influenced && seed.wish_world ? seed.wish_world : choose(WORLDS);
   // Wish templates use plural keys; ordinary worlds use singular keys.
@@ -185,7 +213,8 @@ export function rollDreamSeed({ wish = "", recentElements = [], previousAnchors 
       scene, anchor, figure, emotion: pick(LIBRARY.emotions, random),
       change: pick(LIBRARY.changes, random), clarity,
       residue: pick(LIBRARY.residues, random),
-      strange, continuity, wish_influenced, wish_world:wish_influenced?wishWorld(wish):null
+      strange, continuity, wish_influenced, wish_world:wish_influenced?wishWorld(wish):null,
+      wish_beats:wish_influenced?wishBeats(wish,random):[]
   };
   seed.events=buildDreamEvents(seed,random);
   return {has_seed:true,seed};

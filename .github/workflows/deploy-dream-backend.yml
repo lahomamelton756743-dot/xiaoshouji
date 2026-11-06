@@ -1,9 +1,11 @@
 name: Deploy Dream backend (existing D1 only)
 on:
   push:
-    branches: [feature/dream-app]
+    branches: [feature/dream-app, feature/home-app-v01]
     paths:
       - '.github/workflows/deploy-dream-backend.yml'
+      - 'server/little-phone-cloudflare/dream-engine.mjs'
+      - 'server/little-phone-cloudflare/tests/dream.test.mjs'
   workflow_dispatch:
 permissions:
   contents: read

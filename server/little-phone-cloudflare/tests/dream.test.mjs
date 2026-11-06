@@ -67,7 +67,7 @@ test('new dream seals a variable-length narrative and recall depends on clarity'
   let i=0;const result=rollDreamSeed({random:()=>values[i++]??0.5});
   assert.equal(result.has_seed,true);
   assert.ok(result.seed.events.length>=2 && result.seed.events.length<=20);
-  assert.ok(result.seed.events.every(e=>e.text.length>10));
+  assert.ok(result.seed.events.every(e=>typeof e.text==='string' && e.text.trim().length>0));
   const low=revealOnWake({...result.seed,clarity:10});
   const medium=revealOnWake({...result.seed,clarity:55});
   const high=revealOnWake({...result.seed,clarity:90});

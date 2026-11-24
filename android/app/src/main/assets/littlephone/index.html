@@ -2930,7 +2930,7 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
 
   <main>
 
-    <section class="page active" id="page-desktop">
+    <section class="page active" id="page-desktop"><style>#page-desktop:not([data-custom-ready="1"]) .desktopViewport,#page-desktop:not([data-custom-ready="1"]) .desktopDock,#page-desktop:not([data-custom-ready="1"]) .desktopStatusBar,#page-desktop:not([data-custom-ready="1"]) .desktopDots{visibility:hidden!important}</style>
       <div class="desktopStatusBar" aria-label="小手机状态栏">
         <span id="desktopClock">21:01</span>
         <div class="desktopStatusRight"><span id="desktopNetwork">Wi‑Fi</span><span class="desktopSignal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="desktopBattery"><span id="desktopBatteryText">—%</span><span class="desktopBatteryShell"><i class="desktopBatteryFill" id="desktopBatteryFill"></i></span></span></div>
@@ -3328,7 +3328,7 @@ function ago(iso){if(!iso)return'';const t=new Date(iso).getTime();if(!Number.is
 function fmt(iso){if(!iso)return'';const d=new Date(iso);return Number.isNaN(d.getTime())?iso:d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
 function dayLabel(iso){const d=new Date(iso);if(Number.isNaN(+d))return iso||'某一天';const now=new Date();if(d.toDateString()===now.toDateString())return'今天';const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return'昨天';return`${d.getMonth()+1}月${d.getDate()}日`}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-mail-kind]');if(b)setMailKindTab(b.dataset.mailKind)});
-function setMailKindTab(kind){const next=kind==='future'?'future':'normal';state.mailKindTab=next;$('[data-mail-panel]').forEach(p=>p.classList.toggle('active',p.dataset.mailPanel===next));$('[data-mail-kind]').forEach(b=>{const active=b.dataset.mailKind===next;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false')});}
+function setMailKindTab(kind){const next=kind==='future'?'future':'normal';state.mailKindTab=next;$$('[data-mail-panel]').forEach(p=>p.classList.toggle('active',p.dataset.mailPanel===next));$$('[data-mail-kind]').forEach(b=>{const active=b.dataset.mailKind===next;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false')});}
 function setUsHubTab(tab,scrollTop=false){
   const next=tab==='mail'?'mail':'traces';
   state.usHubTab=next;
@@ -3429,7 +3429,7 @@ function go(page,push=true){
 $$('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));
 $$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
 $$('[data-us-tab]').forEach(b=>b.onclick=()=>setUsHubTab(b.dataset.usTab,true));
-$('[data-open-app]').forEach(b=>b.onclick=()=>openMiniApp(b.dataset.openApp));
+$$('[data-open-app]').forEach(b=>b.onclick=()=>openMiniApp(b.dataset.openApp));
 // The marriage iframe never receives the private phone token. A strictly scoped bridge
 // forwards only its two archive operations through the existing native request channel.
 window.addEventListener('message',async e=>{
@@ -4873,7 +4873,7 @@ saveReminders=function(){if(!hasNative()||!window.LittlePhoneNative.setReminderC
 /* Keep desktop page state in sync with the user's actual swipe. Previously re-rendering used a stale
    page number and could visibly pull the desktop to another page by itself. */
 function bindDesktopStablePaging(){const vp=$('#desktopViewport');if(!vp||vp.dataset.stablePaging==='1')return;vp.dataset.stablePaging='1';let raf=0;vp.addEventListener('scroll',()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;const w=Math.max(1,vp.clientWidth),idx=Math.max(0,Math.min(desktopPagesCount()-1,Math.round(vp.scrollLeft/w)));state.desktopCurrentPage=idx;$$('[data-desktop-dot]').forEach((d,i)=>d.classList.toggle('active',i===idx));});},{passive:true});}
-const __lp082RenderDesktopShell=renderDesktopShell;renderDesktopShell=function(){__lp082RenderDesktopShell();bindDesktopStablePaging();};
+const __lp082RenderDesktopShell=renderDesktopShell;renderDesktopShell=function(){__lp082RenderDesktopShell();const root=$('#page-desktop');if(root)root.dataset.customReady='1';bindDesktopStablePaging();};
 
 mergeStatuses({});try{readNative()}catch(e){console.warn('readNative boot',e)}loadPendingEvents();loadChatCache();loadBackgrounds();loadGlassPrefs();loadDesktopLayout();tick();setInterval(tick,1000);calcDays();applyAvatars();go('desktop',false);loadRemote().then(logOpenOnce).catch(()=>{});setInterval(()=>{try{readNative()}catch(e){console.warn('readNative timer',e)}if(document.hidden||state.page==='desktop')return;loadRemote().catch(()=>{})},60000);
 setInterval(()=>{refreshChatMessages().catch(()=>{})},3000);

@@ -44,6 +44,9 @@ function remote(method,body){
 }
 function mergeRemote(rows){
   (rows||[]).forEach(function(r){if(!r||!r.key||!/^first$|^\d{4}-\d{2}$/.test(r.key))return;var local=app.items[r.key]||{};app.items[r.key]=Object.assign({},local,r);});
+  // Offline user edits win for user-owned fields until successfully uploaded;
+  // the remote companion vow is always preserved and never forged locally.
+  Object.keys(app.pending).forEach(function(key){app.items[key]=Object.assign({},app.items[key]||{},app.pending[key])});
   persist();
 }
 async function sync(){

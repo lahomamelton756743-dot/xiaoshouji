@@ -1,8 +1,9 @@
 import { listGifts, openGift, createGift, deleteGift, creatorListGifts, creatorReadGift, updateGift, giftVersions, restoreGiftVersion, restoreGift, addGiftDesignNote, listGiftDesignNotes } from "./gifts.mjs";
 import { searchLittlePhoneMemory } from "./memory-search.mjs";
 import { dreamAction } from "./dream-service.mjs";
+import { listMarriage, saveUserMarriage, saveDaddyMarriageVow } from "./marriage.mjs";
 // @ts-nocheck
-const VERSION = "0.8.5-23-important-date-long-note";
+const VERSION = "0.8.5-24-marriage-archive";
 const IMPORTANT_DATE_NOTE_MAX = 8000;
 function noteLength(value) { return Array.from(String(value ?? "")).length; }
 function validateImportantDateNote(value) { const actual = noteLength(value); return actual > IMPORTANT_DATE_NOTE_MAX ? {ok:false,error:"important_date_note_too_long",actual_characters:actual,max_characters:IMPORTANT_DATE_NOTE_MAX,message:`重要日期正文有 ${actual} 个 Unicode 字符，最多允许 ${IMPORTANT_DATE_NOTE_MAX} 个；未保存，正文不会被截断。`} : null; }
@@ -75,6 +76,7 @@ async function handle(request, env) {
     if (path === "/api/littlephone/events") return listEventsApi(env, url);
     if (path === "/api/littlephone/papers") return listPapersApi(env, url);
     if (path === "/api/littlephone/dailybook") return listDailybookApi(env, url);
+    if (path === "/api/littlephone/marriage") return json(await listMarriage(env));
     if (path === "/api/littlephone/diaries") return listDiariesApi(env, url);
     if (path === "/api/littlephone/dreams") return json(await dreamAction(env,"list",{limit:url.searchParams.get("limit")}));
     if (path === "/api/littlephone/diary-annotations") return listDiaryAnnotationsApi(env, url);
@@ -114,6 +116,7 @@ async function handle(request, env) {
     // Gift creation and editing are creator-only MCP actions; the phone token cannot write private gifts.
     if (path === "/api/littlephone/gifts" || path === "/api/littlephone/gifts/delete") return json({ok:false,error:"creator_oauth_required"},403);
     if (path === "/api/littlephone/dailybook") return addDailybookApi(env, await readJson(request));
+    if (path === "/api/littlephone/marriage") {const result=await saveUserMarriage(env, await readJson(request));return json(result,result.ok?200:400);}
     if (path === "/api/littlephone/dailybook/update") return updateDailybookApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries") return addDiaryApi(env, await readJson(request));
     if (path === "/api/littlephone/diaries/update") return updateDiaryApi(env, await readJson(request));
@@ -1491,6 +1494,8 @@ async function deviceReportApi(env,report){
 
 // ---------- MCP ----------
 const MCP_TOOLS = [
+  tool("list_marriage_records","读取归栖婚姻册中双方真实保存的初婚、月月新婚与周年记录（不代替另一方确认）。",{}),
+  tool("write_marriage_vow","顾知归亲自向指定婚姻篇章写入或更新自己的誓词，不修改瑞安的誓言。key 为 first 或 YYYY-MM。",{key:{type:"string",description:"first 或 YYYY-MM"},vow:{type:"string",maxLength:8000}},["key","vow"]),
   tool("create_gift","为手机使用者创建 HTML 礼物，支持草稿与创作者私人提示卡片。",{title:{type:"string"},html:{type:"string"},message:{type:"string",default:""},prompt:{type:"string",description:"创作者私人设计提示词，不向手机公开"},creator_note:{type:"string",description:"创作者私人备注"},gift_state:{type:"string",enum:["draft","published"]},unlock_at:{type:"string"},preview_mode:{type:"string",enum:["none","title","message","full"],default:"none"}},["title"]),
   tool("list_gifts","列出礼物及当前允许展示的公开信息。",{}),
   tool("delete_gift","将指定礼物从礼物馆隐藏。",{id:{type:"string"}},["id"]),
@@ -1715,6 +1720,8 @@ async function handleMcp(request,env,url){
 }
 async function callTool(name,args,env){
   switch(name){
+    case "list_marriage_records": return mcpText(await listMarriage(env));
+    case "write_marriage_vow": {const out=await saveDaddyMarriageVow(env,args);return mcpText(out,!out.ok);}
     case "create_gift": return mcpFromApiResponse(await createGift(env,args));
     case "list_gifts": return mcpFromApiResponse(await listGifts(env));
     case "delete_gift": return mcpFromApiResponse(await deleteGift(env,String(args.id||"")));

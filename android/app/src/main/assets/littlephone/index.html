@@ -2931,39 +2931,9 @@ body.settingsMode #page-settings-detail.active > #settingsDetailBody{
   <main>
 
     <section class="page active" id="page-desktop">
-      <div class="desktopStatusBar" aria-label="小手机状态栏">
-        <span id="desktopClock">21:01</span>
-        <div class="desktopStatusRight"><span id="desktopNetwork">Wi‑Fi</span><span class="desktopSignal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="desktopBattery"><span id="desktopBatteryText">—%</span><span class="desktopBatteryShell"><i class="desktopBatteryFill" id="desktopBatteryFill"></i></span></span></div>
-      </div>
-      <div class="desktopViewport" id="desktopViewport">
-        <div class="desktopPage" data-desktop-page="0">
-          <button class="desktopApp" data-open-app="diary"><span class="desktopAppIcon glass"><span>⌑</span></span><span class="desktopAppLabel">日记</span></button>
-          <button class="desktopApp" data-open-app="papers"><span class="desktopAppIcon glass"><span>✎</span></span><span class="desktopAppLabel">纸条</span></button>
-          <button class="desktopApp" data-open-app="memory"><span class="desktopAppIcon glass"><span>⌁</span></span><span class="desktopAppLabel">记得</span></button>
-          <button class="desktopApp" data-open-app="mail"><span class="desktopAppIcon glass"><span>✉</span></span><span class="desktopAppLabel">信箱</span></button>
-          <button class="desktopApp" data-open-app="river"><span class="desktopAppIcon glass"><span>≈</span></span><span class="desktopAppLabel">记忆星海</span></button>
-          <button class="desktopApp" data-open-app="health"><span class="desktopAppIcon glass"><span>♡</span></span><span class="desktopAppLabel">小米健康</span></button>
-          <button class="desktopApp" data-open-app="calendar"><span class="desktopAppIcon glass"><span>□</span></span><span class="desktopAppLabel">日历</span></button>
-          <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
-        </div>
-        <div class="desktopPage" data-desktop-page="1">
-          <button class="desktopApp" data-open-app="phone"><span class="desktopAppIcon glass"><span>▣</span></span><span class="desktopAppLabel">电话</span></button>
-          <button class="desktopApp" data-open-app="chat"><span class="desktopAppIcon glass chatDesktopIcon"><span>···</span></span><span class="desktopAppLabel">聊天</span></button>
-          <button class="desktopApp" data-open-app="dream"><span class="desktopAppIcon dreamIcon"><svg class="dreamCloud" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dreamIconFill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e5c9ff"/></linearGradient></defs><path fill="url(#dreamIconFill)" d="M15 43C5 43 4 29 13 25c1-12 15-17 23-9 12-4 23 7 20 17 5 12-5 17-14 17H23c-5 0-8-3-8-7Z"/><circle cx="13" cy="51" r="5" fill="#eee0ff"/><circle cx="5" cy="60" r="2.5" fill="#eee0ff"/></svg></span><span class="desktopAppLabel">梦</span></button>
-          <button class="desktopApp" data-open-app="xinchao"><span class="desktopAppIcon glass xinchaoDesktopIcon"><span>≈</span></span><span class="desktopAppLabel">心潮</span></button>
-          <button class="desktopApp" data-open-app="gift"><span class="desktopAppIcon glass"><span>♧</span></span><span class="desktopAppLabel">礼物</span></button>
-          <button class="desktopApp" data-open-app="marriage"><span class="desktopAppIcon glass"><span>❦</span></span><span class="desktopAppLabel">婚姻册</span></button>
-          <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
-          
-        </div>
-      </div>
-      <div class="desktopDots" aria-hidden="true"><i class="active" data-desktop-dot="0"></i><i data-desktop-dot="1"></i></div>
-      <div class="glass desktopDock" id="desktopDock">
-        <button class="desktopApp" data-open-app="diary"><span class="desktopAppIcon glass"><span>⌑</span></span><span class="desktopAppLabel">日记</span></button>
-        <button class="desktopApp" data-open-app="mail"><span class="desktopAppIcon glass"><span>✉</span></span><span class="desktopAppLabel">信箱</span></button>
-        <button class="desktopApp" data-open-app="todo"><span class="desktopAppIcon glass"><span>✓</span></span><span class="desktopAppLabel">待办</span></button>
-        <button class="desktopApp" data-open-app="settings"><span class="desktopAppIcon glass"><span>⚙</span></span><span class="desktopAppLabel">设置</span></button>
-      </div>
+      <div class="desktopViewport" id="desktopViewport"></div>
+      <div class="desktopDots"></div>
+      <div class="glass desktopDock" id="desktopDock"></div>
     </section>
 
     
@@ -4584,7 +4554,7 @@ function handleBack(){if(closeTopOverlay())return true;if(state.page==='settings
 
 
 const DESKTOP_LAYOUT_KEY='lp_v081_desktop_layout_v3';
-const DESKTOP_APPS={home:{app:'home',label:'家',icon:'⌂'},diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},dream:{app:'dream',label:'梦',icon:'☁'}, xinchao:{app:'xinchao',label:'心潮',icon:'♥'},gift:{app:'gift',label:'礼物',icon:'♧'},settings:{app:'settings',label:'设置',icon:'⚙'}};
+const DESKTOP_APPS={marriage:{app:'marriage',label:'婚姻册',icon:'❦'},home:{app:'home',label:'家',icon:'⌂'},diary:{app:'diary',label:'日记',icon:'⌑'},papers:{app:'papers',label:'纸条',icon:'✎'},memory:{app:'memory',label:'记得',icon:'⌁'},mail:{app:'mail',label:'信箱',icon:'✉'},river:{app:'river',label:'时间河',icon:'≈'},health:{app:'health',label:'健康',icon:'♡'},calendar:{app:'calendar',label:'日历',icon:'□'},todo:{app:'todo',label:'待办',icon:'✓'},phone:{app:'phone',label:'状态',icon:'▣'},calls:{app:'calls',label:'电话',icon:'☎'},chat:{app:'chat',label:'聊天',icon:'···'},dream:{app:'dream',label:'梦',icon:'☁'}, xinchao:{app:'xinchao',label:'心潮',icon:'♥'},gift:{app:'gift',label:'礼物',icon:'♧'},settings:{app:'settings',label:'设置',icon:'⚙'}};
 const DESKTOP_WIDGETS={
   weather:{label:'时钟天气',w:4,h:2,open:'status',desc:'时间、城市和天气。',mode:'compact'},
   together:{label:'相伴天数',w:2,h:2,open:'desktop',desc:'在一起的天数。',mode:'compact'},
@@ -4652,7 +4622,9 @@ function loadDesktopLayout(){
   desktopEnsureGiftIcon();
   desktopEnsureDreamIcon();
   desktopEnsureHomeIcon();
+  desktopEnsureMarriageIcon();
 }
+function desktopEnsureMarriageIcon(){const items=state.desktopLayout.items;if(items.some(x=>x.kind==='app'&&x.app==='marriage'))return;const spot=desktopFindFreeSpot(1,1,Math.max(0,desktopPagesCount()-1));if(!spot)return;items.push({id:'app:marriage',kind:'app',app:'marriage',area:'page',...spot,w:1,h:1});state.desktopLayout.pages=Math.max(state.desktopLayout.pages,spot.page+1);saveDesktopLayout();}
 /* Migrate the Home icon into a free cell without disturbing saved desktops. */
 function desktopEnsureHomeIcon(){
  desktopEnsureState();

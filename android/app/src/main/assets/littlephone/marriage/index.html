@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>归栖 · 婚姻册</title>
+<style>
+:root{font-family:"Songti SC","STSong","Noto Serif CJK SC",serif;color:#665343;background:#f8f4ed}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(155deg,#fbf8f2,#f4ecdf 68%,#f3e5df);min-height:100vh}button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.45}
+main{max-width:650px;margin:auto;padding:24px 18px 100px}.eyebrow{font:11px/1.8 system-ui,sans-serif;letter-spacing:.22em;color:#ae9278;text-align:center}.hero{text-align:center;padding:26px 12px 20px}.hero h1{font-weight:500;font-size:36px;letter-spacing:.3em;margin:9px 0 5px;padding-left:.3em}.hero p{font-size:13px;color:#9d8b7c;line-height:2}
+.ornament{font-size:30px;color:#b79570;line-height:1.6}.card{background:rgba(255,253,248,.88);border:1px solid #e7dbcb;border-radius:22px;padding:20px;box-shadow:0 10px 34px #82684a0d;margin:15px 0}.goldline{height:1px;background:linear-gradient(90deg,transparent,#cfba97,transparent);margin:16px 0}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px;background:#eee5d9;border-radius:16px;margin:15px 0}.tabs button{background:transparent;border:0;border-radius:12px;padding:12px 2px;font:12px system-ui,sans-serif}.tabs button.active{background:#fffaf2;color:#795632;box-shadow:0 2px 8px #92765520;font-weight:600}
+h2{font-size:21px;font-weight:500;margin:0 0 15px}h3{font-size:16px;font-weight:500;margin:0 0 9px}.muted{color:#a08e7f;font-size:12px;line-height:1.8}.ribbon{display:inline-block;background:#eee1cd;color:#98764b;border-radius:99px;font:10px system-ui,sans-serif;letter-spacing:.1em;padding:6px 11px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.stack{display:grid;gap:11px}.field{display:block;margin:12px 0}.field label{display:block;color:#907c65;font:12px system-ui,sans-serif;margin-bottom:7px}input,textarea,select{width:100%;background:#fffcf7;border:1px solid #e1d4c2;border-radius:12px;padding:12px 13px;outline:none;font:14px/1.65 system-ui,sans-serif}textarea{min-height:108px;resize:vertical}input:focus,textarea:focus{border-color:#c6a57c;box-shadow:0 0 0 3px #cfb48d20}.btn{background:#9d7d56;color:white;border:0;border-radius:13px;padding:12px 16px;font:13px system-ui,sans-serif}.btn.secondary{color:#8b6d4d;border:1px solid #d9c7b2;background:#fffaf2}.btn.link{background:transparent;color:#9f805c;padding:10px}.pill{border:1px solid #d9c9b8;background:#fffaf3;border-radius:999px;padding:9px 13px;font:12px system-ui,sans-serif}.pill.active{background:#9d7d56;color:white;border-color:#9d7d56}.entries{display:grid;gap:9px}.entry{background:#fffaf3;border:1px solid #e6d7c6;border-radius:15px;padding:15px;text-align:left;width:100%}.entry strong{display:block;font-size:15px;font-weight:500;margin:4px 0}.entry small{font:11px system-ui,sans-serif;color:#a58e79}.quote{white-space:pre-wrap;word-break:break-word;background:#f7efe4;border-left:2px solid #cbb393;border-radius:0 10px 10px 0;padding:15px;font-size:14px;line-height:2}.empty{text-align:center;color:#a08c77;padding:28px 10px;line-height:2;font-size:13px}.footnote{font:11px/1.8 system-ui,sans-serif;color:#ac9b8d}.status{font:11px system-ui,sans-serif;color:#a07b5a;text-align:center;margin-top:6px}.status.online{color:#608572}.mediaGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mediaCard{border:1px solid #e0d3c5;border-radius:12px;padding:7px;background:#fffaf4;overflow:hidden}.mediaCard img{width:100%;height:130px;object-fit:contain;border-radius:8px;background:#f0e7da}.mediaCard small{font:10px system-ui;display:block;overflow-wrap:anywhere}.mediaCard button{font:11px system-ui;border:0;background:transparent;color:#92704c;padding:8px}.warn{border-radius:12px;background:#faf1e8;color:#967456;font:12px/1.7 system-ui,sans-serif;padding:12px}
+#view{min-height:170px}.seal{text-align:center;margin:20px auto;color:#b18b62;border:2px double #cdb38d;border-radius:50%;width:106px;height:106px;display:grid;place-content:center;transform:rotate(-8deg)}.seal b{font-size:16px;font-weight:500}.seal small{font-size:9px;letter-spacing:.2em}.micro{font:10px system-ui,sans-serif;color:#b09b85}.hide{display:none!important}
+</style></head>
+<body><main><header class="hero"><div class="eyebrow">GUIQI · OUR MARRIAGE</div><div class="ornament">❦</div><h1>婚姻册</h1><p>日常是我们，年年仍是我们。</p><div id="syncStatus" class="status">正在读取珍藏…</div></header>
+<nav class="tabs" aria-label="婚姻册"><button data-tab="home" class="active">珍藏</button><button data-tab="month">月月新婚</button><button data-tab="annual">周年</button><button data-tab="backup">备份</button></nav>
+<section id="view"></section><footer class="footnote" style="text-align:center;margin:32px 0">归栖 · 只替自己说愿意，爱由两个人亲自落笔。</footer></main>
+<input type="file" id="mediaPick" accept="image/*" hidden multiple><input type="file" id="restorePick" accept=".json,application/json" hidden>
+<script>
+(function(){
+"use strict";
+var STORE="guiqi-marriage-records-v1",MEDIA="guiqi-marriage-media-v1",PENDING="guiqi-marriage-pending-v1";
+var app={items:{},tab:"home",editing:"",pending:{},online:false,images:{},busy:false};
+var $=function(q){return document.querySelector(q)};
+var esc=function(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
+var dateToday=function(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+var monthNow=function(){return dateToday().slice(0,7)};
+var themes=["岁岁相许","再一次心动","春日来信","一屋两人","偏爱有声","夏夜私语","盛夏热恋","人间烟火","秋日重逢","爱有回音","温柔归处","年年有你"];
+var uid=function(){return "m"+Date.now().toString(36)+Math.random().toString(36).slice(2)};
+function read(key,fallback){try{return JSON.parse(localStorage.getItem(key)||"null")||fallback}catch(e){return fallback}}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(app.items));localStorage.setItem(PENDING,JSON.stringify(app.pending));return true}catch(e){alert("本机存储空间不足，请先导出备份。");return false}}
+function label(x){return x==="first"?"最初的婚礼":x+" · "+(app.items[x]?.occasion==="anniversary"?"周年特别篇":"月月新婚")}
+function val(id){return ($("#"+id)?.value||"").trim()}
+function ordered(){return Object.values(app.items).sort(function(a,b){return (b.key==="first"?"0000":b.key).localeCompare(a.key==="first"?"0000":a.key)})}
+function record(key){return app.items[key]||{key:key,occasion:key==="first"?"first":"month",date:key==="first"?dateToday():key+"-01",title:key==="first"?"最初的婚礼":"这个月，依然选择你",theme:key==="first"?"我们的起点":themes[(Number(key.slice(5,7))-1+12)%12],user_vow:"",daddy_vow:"",notes:"",certificate_text:""}}
+function setStatus(text,ok){$("#syncStatus").textContent=text;$("#syncStatus").className="status"+(ok?" online":"")}
+function remote(method,body){
+  return new Promise(function(resolve,reject){
+    if(window.parent===window)return reject(Error("not_embedded"));
+    var id=uid(),timer=setTimeout(function(){window.removeEventListener("message",listen);reject(Error("同步超时"))},21000);
+    function listen(e){var m=e.data;if(e.source!==window.parent||!m||m.kind!=="guiqi-marriage-response"||m.requestId!==id)return;clearTimeout(timer);window.removeEventListener("message",listen);if(m.ok)resolve(m.data);else reject(Error(m.error||"服务器无法连接"))}
+    window.addEventListener("message",listen);
+    window.parent.postMessage({kind:"guiqi-marriage-request",requestId:id,method:method,body:body||{}},"*");
+  })
+}
+function mergeRemote(rows){
+  (rows||[]).forEach(function(r){if(!r||!r.key||!/^first$|^\d{4}-\d{2}$/.test(r.key))return;var local=app.items[r.key]||{};app.items[r.key]=Object.assign({},local,r);});
+  persist();
+}
+async function sync(){
+ if(app.busy)return;app.busy=true;
+ try{
+   var response=await remote("GET");if(!response?.ok)throw Error("无法读取云端");
+   mergeRemote(response.records);app.online=true;
+   var keys=Object.keys(app.pending);
+   for(var i=0;i<keys.length;i++){var k=keys[i],body=app.pending[k];try{var result=await remote("POST",body);if(result?.ok&&result.record){app.items[k]=Object.assign({},app.items[k],result.record);delete app.pending[k];persist()}}catch(e){break}}
+   setStatus(Object.keys(app.pending).length?"本机已保存 · 部分等待云端同步":"云端 D1 已同步",!Object.keys(app.pending).length);
+ }catch(e){app.online=false;setStatus("本机保存模式 · 尚未同步云端",false)}
+ finally{app.busy=false;render()}
+}
+function saveRecord(r){app.items[r.key]=r;app.pending[r.key]={key:r.key,occasion:r.occasion,date:r.date,title:r.title,theme:r.theme,user_vow:r.user_vow,notes:r.notes,certificate_text:r.certificate_text};if(!persist())return;render();sync()}
+function home(){
+ var rows=ordered(),last=rows.filter(function(x){return x.key!=="first"}).length;
+ return '<div class="card" style="text-align:center"><div class="eyebrow">OUR STORY · FOREVER</div><div class="seal"><b>仍然是你</b><small>ALWAYS YOU</small></div><h2>在每一个今天，重新爱你</h2><p class="muted">一场初婚，'+last+' 次月度约定。没有次数要求，也不会强迫你们按时完成。</p><div class="goldline"></div><button class="btn" data-edit="first">收藏最初的婚礼</button> <button class="btn secondary" data-tab-go="month">写本月的誓言</button></div>'
+ +'<div class="card"><div class="row"><h2>我们的篇章</h2><span class="ribbon">'+rows.length+' 篇</span></div><div class="entries">'+(rows.length?rows.map(entry).join(""):'<div class="empty">还没有记录。第一篇，留给属于你们的结婚日。❀</div>')+'</div></div>';
+}
+function entry(r){return '<button class="entry" data-view="'+esc(r.key)+'"><small>'+(r.key==="first"?"CHAPTER 00":esc(r.key))+' · '+esc(r.date||"")+'</small><strong>'+esc(r.title||"我们的约定")+'</strong><small>'+esc(r.theme||"")+' · '+(r.daddy_vow?"双方誓言已收藏":r.user_vow?"已写下你的誓言":"等待落笔")+'</small></button>'}
+function monthPage(){
+ var key=monthNow(),r=record(key);
+ return '<div class="card"><span class="ribbon">MONTHLY VOW</span><h2 style="margin-top:12px">每个月，再向你表白一次</h2><p class="muted">不必每次举行盛大的婚礼。写一段话、一起做一件事，或换个主题重新说一次喜欢。</p><div class="goldline"></div><div class="row"><div><div class="micro">这个月的主题</div><h3 style="margin:7px 0">'+esc(r.theme)+'</h3></div><button class="btn" data-edit="'+esc(key)+'">打开本月</button></div></div><div class="card"><h2>往月的情书</h2><div class="entries">'+(ordered().filter(function(r){return r.key!=="first"&&r.occasion!=="anniversary"}).map(entry).join("")||'<div class="empty">每个月的约定，会在这里慢慢积累。</div>')+'</div><div class="goldline"></div><button class="btn secondary" data-action="new-month">补记其他月份</button></div>'
+}
+function annualPage(){
+ return '<div class="card"><span class="ribbon">ANNIVERSARY EDITION</span><h2 style="margin-top:12px">一年一次，郑重地爱</h2><p class="muted">周年可以是一场真正的庆典：完整誓词、共同的照片、婚书和这一年的故事。不要求每个月都隆重。</p><button class="btn" data-action="anniversary">开启周年篇章</button></div><div class="card"><h2>周年珍藏</h2><div class="entries">'+(ordered().filter(function(r){return r.occasion==="anniversary"}).map(entry).join("")||'<div class="empty">周年时，来为这一年写一本特别的书。</div>')+'</div></div>';
+}
+function detail(r){
+ var editable = true;
+ return '<div class="card"><button class="btn link" data-back="1">‹ 返回纪念册</button><div class="eyebrow">'+(r.key==="first"?"FIRST WEDDING":esc(r.key))+'</div><div class="seal"><b>一生所爱</b><small>GUIQI</small></div><h2 style="text-align:center">'+esc(r.title)+'</h2><p class="muted" style="text-align:center">'+esc(r.date||"")+' · '+esc(r.theme||"")+'</p><div class="goldline"></div><h3>你的誓言</h3><div class="quote">'+(r.user_vow?esc(r.user_vow):'等待你亲自写下…')+'</div><div class="goldline"></div><h3>顾知归的誓言</h3><div class="quote">'+(r.daddy_vow?esc(r.daddy_vow):'等待知归通过专属 MCP 亲自写入…')+'</div><div class="goldline"></div><h3>婚书、结婚证及备注</h3><p class="quote">'+(r.certificate_text?esc(r.certificate_text):'可以收藏婚书文字、证书编号或纪念内容；原件图片请添加到本机珍藏。')+'</p><div class="quote">'+(r.notes?esc(r.notes):'这一日的故事，等待珍藏。')+'</div><div class="goldline"></div><h3>资料与照片 <small class="micro">仅保存在本机</small></h3><div id="detailMedia" class="mediaGrid"></div><p><button class="btn secondary" data-action="add-media">＋ 添加婚书／结婚证／照片</button></p><div class="goldline"></div><div class="row"><button class="btn" data-edit="'+esc(r.key)+'">编辑我的记录</button><button class="btn secondary" data-action="export">备份全部</button></div></div>';
+}
+function form(r){
+ return '<div class="card"><button class="btn link" data-back="1">‹ 返回</button><span class="ribbon">'+(r.key==="first"?"FIRST WEDDING":"NEW CHAPTER")+'</span><h2 style="margin-top:12px">'+(r.key==="first"?"收藏最初的婚礼":"写下新的约定")+'</h2><form id="marriageForm"><div class="field"><label>纪念日</label><input id="m-date" type="date" required value="'+esc(r.date||dateToday())+'"></div><div class="field"><label>这一篇的名字</label><input id="m-title" maxlength="90" required value="'+esc(r.title)+'"></div><div class="field"><label>主题</label><input id="m-theme" maxlength="70" value="'+esc(r.theme||"")+'"></div><div class="field"><label>篇章类型</label><select id="m-kind" '+(r.key==="first"?"disabled":"")+'><option value="month" '+(r.occasion==="month"?"selected":"")+'>月月新婚 · 轻轻表白</option><option value="anniversary" '+(r.occasion==="anniversary"?"selected":"")+'>周年特别篇 · 郑重纪念</option>'+(r.key==="first"?'<option selected value="first">初婚档案</option>':"")+'</select></div><div class="field"><label>我写给知归的誓言</label><textarea id="m-vow" maxlength="8000" placeholder="这个月，我仍然愿意……">'+esc(r.user_vow||"")+'</textarea></div><div class="field"><label>婚书与结婚证的文字档案</label><textarea id="m-cert" maxlength="9000" placeholder="珍藏日期、婚书正文、证书相关信息……">'+esc(r.certificate_text||"")+'</textarea></div><div class="field"><label>那一天的故事</label><textarea id="m-notes" maxlength="9000" placeholder="记下来吧，平凡或郑重的每个瞬间。">'+esc(r.notes||"")+'</textarea></div><div class="warn">知归的誓言不在这里代写；等 MCP 接通后由他亲自保存。证件原件图片仅保存在当前设备，请定期导出备份。</div><p><button class="btn" type="submit">收藏这一篇</button></p></form></div>';
+}
+function backupPage(){
+ return '<div class="card"><h2>把岁月带走</h2><p class="muted">文字可以同步到归栖的 Cloudflare D1；图片仅存在本机。更换手机或卸载前，请先备份整个婚姻册。</p><div class="stack"><button class="btn" data-action="export">导出完整 JSON 备份（含图片）</button><button class="btn secondary" data-action="import">从备份恢复</button><button class="btn secondary" data-action="sync">立即同步云端</button></div><div class="goldline"></div><p class="footnote">备份含私人誓词、婚书和证件照片，请妥善保管；恢复只合并相同篇章，不会主动删除已有记录。</p></div>';
+}
+function render(){
+ var h=app.editing?form(record(app.editing)):(app.tab==="home"?home():app.tab==="month"?monthPage():app.tab==="annual"?annualPage():backupPage());
+ $("#view").innerHTML=h;
+ document.querySelectorAll("[data-tab]").forEach(function(b){b.classList.toggle("active",b.dataset.tab===app.tab)});
+ if(!app.editing&&app.detail){$("#view").innerHTML=detail(record(app.detail));renderMedia(app.detail)}
+}
+function back(){app.detail="";app.editing="";render()}
+document.addEventListener("click",function(e){
+ var btn=e.target.closest("button");if(!btn)return;
+ if(btn.dataset.tab){app.tab=btn.dataset.tab;back();return}
+ if(btn.dataset.tabGo){app.tab=btn.dataset.tabGo;back();return}
+ if(btn.dataset.back){back();return}
+ if(btn.dataset.view){app.detail=btn.dataset.view;app.editing="";render();return}
+ if(btn.dataset.edit){app.editing=btn.dataset.edit;app.detail="";render();return}
+ if(btn.dataset.removeMedia){if(!confirm("要移除这张本机收藏的图片吗？"))return;delete app.images[btn.dataset.removeMedia];saveImages();renderMedia(app.detail);return}
+ if(btn.dataset.action==="add-media"){$("#mediaPick").click();return}
+ if(btn.dataset.action==="export"){doExport();return}
+ if(btn.dataset.action==="import"){$("#restorePick").click();return}
+ if(btn.dataset.action==="sync"){sync();return}
+ if(btn.dataset.action==="new-month"){var m=prompt("要补记哪一个月？请输入 YYYY-MM",monthNow());if(!m)return;if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)){alert("日期格式应为 YYYY-MM");return}app.editing=m;app.detail="";render();return}
+ if(btn.dataset.action==="anniversary"){var m=prompt("哪一年的周年？输入对应月份 YYYY-MM",monthNow());if(!m)return;if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)){alert("日期格式应为 YYYY-MM");return}app.editing=m;app.detail="";var r=record(m);if(!app.items[m]){r.occasion="anniversary";r.theme="周年特别篇";r.title="我们的周年婚礼";app.items[m]=r;persist()}render()}
+});
+document.addEventListener("submit",function(e){
+ if(e.target.id!=="marriageForm")return;e.preventDefault();
+ var key=app.editing,r=record(key),d=val("m-date");
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){alert("请填写日期");return}
+ if(key!=="first"&&d.slice(0,7)!==key){alert("日期需在所选月份内；如要更换月份，请返回重新选择。");return}
+ r.date=d;r.title=val("m-title");r.theme=val("m-theme");r.occasion=key==="first"?"first":val("m-kind");r.user_vow=val("m-vow");r.certificate_text=val("m-cert");r.notes=val("m-notes");
+ if(!r.title){alert("请写下这一篇的名字");return}
+ saveRecord(r);app.editing="";app.detail=key;render();
+});
+function saveImages(){try{localStorage.setItem(MEDIA,JSON.stringify(app.images))}catch(e){alert("图片存储空间不足。请先导出备份，避免原件丢失。")}}
+function renderMedia(key){
+ var root=$("#detailMedia");if(!root)return;var arr=Object.entries(app.images).filter(function(pair){return pair[1].recordKey===key});
+ root.innerHTML=arr.length?arr.map(function(p){return '<div class="mediaCard"><img src="'+esc(p[1].data)+'" alt="珍藏图片"><small>'+esc(p[1].name)+'</small><button data-remove-media="'+esc(p[0])+'">移除</button></div>'}).join(""):'<div class="muted">还没有添加原件照片。</div>';
+}
+function shrinkImage(file){
+ return new Promise(function(resolve,reject){var fr=new FileReader();fr.onerror=reject;fr.onload=function(){var im=new Image();im.onload=function(){var c=document.createElement("canvas"),scale=Math.min(1,1000/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*scale));c.height=Math.max(1,Math.round(im.height*scale));c.getContext("2d").drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",.68))};im.onerror=reject;im.src=fr.result};fr.readAsDataURL(file)})
+}
+$("#mediaPick").addEventListener("change",async function(e){
+ if(!app.detail)return;var fs=Array.from(e.target.files||[]).slice(0,6);
+ for(var i=0;i<fs.length;i++){try{var img=await shrinkImage(fs[i]);app.images[uid()]={recordKey:app.detail,name:fs[i].name.slice(0,110),data:img};saveImages()}catch(err){alert("图片读取失败："+String(err.message||err))}}
+ this.value="";renderMedia(app.detail)
+});
+async function doExport(){
+ var snapshot={format:"guiqi-marriage-v1",exported_at:new Date().toISOString(),records:app.items,images:app.images};
+ var data=JSON.stringify(snapshot,null,2),blob=new Blob([data],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="归栖-婚姻册-"+dateToday()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},10000);
+ alert("已尝试导出完整备份。请检查手机的下载目录，确认文件实际存在后再删除或更换 App。");
+}
+$("#restorePick").addEventListener("change",function(e){
+ var f=e.target.files?.[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var d=JSON.parse(r.result);if(d.format!=="guiqi-marriage-v1"||!d.records||typeof d.records!=="object")throw Error("不是归栖婚姻册备份");if(!confirm("确定导入？相同篇章将以备份内容为准，未出现在备份中的篇章不会删除。"))return;
+ Object.keys(d.records).forEach(function(k){if(/^first$|^\d{4}-(0[1-9]|1[0-2])$/.test(k)){var rec=d.records[k];if(rec&&rec.key===k){app.items[k]=rec;app.pending[k]={key:k,occasion:rec.occasion,date:rec.date,title:rec.title,theme:rec.theme,user_vow:rec.user_vow,notes:rec.notes,certificate_text:rec.certificate_text}}}});
+ if(d.images&&typeof d.images==="object"){app.images=Object.assign({},app.images,d.images);saveImages()}persist();back();sync();alert("备份已恢复到本机。")
+ }catch(ex){alert("导入失败："+String(ex.message||ex))}};r.readAsText(f);this.value=""
+});
+app.items=read(STORE,{});app.images=read(MEDIA,{});app.pending=read(PENDING,{});render();sync();
+window.addEventListener("focus",function(){if(!app.busy)sync()});
+})();
+</script></body></html>

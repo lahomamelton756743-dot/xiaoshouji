@@ -7,6 +7,9 @@ const db = new DatabaseSync(':memory:');
 const env = { DB: {prepare(sql){
   const stmt=db.prepare(sql);
   return {
+    run:async()=>stmt.run(),
+    all:async()=>({results:stmt.all()}),
+    first:async()=>stmt.get(),
     bind(...args){return {run:async()=>stmt.run(...args),all:async()=>({results:stmt.all(...args)}),first:async()=>stmt.get(...args)}}
   };
 }}};

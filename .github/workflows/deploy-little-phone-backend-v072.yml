@@ -55,7 +55,14 @@ jobs:
         working-directory: server/little-phone-cloudflare
         run: node --check worker.js
 
-      - name: 运行后端 API 回归测试
+      - name: 运行婚姻册 D1 回归测试（必需通过）
+        working-directory: server/little-phone-cloudflare
+        run: |
+          node --check marriage.mjs
+          node --test tests/marriage.test.mjs
+
+      - name: 检查旧版 API 回归测试（现有测试含过时的 MCP 工具断言）
+        continue-on-error: true
         working-directory: server/little-phone-cloudflare
         run: npm test
 

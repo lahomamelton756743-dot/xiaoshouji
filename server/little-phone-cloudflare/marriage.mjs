@@ -49,3 +49,18 @@ export async function saveDaddyMarriageVow(env,args={}){
  await env.DB.prepare("UPDATE lp_marriage_records SET daddy_vow=?,daddy_updated_at=?,updated_at=? WHERE key=?").bind(vow,now,now,key).run();
  return {ok:true,record:await env.DB.prepare("SELECT * FROM lp_marriage_records WHERE key=?").bind(key).first()};
 }
+
+export async function marriageDocuments(env,args={},write=false){
+ const key=String(args.key||"first");
+ if(!validKey(key))return inputError("invalid_month");
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS lp_marriage_documents (key TEXT NOT NULL, kind TEXT NOT NULL, content TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(key,kind))").run();
+ if(!write){const rows=await env.DB.prepare("SELECT * FROM lp_marriage_documents WHERE key=?").bind(key).all();return {ok:true,documents:rows.results||[]};}
+ const kind=String(args.kind||"");
+ if(!["letter","certificate"].includes(kind))return inputError("invalid_kind");
+ const fields=["name1","name2","date","text"];
+ const old=await env.DB.prepare("SELECT content FROM lp_marriage_documents WHERE key=? AND kind=?").bind(key,kind).first();
+ const data=old?JSON.parse(old.content):{};
+ for(const f of fields)if(typeof args[f]==="string")data[f]=trim(args[f],f==="text"?9000:120);
+ await env.DB.prepare("INSERT INTO lp_marriage_documents(key,kind,content,updated_at) VALUES(?,?,?,?) ON CONFLICT(key,kind) DO UPDATE SET content=excluded.content,updated_at=excluded.updated_at").bind(key,kind,JSON.stringify(data),iso()).run();
+ return {ok:true,key,kind,content:data};
+}

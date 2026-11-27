@@ -34,7 +34,13 @@ export async function dreamAction(env, action, args = {}) {
     const previousAnchors = (history.results || []).map(r => parse(r.seed_json)?.anchor).filter(Boolean);
     // No chat-derived elements are ingested unless explicitly supplied by caller.
     const recentElements = Array.isArray(args.recent_elements) ? args.recent_elements.filter(x => typeof x === "string").map(x => x.slice(0, 100)).slice(0, 12) : [];
-    const rolled = rollDreamSeed({ wish, recentElements, previousAnchors });
+    const recent = await env.DB.prepare("SELECT has_seed FROM lp_dream_sessions WHERE actor=? AND status='awake' ORDER BY created_at DESC LIMIT 5").bind(actor).all();
+    let consecutiveFailures = 0;
+    for (const row of recent.results || []) {
+      if (row.has_seed) break;
+      consecutiveFailures++;
+    }
+    const rolled = rollDreamSeed({ wish, recentElements, previousAnchors, consecutiveFailures });
     const dreamId = crypto.randomUUID();
     try {
       await env.DB.prepare("INSERT INTO lp_dream_sessions(id,actor,status,wish,seed_json,has_seed,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)")

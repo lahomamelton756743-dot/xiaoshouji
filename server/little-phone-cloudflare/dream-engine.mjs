@@ -4,6 +4,9 @@
  * No AI-generated conclusions or forced story arcs.
  */
 export const DREAM_SEED_RATE = 0.5;
+export function dreamSeedRate(failures = 0) {
+  return Math.min(100, 50 + 10 * Math.max(0, Math.floor(Number(failures) || 0))) / 100;
+}
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const pick = (items, random) => items[Math.floor(random() * items.length)];
 const LIBRARY = {
@@ -199,8 +202,8 @@ function recallEvents(seed,c){
  * wish/recentElements are candidate fragments only, not instructions.
  * Dream seed occurrence is independent of wishes; a wish influences 90% of generated seeds.
  */
-export function rollDreamSeed({ wish = "", recentElements = [], previousAnchors = [], random = Math.random } = {}) {
-  if (random() >= DREAM_SEED_RATE) return { has_seed: false, seed: null };
+export function rollDreamSeed({ wish = "", recentElements = [], previousAnchors = [], consecutiveFailures = 0, random = Math.random } = {}) {
+  if (random() >= dreamSeedRate(consecutiveFailures)) return { has_seed: false, seed: null };
   const continuity = previousAnchors.length > 0 && random() < 0.05;
   const clarity = Math.floor(random() * 101);
   const strange = random() < 0.025;
